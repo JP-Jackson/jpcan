@@ -1,0 +1,155 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600&family=Barlow+Semi+Condensed:wght@400;500;600&display=block" rel="stylesheet">
+<style>html,body{margin:0;background:#000}#w{position:relative;width:1024px;height:600px;background:radial-gradient(ellipse at 50% 45%,#0c1522,#060a11 60%,#010204)}
+#top{position:absolute;inset:0}#s{position:absolute;inset:0;width:1024px;height:600px}
+.ring{position:absolute;border-radius:50%;background:conic-gradient(from 10deg,#f4f6f9,#6a737f 10%,#d3d8df 20%,#262b33 33%,#8c95a1 45%,#f0f3f7 53%,#353c46 65%,#b5bcc6 77%,#1d2229 89%,#f4f6f9);box-shadow:0 0 0 1px #000,0 6px 18px #000}
+.ring::after{content:"";position:absolute;inset:0;border-radius:50%;background:repeating-conic-gradient(#fff0 0 .6deg,#ffffff10 .6deg 1.1deg),linear-gradient(#ffffff30,#0000 45%,#00000080)}</style></head>
+<body><div id="w"><div id="rings"></div><svg id="s" viewBox="0 0 1024 600" xmlns="http://www.w3.org/2000/svg"></svg><div id="top"></div></div>
+<script>
+const V={rpm:1.85,mph:64,gear:"6",cool:192,fuel:0.875,inst:18.6,tank:17.2,trip:15.8,boost:14,trans:168,oil:205,out:99};
+const F="Barlow",FC="Barlow Semi Condensed";
+const R=176,CY=306,L=206,RX=818,A0=150,SW=240;
+let o="",rg="",rt="";
+const ring=(cx,cy,ro,ri,up)=>{const h=`<div class="ring" style="left:${cx-ro}px;top:${cy-ro}px;width:${2*ro}px;height:${2*ro}px;-webkit-mask:radial-gradient(circle,#0000 ${ri-.5}px,#000 ${ri+.5}px)"></div>`;if(up)rt+=h;else rg+=h};const r2=d=>d*Math.PI/180;
+const pt=(cx,cy,r,a)=>[cx+r*Math.cos(r2(a)),cy+r*Math.sin(r2(a))];
+const arc=(cx,cy,r,a,b)=>{const p=pt(cx,cy,r,a),q=pt(cx,cy,r,b);return `M${p[0].toFixed(2)},${p[1].toFixed(2)} A${r},${r} 0 ${b-a>180?1:0} 1 ${q[0].toFixed(2)},${q[1].toFixed(2)}`};
+const T=(x,y,s,t,o2={})=>`<text x="${x}" y="${y}" font-family="${o2.f||F}" font-size="${s}" font-weight="${o2.w||400}" fill="${o2.c||'#e9eef5'}" text-anchor="${o2.a||'middle'}" letter-spacing="${o2.ls||0}" ${o2.x||''}>${t}</text>`;
+o+=`<defs>
+<radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="#0c1522"/><stop offset=".6" stop-color="#060a11"/><stop offset="1" stop-color="#010204"/></radialGradient>
+<radialGradient id="face" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#0e1826"/><stop offset=".75" stop-color="#070b12"/><stop offset="1" stop-color="#03050a"/></radialGradient>
+<linearGradient id="bez" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa6b6"/><stop offset=".35" stop-color="#3b4553"/><stop offset=".7" stop-color="#151a22"/><stop offset="1" stop-color="#4a5564"/></linearGradient>
+<linearGradient id="bez2" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#6d7888"/><stop offset=".5" stop-color="#1b212a"/><stop offset="1" stop-color="#2a323d"/></linearGradient>
+<radialGradient id="hub" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#162233"/><stop offset="1" stop-color="#05080d"/></radialGradient>
+<linearGradient id="ndl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3d12" stop-opacity=".2"/><stop offset=".55" stop-color="#ff5a1f"/><stop offset="1" stop-color="#ffd2b0"/></linearGradient>
+<linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#15202f" stop-opacity=".85"/><stop offset="1" stop-color="#070b12" stop-opacity=".9"/></linearGradient>
+<linearGradient id="glass" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".07"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<linearGradient id="barg" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#1b4f8c"/><stop offset="1" stop-color="#4fb0ff"/></linearGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>
+<filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>
+<filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="18"/></filter>
+<pattern id="mesh" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="none"/><circle cx="2" cy="2" r=".55" fill="#9fb6d6" fill-opacity=".05"/></pattern>
+</defs>
+<rect width="1024" height="600" fill="url(#mesh)"/>
+<ellipse cx="512" cy="300" rx="470" ry="150" fill="#1d4f8f" opacity=".16" filter="url(#soft)"/>
+<path d="M0,64 H1024" stroke="#8fb4e0" stroke-opacity=".08"/><path d="M0,540 H1024" stroke="#8fb4e0" stroke-opacity=".08"/>`;
+
+function dial(cx,max,val,o2){
+  const ang=v=>A0+SW*Math.min(Math.max(v/max,0),1);
+  let s="";
+  ring(cx,CY,R+19,R+6);
+  s+=`<circle cx="${cx}" cy="${CY}" r="${R+6}" fill="#000"/>`;
+  s+=`<circle cx="${cx}" cy="${CY}" r="${R+5}" fill="url(#face)"/>`;
+  s+=`<path d="${arc(cx,CY,R+2,205,335)}" fill="none" stroke="#7fb8ff" stroke-opacity=".22" stroke-width="2" filter="url(#glow2)"/>`;
+  // track
+  s+=`<path d="${arc(cx,CY,R-12,A0,A0+SW)}" fill="none" stroke="#111a26" stroke-width="9" stroke-linecap="butt"/>`;
+  // red zone
+  if(o2.red!=null){s+=`<path d="${arc(cx,CY,R-12,ang(o2.red),A0+SW)}" fill="none" stroke="#c4171c" stroke-width="9"/><path d="${arc(cx,CY,R-12,ang(o2.red),A0+SW)}" fill="none" stroke="#ff2a2a" stroke-opacity=".5" stroke-width="9" filter="url(#glow)"/>`}
+  // light trail
+  const av=ang(val);let tr="";
+  for(let a=A0;a<av;a+=1.5){const t=(a-A0)/(av-A0),b=Math.min(a+1.7,av);
+    tr+=`<path d="${arc(cx,CY,R-12,a,b)}" stroke="rgb(${40+90*t|0},${120+90*t|0},255)" stroke-opacity="${(.08+.85*t*t).toFixed(3)}"/>`}
+  s+=`<g fill="none" stroke-width="9">${tr}</g><g fill="none" stroke-width="9" filter="url(#glow)" opacity=".8">${tr}</g>`;
+  // ticks
+  const n=o2.minor;
+  for(let i=0;i<=max/n+1e-6;i++){const v=i*n,a=ang(v);const maj=Math.abs(v/o2.major-Math.round(v/o2.major))<1e-6,mid=Math.abs(v/o2.mid-Math.round(v/o2.mid))<1e-6;
+    const r0=R-22,r1=maj?R-40:mid?R-34:R-28,p=pt(cx,CY,r0,a),q=pt(cx,CY,r1,a);
+    const red=o2.red!=null&&v>=o2.red;
+    s+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="${red?(maj?'#ff4040':'#b02024'):(maj?'#eef3f9':mid?'#aab6c6':'#56637a')}" stroke-width="${maj?3:mid?2:1.2}" stroke-linecap="round"/>`;
+    if(maj){const c=pt(cx,CY,R-62,a);s+=T(c[0],c[1]+10,o2.numSize||29,o2.lab(v),{w:500,c:red?'#ff5050':'#e6ecf4'})}}
+  s+=T(cx,CY-112,11,o2.unit,{f:FC,w:500,c:'#7d8ba0',ls:2})
+  // needle
+  const nb=86,nt=R-16;
+  const poly=`${cx+nb},${CY-4.5} ${cx+nt},${CY-1.2} ${cx+nt+4},${CY} ${cx+nt},${CY+1.2} ${cx+nb},${CY+4.5}`;
+  s+=`<g transform="rotate(${av} ${cx} ${CY})"><polygon points="${poly}" fill="#ff4a14" opacity=".75" filter="url(#glow)"/><polygon points="${poly}" fill="url(#ndl)"/><line x1="${cx+nb+30}" y1="${CY}" x2="${cx+nt}" y2="${CY}" stroke="#fff" stroke-opacity=".75" stroke-width=".8"/></g>`;
+  // hub
+  s+=`<circle cx="${cx}" cy="${CY}" r="80" fill="#000" filter="url(#glow2)"/><circle cx="${cx}" cy="${CY}" r="78" fill="url(#hub)"/>`;ring(cx,CY,84,77.5,1);s+=`<circle cx="${cx}" cy="${CY}" r="72" fill="none" stroke="#4aa8ff" stroke-opacity=".25" stroke-width="1"/>`;
+  s+=`<path d="${arc(cx,CY,78,200,340)}" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="1"/>`;
+  s+=`<circle cx="${cx}" cy="${CY}" r="${R+4}" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="6" filter="url(#glow2)"/>`;
+  s+=`<path d="${arc(cx,CY,R+1,195,345)}" fill="none" stroke="#fff" stroke-opacity=".10" stroke-width="40" filter="url(#soft)"/>`;
+  return s;
+}
+function sub(cx,label,valTxt,frac,lo,hi,warnFrom){
+  const cy=CY+130,r=42,a0=140,sw=260,ang=f=>a0+sw*f;let s="";
+  s+=`<circle cx="${cx}" cy="${cy}" r="${r+9}" fill="#000" opacity=".8" filter="url(#glow2)"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#face)"/>`;ring(cx,cy,r+6,r-.5,1);
+  s+=`<path d="${arc(cx,cy,r-6,a0,a0+sw)}" fill="none" stroke="#1a2635" stroke-width="3"/>`;
+  if(warnFrom!=null)s+=`<path d="${arc(cx,cy,r-6,ang(warnFrom),a0+sw)}" fill="none" stroke="#d01e22" stroke-width="3"/>`;
+  else s+=`<path d="${arc(cx,cy,r-6,a0,ang(.12))}" fill="none" stroke="#d01e22" stroke-width="3"/>`;
+  s+=`<path d="${arc(cx,cy,r-6,a0,ang(frac))}" fill="none" stroke="#4fb0ff" stroke-width="3"/>`;
+  for(let i=0;i<=8;i++){const a=ang(i/8),p=pt(cx,cy,r-10,a),q=pt(cx,cy,r-(i%4?13:16),a);s+=`<line x1="${p[0]}" y1="${p[1]}" x2="${q[0]}" y2="${q[1]}" stroke="${i%4?'#6b788c':'#dfe6ef'}" stroke-width="${i%4?1:1.6}"/>`}
+  const lp=pt(cx,cy,r-20,a0+4),hp=pt(cx,cy,r-20,a0+sw-4);
+  s+=T(lp[0],lp[1]+4,9,lo,{f:FC,w:600,c:'#9aa7b9'})+T(hp[0],hp[1]+4,9,hi,{f:FC,w:600,c:'#9aa7b9'});
+  const av=ang(frac),np=`${cx+4},${cy-1.6} ${cx+r-12},${cy-.6} ${cx+r-10},${cy} ${cx+r-12},${cy+.6} ${cx+4},${cy+1.6}`;
+  s+=`<g transform="rotate(${av} ${cx} ${cy})"><polygon points="${np}" fill="#ff4a14" opacity=".7" filter="url(#glow2)"/><polygon points="${np}" fill="#ff6a30"/></g><circle cx="${cx}" cy="${cy}" r="3" fill="#1b2330" stroke="#8c96a3"/>`;
+  s+=T(cx,cy+25,13,valTxt,{w:600})+T(cx,cy+35,8,label,{f:FC,w:600,c:'#7d8ba0',ls:1.5});
+  return s;
+}
+function mini(cx,label,valTxt,frac,lo,hi,warnFrom){
+  let s="",w=150,n=12,g=3,sw=(w-(n-1)*g)/n,x0=cx-w/2,y=CY+130;
+  s+=T(cx,CY+116,10.5,label,{f:FC,w:500,c:'#7d8ba0',ls:2});
+  s+=T(cx-w/2-12,y+8,13,lo,{f:FC,w:500,c:'#9aa7b9'})+T(cx+w/2+12,y+8,13,hi,{f:FC,w:500,c:'#9aa7b9'});
+  for(let i=0;i<n;i++){const on=(i+0.5)/n<=frac,warn=warnFrom!=null&&i/n>=warnFrom;
+    s+=`<rect x="${(x0+i*(sw+g)).toFixed(1)}" y="${y}" width="${sw.toFixed(1)}" height="8" rx="1.5" fill="${on?(warn?'#ff5a3a':'#4fb0ff'):(warn?'#3a1416':'#152131')}"/>`}
+  s+=T(cx,y+32,15,valTxt,{w:500,c:'#e9eef5'});
+  return s;
+}
+// TACH
+o+=dial(L,5,V.rpm,{major:1,mid:.5,minor:.1,red:4,lab:v=>v,unit:"RPM ×1000"});
+o+=T(L,CY-30,11,"GEAR",{f:FC,w:500,c:'#7d8ba0',ls:2});
+o+=T(L,CY+34,74,V.gear,{w:500});
+o+=T(L,CY+56,14,"1,850 rpm",{f:FC,w:500,c:'#9aa7b9',ls:.5});
+o+=sub(L,"COOLANT","192°F",(192-100)/160,"C","H",.8);
+// SPEEDO
+o+=dial(RX,120,V.mph,{major:20,mid:10,minor:2,lab:v=>v,unit:""});
+o+=T(RX,CY+26,78,V.mph,{w:500,ls:-1});
+o+=T(RX,CY+50,13,"MPH",{f:FC,w:600,c:'#7d8ba0',ls:2.5});
+o+=T(RX,CY-34,12,"103 km/h",{f:FC,w:500,c:'#6f7d92',ls:.5});
+o+=sub(RX,"FUEL","88%",V.fuel,"E","F",null);
+// low-fuel style tick for E zone
+// CENTER CARD
+const X=402,W=220,Y=104,H=402;
+o+=`<rect x="${X}" y="${Y}" width="${W}" height="${H}" rx="16" fill="url(#card)" stroke="url(#bez)" stroke-opacity=".55"/>`;
+o+=`<path d="M${X+16},${Y+.5} H${X+W-16}" stroke="#bcd6ff" stroke-opacity=".25"/>`;
+o+=T(X+18,Y+30,11,"FUEL ECONOMY",{f:FC,w:600,c:'#8796ab',ls:2,a:'start'});
+[0,1,2].forEach(i=>o+=`<circle cx="${X+W-40+i*10}" cy="${Y+26}" r="2.6" fill="${i==0?'#4fb0ff':'#2b3747'}"/>`);
+o+=T(X+18,Y+86,50,V.inst.toFixed(1),{w:500,a:'start',ls:-.5});
+o+=T(X+122,Y+86,13,"MPG",{f:FC,w:600,c:'#7d8ba0',a:'start',ls:1.5});
+o+=T(X+122,Y+68,11,"INSTANT",{f:FC,w:500,c:'#5f6d82',a:'start',ls:1.5});
+// history bars
+const hist=[12,14,16,15,17,19,21,18,16,15,17,18,20,22,19,17,16,18,19,17,18,20,19,18.6];
+const bx=X+18,by=Y+170,bh=60,bw=6,bg=2.2,mx=26;
+const avgY=by-bh*V.tank/mx;
+hist.forEach((h,i)=>{const hh=bh*h/mx;o+=`<rect x="${(bx+i*(bw+bg)).toFixed(1)}" y="${(by-hh).toFixed(1)}" width="${bw}" height="${hh.toFixed(1)}" rx="1.2" fill="url(#barg)" opacity="${i==hist.length-1?1:.35+.4*i/hist.length}"/>`});
+o+=`<path d="M${bx},${avgY.toFixed(1)} H${X+W-18}" stroke="#e9eef5" stroke-opacity=".55" stroke-dasharray="3 3"/>`;
+o+=`<path d="M${bx},${by+.5} H${X+W-18}" stroke="#6d7d93" stroke-opacity=".4"/>`;
+o+=T(bx,by+16,10,"30 MIN",{f:FC,w:500,c:'#5f6d82',a:'start',ls:1});
+o+=T(X+W-18,by+16,10,"NOW",{f:FC,w:500,c:'#5f6d82',a:'end',ls:1});
+// tank / trip
+const cy2=Y+232;
+[["TANK AVG",V.tank],["TRIP A",V.trip]].forEach((c,i)=>{const x=X+18+i*100;
+  o+=T(x,cy2,10.5,c[0],{f:FC,w:500,c:'#7d8ba0',a:'start',ls:1.5});
+  o+=T(x,cy2+28,26,c[1].toFixed(1),{w:500,a:'start'})+T(x+54,cy2+28,11,"mpg",{f:FC,w:500,c:'#7d8ba0',a:'start'})});
+o+=`<path d="M${X+118},${cy2-10} V${cy2+32}" stroke="#7d9cc4" stroke-opacity=".18"/>`;
+o+=`<path d="M${X+18},${Y+282} H${X+W-18}" stroke="#7d9cc4" stroke-opacity=".18"/>`;
+// engine bars
+const rows=[["BOOST",V.boost,"psi",0,40,30],["TRANS",V.trans,"°F",100,260,225],["OIL",V.oil,"°F",100,280,250]];
+rows.forEach((r,i)=>{const y=Y+306+i*34,x=X+18,w=W-36,f=(r[1]-r[3])/(r[4]-r[3]),wf=(r[5]-r[3])/(r[4]-r[3]);
+  o+=T(x,y,10.5,r[0],{f:FC,w:500,c:'#7d8ba0',a:'start',ls:1.5});
+  o+=T(x+w-22,y+1,16,r[1],{w:500,a:'end'})+T(x+w,y+1,10.5,r[2],{f:FC,w:500,c:'#7d8ba0',a:'end'});
+  o+=`<rect x="${x}" y="${y+8}" width="${w}" height="4" rx="2" fill="#152131"/><rect x="${x+w*wf}" y="${y+8}" width="${w*(1-wf)}" height="4" rx="2" fill="#4a1518"/>`;
+  o+=`<rect x="${x}" y="${y+8}" width="${(w*f).toFixed(1)}" height="4" rx="2" fill="#4fb0ff"/><circle cx="${(x+w*f).toFixed(1)}" cy="${y+10}" r="3.2" fill="#dff0ff"/>`});
+// TOP BAR
+o+=T(36,42,24,"10:42",{w:500,a:'start'})+T(100,42,12,"PM",{f:FC,w:600,c:'#7d8ba0',a:'start',ls:1});
+o+=T(988,42,24,"99°",{w:500,a:'end'})+T(930,42,11,"OUTSIDE",{f:FC,w:500,c:'#7d8ba0',a:'end',ls:1.5});
+const chev=(x,d)=>`<path d="M${x},28 l${-14*d},10 l${14*d},10 v-6 h${10*d} v-8 h${-10*d} z" fill="none" stroke="#2fd36b" stroke-opacity=".28" stroke-width="1.6" stroke-linejoin="round"/>`;
+o+=chev(470,1)+chev(554,-1);
+o+=`<circle cx="512" cy="38" r="3" fill="#4fb0ff" opacity=".7"/>`;
+// BOTTOM BAR
+o+=T(36,578,11,"ODO",{f:FC,w:500,c:'#7d8ba0',a:'start',ls:1.5})+T(70,578,17,"148,197 mi",{w:500,a:'start'});
+o+=T(988,578,17,"212.4 mi",{w:500,a:'end'})+T(906,578,11,"TRIP A",{f:FC,w:500,c:'#7d8ba0',a:'end',ls:1.5});
+"PRNDM".split("").forEach((c,i)=>{const x=468+i*22,on=c=="D";
+  if(on)o+=`<rect x="${x-10}" y="${558}" width="20" height="26" rx="4" fill="#1d3550" stroke="#4fb0ff" stroke-opacity=".6"/>`;
+  o+=T(x,578,17,c,{w:on?600:500,c:on?'#ffffff':'#4a5668'})});
+// glass
+o+=`<rect width="1024" height="600" fill="url(#glass)"/>`;
+document.getElementById('s').innerHTML=o;document.getElementById('rings').innerHTML=rg;document.getElementById('top').innerHTML=rt;
+</script></body></html>
