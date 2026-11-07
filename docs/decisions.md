@@ -105,3 +105,13 @@ profile, the estimator switches off.
   Logs always stay raw.
 - The core's only MQTT inputs are trip_reset and fillup, and neither reaches
   the adapter.
+
+## D19. GaugeWorks pages and changeable slots
+Profiles define `gaugeworks.pages` built from templates: dash (Daily), quad
+(Towing), economy, and list (Diagnostic). Swipe between them, or tap a page
+dot. Gauge ranges and warn/alarm points live in a per-channel `display`
+table, so a channel looks right in any slot; channels without an entry get
+automatic ranges from their PID min/max. Press-and-hold any slot or tile (not
+a tap, so bumps on the road don't trigger it) to pick what it shows. Picks
+are saved per vehicle and page in settings.json, and "Reset page" restores
+the profile default. The picker hides PIDs the vehicle doesn't support.

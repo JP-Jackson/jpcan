@@ -86,6 +86,58 @@ def tile_config(key: str, info: dict, imperial: bool, window_mi: int = 10) -> di
             "verified": bool(info.get("verified", True)), "econ": key.startswith("econ_")}
 
 
+def auto_display(key: str, info: dict) -> dict:
+    """Gauge settings for a channel with no `display` entry: its own min/max."""
+    native = info.get("units", "")
+    lo = display(float(info.get("min", 0)), native, True)[0]
+    hi = display(float(info.get("max", 100)), native, True)[0]
+    if hi <= lo:
+        hi = lo + 1
+    return {"min": lo, "max": hi, "major": 0, "minor": 5,
+            "label": (info.get("short") or key).upper()}
+
+
+def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict) -> list[dict]:
+    """Profile pages + JP's per-slot picks -> concrete config for QML."""
+    ch = meta.get("channels", {})
+    gw = meta.get("gaugeworks") or {}
+    disp = gw.get("display") or {}
+    dual = gw.get("dual") or {}
+
+    def slot_cfg(key: str) -> dict:
+        if key in dual:
+            d = dual[key]
+            return {"dual": True, "key": key, "desired": d.get("desired"), "actual": d.get("actual"),
+                    "label": d.get("label", key.upper())}
+        if key not in ch:
+            return {"key": key, "missing": True}
+        g = {**(disp.get(key) or auto_display(key, ch[key])), "key": key}
+        return {**gauge_config(g, ch[key].get("units", ""), imperial), "verified": ch[key].get("verified", True)}
+
+    def tile_cfg(key: str) -> dict:
+        info = ch.get(f"econ_last{window_mi}" if key == "econ_last" else key, {})
+        return tile_config(key, info, imperial, window_mi)
+
+    pages = []
+    for p in gw.get("pages") or []:
+        ov = overrides.get(p.get("name", ""), {})
+        slots = {slot: slot_cfg(ov.get(slot, key)) for slot, key in (p.get("slots") or {}).items()}
+        tiles = [tile_cfg(ov.get(f"tile{i}", k)) for i, k in enumerate(p.get("tiles") or [])]
+        pages.append({"name": p.get("name", ""), "template": p.get("template", "dash"),
+                      "slots": slots, "tiles": tiles, "custom": bool(ov)})
+    return pages
+
+
+def picker_channels(meta: dict) -> list[dict]:
+    """Channels JP can put in a slot: everything except PIDs this vehicle lacks."""
+    ch = meta.get("channels", {})
+    skipped = set(meta.get("skipped") or [])
+    items = [{"key": k, "label": v.get("short") or k, "name": v.get("name", k),
+              "verified": v.get("verified", True)} for k, v in ch.items() if k not in skipped]
+    items.append({"key": "econ_last", "label": "Last N", "name": "Rolling economy (Last N)", "verified": True})
+    return sorted(items, key=lambda i: i["label"].lower())
+
+
 def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
     d = themes_dir / name
     if not (d / "theme.json").exists():
@@ -179,7 +231,8 @@ class Backend(QObject):
         meta = self.feed.meta or {}
         sig = (meta.get("profile"), json.dumps(meta.get("gaugeworks", {}), sort_keys=True),
                self._settings.get("units"), json.dumps(self._settings.get("shift_rpm", {})),
-               self._settings.get("econ_window_mi"))
+               self._settings.get("econ_window_mi"), json.dumps(self._settings.get("slots", {})),
+               len(meta.get("channels", {})))
         if sig != self._meta_sig and meta:
             self._meta_sig = sig
             self._rebuild_config(meta)
@@ -191,18 +244,17 @@ class Backend(QObject):
         imp = self._settings.get("units", "imperial") == "imperial"
         ch = meta.get("channels", {})
         gw = meta.get("gaugeworks") or {}
-        gauges = {}
-        for name, g in (gw.get("gauges") or {}).items():
-            if "desired" in g:  # dual (VGT)
-                gauges[name] = {"desired": g["desired"], "actual": g["actual"],
-                                "label": g.get("label", name.upper())}
-            elif g.get("key") in ch:
-                gauges[name] = gauge_config(g, ch[g["key"]].get("units", ""), imp)
         win = int(self._settings.get("econ_window_mi", 10))
-        tiles = [tile_config(k, ch.get(f"econ_last{win}" if k == "econ_last" else k, {}), imp, win)
-                 for k in (gw.get("tiles") or [])]
-        self._config = {"gauges": gauges, "tiles": tiles, "profile": meta.get("name", ""),
-                        "gear": gw.get("gear", "")}
+        prof = meta.get("profile", "")
+        overrides = (self._settings.get("slots") or {}).get(prof, {})
+        pages = build_pages(meta, imp, win, overrides)
+        status_keys = (meta.get("layouts") or {}).get("status") or []
+        diag = status_keys + sorted(k for k in ch if k not in status_keys)
+        self._config = {"pages": pages, "profile": meta.get("name", ""), "gear": gw.get("gear", ""),
+                        "channels": picker_channels(meta), "diag": [
+                            {"key": k, "name": ch[k].get("name", k),
+                             "units": display(0.0, ch[k].get("units", ""), imp)[1],
+                             "verified": ch[k].get("verified", True)} for k in diag if k in ch]}
         self.configChanged.emit()
 
     def _update_status(self, meta: dict) -> None:
@@ -280,6 +332,31 @@ class Backend(QObject):
         self._settings.setdefault("shift_rpm", {})[prof] = max(1000, min(8000, rpm))
         self._save()
         self.configChanged.emit()
+
+    currentPage = Property(int, lambda self: int(self._settings.get("page", 0)), notify=settingsChanged)
+
+    @Slot(int)
+    def setPage(self, index: int) -> None:
+        if int(self._settings.get("page", 0)) != index:
+            self._settings["page"] = int(index)
+            try:
+                settings_mod.save(self._settings)
+            except OSError:
+                pass
+
+    @Slot(str, str, str)
+    def setSlot(self, page: str, slot: str, key: str) -> None:
+        """JP picked a channel for one slot/tile; saved per vehicle profile and page."""
+        prof = (self.feed.meta or {}).get("profile", "")
+        slots = self._settings.setdefault("slots", {}).setdefault(prof, {}).setdefault(page, {})
+        slots[slot] = key
+        self._save()
+
+    @Slot(str)
+    def resetPage(self, page: str) -> None:
+        prof = (self.feed.meta or {}).get("profile", "")
+        (self._settings.get("slots") or {}).get(prof, {}).pop(page, None)
+        self._save()
 
     @Slot(bool)
     def setEconCorrected(self, on: bool) -> None:

@@ -69,12 +69,15 @@ class Profile:
     gear: dict = field(default_factory=dict)        # gear estimator config (ratios, axle, tire)
 
     def gauge_keys(self) -> list[str]:
-        """Every channel key the GaugeWorks layout uses."""
+        """Every channel key the GaugeWorks pages use by default (polled by the core)."""
         gw = self.gaugeworks or {}
-        keys = [g.get("key") for g in (gw.get("gauges") or {}).values()]
-        for g in (gw.get("gauges") or {}).values():
-            keys += [g.get("desired"), g.get("actual")]
-        keys += list(gw.get("tiles") or [])
+        dual = gw.get("dual") or {}
+        keys: list = []
+        for d in dual.values():
+            keys += [d.get("desired"), d.get("actual")]
+        for page in gw.get("pages") or []:
+            keys += [v for v in (page.get("slots") or {}).values() if v not in dual]
+            keys += list(page.get("tiles") or [])
         keys.append(gw.get("gear"))
         return [k for k in keys if k]
 
@@ -114,7 +117,9 @@ def _raw(name_or_path: str | Path, base_dir: Path, seen=()) -> dict:
     merged = {**base, **{k: v for k, v in data.items() if k != "pids"}}
     merged["pids"] = {**(base.get("pids") or {}), **(data.get("pids") or {})}
     merged["layouts"] = {**(base.get("layouts") or {}), **(data.get("layouts") or {})}
-    merged["gaugeworks"] = {**(base.get("gaugeworks") or {}), **(data.get("gaugeworks") or {})}
+    bgw, cgw = base.get("gaugeworks") or {}, data.get("gaugeworks") or {}
+    merged["gaugeworks"] = {**bgw, **cgw,
+                            "display": {**(bgw.get("display") or {}), **(cgw.get("display") or {})}}
     return merged
 
 

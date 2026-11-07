@@ -21,7 +21,7 @@ Rectangle {
         text: (t.cfg.label || "") + (t.cfg.verified === false ? "?" : "")
         color: t.colors.dim || "gray"
         font.family: t.theme ? t.theme.fonts.label : ""
-        font.pixelSize: 15
+        font.pixelSize: Math.max(15, t.height * 0.14)
     }
     Text {
         anchors.horizontalCenter: parent.horizontalCenter
@@ -30,7 +30,7 @@ Rectangle {
         text: !t.valid ? "--" : t.isMil ? (t.milOn ? "ON" : "OK") : t.value.toFixed(t.cfg.decimals || 0)
         color: t.isMil && t.valid ? (t.milOn ? t.colors.warn : t.colors.ok) : (t.colors.text || "white")
         font.family: t.theme ? t.theme.fonts.digits : ""
-        font.pixelSize: 30
+        font.pixelSize: Math.max(30, Math.min(t.height * 0.42, t.width * 0.24))
         font.bold: true
     }
     Text {  // fill-up corrected economy tag

@@ -1,16 +1,19 @@
-// GaugeWorks main screen, designed at 1024x600 and scaled to the window.
+// GaugeWorks main screen: swipeable pages built from profile templates,
+// designed at 1024x600 and scaled to the window.
 import QtQuick
 
 Rectangle {
     id: root
     readonly property var theme: backend.theme
     readonly property var cfg: backend.config
-    readonly property var gauges: cfg.gauges || ({})
+    readonly property var pages: cfg.pages || []
     readonly property var colors: theme.colors
     color: colors.background
 
-    function val(key) { var v = backend.values[key]; return v === undefined ? 0 : v }
-    function ok(key) { return key !== undefined && key !== "" && backend.fresh[key] === true }
+    function openPicker(pageName, slot, current) {
+        picker.pageName = pageName; picker.slotName = slot; picker.current = current
+        picker.visible = true
+    }
 
     Item {
         id: stage
@@ -18,14 +21,69 @@ Rectangle {
         anchors.centerIn: parent
         scale: Math.min(root.width / width, root.height / height)
 
+        // ---- pages (swipe left/right)
+        ListView {
+            id: pagesView
+            anchors.fill: parent
+            orientation: ListView.Horizontal
+            snapMode: ListView.SnapOneItem
+            highlightRangeMode: ListView.StrictlyEnforceRange
+            boundsBehavior: Flickable.StopAtBounds
+            highlightMoveDuration: 250
+            model: root.pages
+            interactive: !settings.visible && !picker.visible && !fillup.visible && !history.visible
+            onMovementEnded: backend.setPage(currentIndex)
+            onCountChanged: positionViewAtIndex(Math.min(backend.currentPage, Math.max(0, count - 1)), ListView.Beginning)
+            Component.onCompleted: positionViewAtIndex(backend.currentPage, ListView.Beginning)
+            delegate: Item {
+                id: pageItem
+                width: 1024; height: 600
+                required property var modelData
+                required property int index
+                Loader {
+                    id: loader
+                    anchors.fill: parent
+                    source: {
+                        var t = pageItem.modelData.template
+                        return t === "quad" ? "PageQuad.qml" : t === "economy" ? "PageEconomy.qml"
+                             : t === "list" ? "PageList.qml" : "PageDash.qml"
+                    }
+                    onLoaded: {
+                        item.theme = Qt.binding(function() { return root.theme })
+                        item.pg = Qt.binding(function() { return pageItem.modelData })
+                        item.gearKey = Qt.binding(function() { return root.cfg.gear || "" })
+                        if (item.diag !== undefined) item.diag = Qt.binding(function() { return root.cfg.diag || [] })
+                        item.pick.connect(function(slot, current) { root.openPicker(pageItem.modelData.name, slot, current) })
+                        if (item.openFillup) item.openFillup.connect(function() { fillup.visible = true })
+                        if (item.openHistory) item.openHistory.connect(function() { history.visible = true })
+                    }
+                }
+            }
+        }
+
         // ---- top bar
         Item {
             id: topBar
             width: parent.width; height: 44
-            Text {
-                x: 16; anchors.verticalCenter: parent.verticalCenter
-                text: backend.status.profile || "JpCAN"
-                color: colors.dim; font.family: theme.fonts.label; font.pixelSize: 18
+            Row {
+                x: 16; anchors.verticalCenter: parent.verticalCenter; spacing: 10
+                Text {
+                    text: root.pages.length ? root.pages[Math.max(0, pagesView.currentIndex)].name : "JpCAN"
+                    color: colors.text; font.family: theme.fonts.label; font.pixelSize: 20; font.bold: true
+                }
+                Row {
+                    spacing: 7; anchors.verticalCenter: parent.verticalCenter
+                    visible: root.pages.length > 1
+                    Repeater {
+                        model: root.pages.length
+                        Rectangle {
+                            width: 11; height: 11; radius: 6
+                            color: index === pagesView.currentIndex ? colors.accent : colors.panelBorder
+                            MouseArea { anchors.fill: parent; anchors.margins: -8
+                                        onClicked: { pagesView.currentIndex = index; backend.setPage(index) } }
+                        }
+                    }
+                }
             }
             Row {
                 anchors.centerIn: parent; spacing: 10
@@ -42,13 +100,13 @@ Rectangle {
             }
             Text {
                 id: clock
-                anchors.right: gear.left; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter
+                anchors.right: gearIcon.left; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter
                 color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 20
                 Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true
                         onTriggered: clock.text = Qt.formatTime(new Date(), "h:mm AP") }
             }
             Text {
-                id: gear
+                id: gearIcon
                 anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                 text: "⚙"
                 color: colors.text; font.pixelSize: 32
@@ -56,66 +114,7 @@ Rectangle {
             }
         }
 
-        // ---- main gauges
-        Gauge {
-            id: speedGauge
-            theme: root.theme; cfg: gauges.speed || ({})
-            visible: !!gauges.speed
-            x: 6; y: 60; width: 300; height: 300
-            value: val(cfg.key); valid: ok(cfg.key)
-        }
-        Gauge {
-            id: tach
-            theme: root.theme; cfg: gauges.tach || ({})
-            visible: !!gauges.tach
-            x: 512 - 190; y: 44; width: 380; height: 380
-            value: val(cfg.key); valid: ok(cfg.key)
-            shiftActive: backend.shift.enabled && valid && value >= backend.shift.rpm
-            readonly property bool hasGear: (root.cfg.gear || "") !== ""
-            bigText: hasGear ? (ok(root.cfg.gear) ? val(root.cfg.gear).toFixed(0) : "\u2013") : ""
-            bigDim: hasGear && !ok(root.cfg.gear)
-        }
-        Gauge {
-            id: boostGauge
-            theme: root.theme; cfg: gauges.boost || ({})
-            visible: !!gauges.boost
-            x: 1024 - 306; y: 60; width: 300; height: 300
-            value: val(cfg.key); valid: ok(cfg.key)
-        }
-
-        // ---- bottom row
-        Gauge {
-            theme: root.theme; cfg: gauges.coolant || ({})
-            visible: !!gauges.coolant
-            x: 8; y: 420; width: 172; height: 172
-            value: val(cfg.key); valid: ok(cfg.key)
-        }
-        Gauge {
-            theme: root.theme; cfg: gauges.trans || ({})
-            visible: !!gauges.trans
-            x: 180; y: 420; width: 172; height: 172
-            value: val(cfg.key); valid: ok(cfg.key)
-        }
-        Grid {
-            x: 362; y: 432; columns: 4; spacing: 8
-            Repeater {
-                model: cfg.tiles || []
-                Tile {
-                    width: 96; height: 76
-                    theme: root.theme; cfg: modelData
-                    value: val(modelData.key); valid: ok(modelData.key)
-                }
-            }
-        }
-        DualBar {
-            readonly property var c: gauges.vgt || ({})
-            visible: !!gauges.vgt
-            x: 780; y: 432; width: 236; height: 160
-            theme: root.theme; label: c.label || "VGT"
-            desired: val(c.desired); desiredValid: ok(c.desired)
-            actual: val(c.actual); actualValid: ok(c.actual)
-        }
-
+        // ---- overlays
         Settings {
             id: settings
             objectName: "settingsPanel"
@@ -140,6 +139,15 @@ Rectangle {
             anchors.fill: parent
             visible: false
             theme: root.theme; gw: backend
+            onClose: visible = false
+        }
+        Picker {
+            id: picker
+            objectName: "pickerPanel"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme
+            channels: root.cfg.channels || []
             onClose: visible = false
         }
 

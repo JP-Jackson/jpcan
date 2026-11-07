@@ -248,14 +248,31 @@ pids:
 layouts:
   status: [rpm, speed, coolant, ambient, fuel_level, mil, dtc_count, battery, map, baro, load]
 
-# GaugeWorks layout. Ranges/thresholds are in IMPERIAL display units; metric
-# mode converts them. warn/alarm: value at or above (or `below: true`).
+# GaugeWorks. `display`: per-channel gauge settings in IMPERIAL display units
+# (metric mode converts). Any slot showing that channel uses them; channels
+# without an entry get automatic ranges. warn/alarm = value at or above.
+# `pages`: swipeable screens built from templates (dash, quad, economy, list).
+# Slots and tiles can be changed on the screen by tapping them.
 gaugeworks:
-  gauges:
-    tach:    {key: rpm, min: 0, max: 7000, major: 1000, minor: 5, label: RPM, scale: 0.001, scale_label: "x1000", warn: 6000, alarm: 6500}
-    speed:   {key: speed, min: 0, max: 140, major: 20, minor: 4, label: SPEED}
-    boost:   {key: boost, min: 0, max: 30, major: 5, minor: 5, label: BOOST}
-    coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 240}
-    trans:   {key: iat, min: 0, max: 200, major: 50, minor: 5, label: IAT}
-  tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
-
+  display:
+    rpm:          {min: 0, max: 7000, major: 1000, minor: 5, label: RPM, scale: 0.001, scale_label: "x1000", warn: 6000, alarm: 6500}
+    speed:        {min: 0, max: 140, major: 20, minor: 4, label: SPEED}
+    boost:        {min: 0, max: 30, major: 5, minor: 5, label: BOOST}
+    map:          {min: 0, max: 40, major: 5, minor: 5, label: MAP}
+    coolant:      {min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 240}
+    iat:          {min: 0, max: 200, major: 50, minor: 5, label: IAT}
+    oil_temp_std: {min: 100, max: 300, major: 50, minor: 5, label: OIL, warn: 250, alarm: 270}
+    fuel_level:   {min: 0, max: 100, major: 25, minor: 5, label: FUEL}
+    battery:      {min: 10, max: 16, major: 1, minor: 5, label: VOLTS}
+    load:         {min: 0, max: 100, major: 20, minor: 4, label: LOAD}
+  pages:
+    - name: Daily
+      template: dash
+      slots: {left: speed, center: rpm, right: boost, small1: coolant, small2: iat}
+      tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
+    - name: Economy
+      template: economy
+      slots: {gauge: fuel_level}
+      tiles: [econ_inst, econ_tank, econ_trip, econ_last]
+    - name: Diagnostic
+      template: list

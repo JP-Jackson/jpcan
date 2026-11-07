@@ -143,7 +143,8 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
-    ap.add_argument("--panel", choices=["settings", "fillup", "history"], help="open a panel (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker"], help="open a panel (screenshots)")
+    ap.add_argument("--page", type=int, help="start on this page index (screenshots)")
     args = ap.parse_args(argv)
 
     from PySide6.QtCore import QObject, QTimer, QUrl
@@ -164,6 +165,8 @@ def main(argv=None) -> int:
 
     from core import settings as settings_mod
     st = settings_mod.load() if not args.screenshot else {**settings_mod.DEFAULTS}
+    if args.page is not None:
+        st["page"] = args.page
     backend = Backend(feed, st)
     view = QQuickView()
     view.setTitle("GaugeWorks")
