@@ -49,7 +49,7 @@ def test_values_scale_through_profile(stack):
     egts = [read(elm, prof, k) for k in ("egt11", "egt12", "egt13", "egt14")]
     assert egts == sorted(egts, reverse=True)
     assert 0 < read(elm, prof, "vgt_actual") <= 100
-    assert 20 <= read(elm, prof, "coolant") <= 90
+    assert 20 <= read(elm, prof, "coolant2") <= 90
     assert read(elm, prof, "engine_hours") == pytest.approx(3712.4, abs=0.1)
     assert read(elm, prof, "def_level") == pytest.approx(72, abs=0.5)
 
@@ -59,4 +59,4 @@ def test_unsupported_paths(stack):
     with pytest.raises(NoData):
         elm.read("01", "05")                 # 0105 unsupported, like the truck
     with pytest.raises(NegativeResponse):
-        read(elm, prof, "odometer_dd01")     # unknown DID -> NRC 31
+        elm.read("22", "F470", "7E0")        # unknown DID -> NRC 31

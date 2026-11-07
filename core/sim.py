@@ -92,7 +92,7 @@ MODE01: dict[int, Callable[[dict], bytes]] = {
     0x5C: lambda s: _u8(s["oil"] + 40),
     0x87: lambda s: b"\x01" + _u16(s["map"] * 32) + b"\x00\x00",
     0x5E: lambda s: _u16(s["fuel_rate"] * 20),
-    0x67: lambda s: b"\x01" + _u8(s["coolant"] + 40) + b"\x00",
+    0x67: lambda s: b"\x03" + _u8(s["trans"] + 40) + _u8(s["coolant"] + 40),  # B low-temp loop, C engine
     0x6D: lambda s: b"\x03" + _u16(s["rail_des"] * 10) + _u16(s["rail_act"] * 10) + bytes(6),
     0x71: lambda s: b"\x07" + _u8(s["vgt_des"] * 2.55) + _u8(s["vgt_act"] * 2.55) + bytes(3),
     0x77: lambda s: b"\x01" + _u8(s["iat"] + 25 + 40) + bytes(3),
@@ -107,6 +107,7 @@ MODE01: dict[int, Callable[[dict], bytes]] = {
 # (header, DID) -> encoder(state)
 MODE22: dict[tuple[str, int], Callable[[dict], bytes]] = {
     ("720", 0x404C): lambda s: int(s["odo_km"] * 10).to_bytes(3, "big"),
+    ("7E0", 0xDD01): lambda s: int(s["odo_km"]).to_bytes(3, "big"),
     ("7E1", 0x1E1C): lambda s: int(s["trans"] * 16).to_bytes(2, "big", signed=True),
     ("7E0", 0xF470): lambda s: b"\x01" + _u16(s["map"] * 32) + _u16(s["map"] * 32),
     ("7E0", 0xF471): lambda s: b"\x03" + _u8(s["vgt_des"] * 2.55) + _u8(s["vgt_act"] * 2.55),

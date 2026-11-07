@@ -126,21 +126,22 @@ def cmd_scan22(args) -> int:
         for p in s.profile.pids.values():
             if p.verified:
                 continue
-            key = (p.header, p.request)
+            hdr = s.profile.header_for(p)
+            key = (hdr, p.request)
             if key not in seen:
                 try:
-                    seen[key] = s.elm.read(p.service, p.pid, p.header)
+                    seen[key] = s.elm.read(p.service, p.pid, hdr)
                 except ElmError as e:
                     seen[key] = e
             data = seen[key]
             if isinstance(data, Exception):
-                print(f"  {p.header} {p.request:8} {p.name:32} FAIL  {data}")
+                print(f"  {hdr} {p.request:8} {p.name:32} FAIL  {data}")
                 continue
             try:
                 v, u = fmt(p.formula(data), p.units, not args.metric)
             except Exception as e:  # noqa: BLE001 - show any scaling issue
                 v, u = f"err:{e}", ""
-            print(f"  {p.header} {p.request:8} {p.name:32} OK    {data.hex(' ').upper():24} -> {v} {u}")
+            print(f"  {hdr} {p.request:8} {p.name:32} OK    {data.hex(' ').upper():24} -> {v} {u}")
         print(f"\nGuard: {s.guard.sent} sent, {s.guard.blocked} blocked")
     finally:
         s.close()

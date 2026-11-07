@@ -58,10 +58,16 @@ class Profile:
     shift: dict = field(default_factory=lambda: {"enabled": False, "rpm": 3000})
     match: dict = field(default_factory=dict)
     layouts: dict[str, list[str]] = field(default_factory=dict)
+    obd_header: str = "7DF"   # where 7DF (broadcast) PIDs are actually sent
+
+    def header_for(self, p: "Pid") -> str:
+        """Physical header for a PID: broadcast entries go to obd_header."""
+        return self.obd_header if p.header == "7DF" else p.header
 
     @property
     def extra_headers(self) -> set[str]:
-        return {p.header for p in self.pids.values()} | set(self.headers.values())
+        return ({p.header for p in self.pids.values()} | set(self.headers.values())
+                | {self.obd_header})
 
     def matches_vin(self, vin: str | None) -> bool:
         if not vin or len(vin) != 17 or not self.match:
@@ -113,7 +119,8 @@ def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Pro
     prof = Profile(id=data.get("id", Path(str(name_or_path)).stem), name=data.get("name", ""),
                    pids=pids, headers={k: _s(v) for k, v in (data.get("headers") or {}).items()},
                    shift=data.get("shift") or {"enabled": False, "rpm": 3000},
-                   match=data.get("match") or {}, layouts=data.get("layouts") or {})
+                   match=data.get("match") or {}, layouts=data.get("layouts") or {},
+                   obd_header=_s(data.get("obd_header", "7DF")))
     _validate(prof)
     return prof
 

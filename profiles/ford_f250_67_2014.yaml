@@ -16,6 +16,10 @@ match:
   year: "E"        # VIN position 10: 2014
   engine: "T"      # VIN position 8: 6.7L diesel (unverified)
 
+# Mode 01 goes to the PCM directly (7E0) with a response count, not broadcast:
+# broadcast on this truck gave intermittent NO DATA (several modules answer).
+obd_header: "7E0"
+
 headers:
   pcm: "7E0"
   tcm: "7E1"
@@ -120,6 +124,22 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 67; truck lacks PID 05 (bitmap 2026-11-07)
+    notes: Idle read 26 C, same as CACT and trans; may be the secondary (low-temp) loop.
+
+  coolant2:
+    short: Coolant2
+    name: Coolant temp (sensor 2)
+    service: "01"
+    pid: "67"
+    header: "7DF"
+    formula: "C-40"
+    units: "°C"
+    min: -40
+    max: 130
+    poll_rate: slow
+    verified: false
+    source: SAE J1979 PID 67 sensor 2
+    notes: Idle read 65 C a few min after start; likely engine (primary) coolant.
 
   map_wide:
     short: MAP
@@ -149,6 +169,7 @@ pids:
     poll_rate: fast
     verified: false
     source: SAE J1979 PID 71 (VGT A commanded); same bytes seen via 22F471
+    notes: "Idle 2026-11-07: raw 07 61 C0 -> 38% cmd vs 75% pos. Check FORScan."
 
   vgt_actual:
     short: VGT act
@@ -191,6 +212,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 78 sensor 1; Ford naming per thedieselstop 6.7 list
+    notes: "Idle 2026-11-07: raw 0F 0190 0190 1324 1324 -> 0 C / 450 C. Not plausible; check FORScan."
 
   egt12:
     short: EGT12
@@ -289,7 +311,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 85 (NOx reagent system) byte F, from memory
-    notes: Byte position unconfirmed; compare to dash DEF gauge.
+    notes: "Byte position unconfirmed; read 0% at idle 2026-11-07 (raw 0F then all 00)."
 
   # ---- Ford Mode 22 -------------------------------------------------------
   soot_mass:
@@ -308,6 +330,6 @@ pids:
     notes: Answered 1.9 g/L key-on (2026-11-07).
 
 layouts:
-  status: [rpm, speed, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
+  status: [rpm, speed, coolant2, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
            map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass, def_level,
            mil, dtc_count]

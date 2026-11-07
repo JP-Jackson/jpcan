@@ -49,7 +49,7 @@ class Poller:
         self._last_slow = 0.0
 
     def is_skipped(self, p: Pid) -> bool:
-        return (self.supported is not None and p.service == "01" and p.header == "7DF"
+        return (self.supported is not None and p.service == "01"
                 and int(p.pid, 16) not in self.supported)
 
     def _due(self, p: Pid, now: float, slow_due: bool) -> bool:
@@ -77,10 +77,11 @@ class Poller:
                     if value is None:
                         raise ElmError("no voltage")
                 else:
-                    k = (p.header, p.request)
+                    hdr = self.profile.header_for(p)
+                    k = (hdr, p.request)
                     if k not in cache:
                         try:
-                            cache[k] = self.elm.read(p.service, p.pid, p.header)
+                            cache[k] = self.elm.read(p.service, p.pid, hdr)
                         except ElmError as e:
                             cache[k] = e
                     if isinstance(cache[k], Exception):

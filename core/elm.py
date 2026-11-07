@@ -111,6 +111,8 @@ class Elm:
     # -- requests --------------------------------------------------------
     def request(self, cmd: str, header: str = "7DF", timeout: float = 1.0) -> dict[str, bytes]:
         self.set_header(header)
+        if header.upper() != "7DF":
+            cmd += "1"  # physical request: one responder, STN returns as soon as it answers
         frames = parse_frames(self.port.query(cmd, timeout))
         if not frames:
             raise NoData(cmd)

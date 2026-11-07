@@ -50,7 +50,7 @@ def test_read_prefers_7e8_and_strips_echo():
 
 
 def test_read_mode22_sets_header_and_filter():
-    elm, t = make({"22404C": "7280662404C01ABCD"}, headers={"720"})
+    elm, t = make({"22404C1": "7280662404C01ABCD"}, headers={"720"})
     assert elm.read("22", "404C", "720") == bytes.fromhex("01ABCD")
     assert t.sent[:2] == ["ATSH720", "ATCRA728"]
     elm.read("22", "404C", "720")
@@ -58,7 +58,7 @@ def test_read_mode22_sets_header_and_filter():
 
 
 def test_negative_response():
-    elm, _ = make({"22DD01": "7E803 7F2231".replace(" ", "")})
+    elm, _ = make({"22DD011": "7E803 7F2231".replace(" ", "")})
     with pytest.raises(NegativeResponse) as e:
         elm.read("22", "DD01", "7E0")
     assert e.value.nrc == 0x31
@@ -82,3 +82,11 @@ def test_vin():
     reply = "7E81014490201314654\r7E82137573242543045\r7E82245413132333435"
     elm, _ = make({"0902": reply})
     assert elm.vin() == "1FT7W2BT0EEA12345"
+
+
+def test_physical_requests_get_response_count_broadcast_does_not():
+    elm, t = make({"010C1": "7E804410C1AF8", "010C": "7E804410C1AF8"})
+    elm.read("01", "0C", "7E0")
+    elm.read("01", "0C", "7DF")
+    obd = [c for c in t.sent if not c.startswith("AT")]
+    assert obd == ["010C1", "010C"]

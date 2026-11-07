@@ -15,7 +15,7 @@ class CountingSim(SimTransport):
     def write(self, data):
         cmd = data.decode().strip()
         if not cmd.startswith(("AT", "ST")):
-            self.obd.append(cmd)
+            self.obd.append(cmd[:-1] if len(cmd) % 2 else cmd)  # drop response-count digit
         super().write(data)
 
 
@@ -45,11 +45,11 @@ def test_unsupported_mode01_skipped():
 
 
 def test_once_and_backoff():
-    p, sim, bus = setup(["odometer", "odometer_dd01"])
+    p, sim, bus = setup(["odometer", "trans_temp_pcm"])
     sim.obd.clear()
     for _ in range(5):
         p._last_slow = 0  # force slow due
         p.cycle()
     assert sim.obd.count("22404C") == 1          # once: read a single time
-    assert sim.obd.count("22DD01") == p.max_fails  # then backs off
-    assert bus.latest()["odometer_dd01"].error
+    assert sim.obd.count("221E1C") == p.max_fails  # NRC 31 via PCM, then backs off
+    assert bus.latest()["trans_temp_pcm"].error
