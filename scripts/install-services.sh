@@ -14,7 +14,7 @@ CONFIG=/boot/firmware/config.txt
 CMDLINE=/boot/firmware/cmdline.txt
 
 echo "== packages (first run downloads Qt, ~100 MB; give it a few minutes)"
-apt-get install -y -q mosquitto mosquitto-clients \
+apt-get install -y -q mosquitto mosquitto-clients fbset \
     libegl1 libgles2 libgbm1 libdrm2 libinput10 libmtdev1 libxkbcommon0 \
     libfontconfig1 fonts-dejavu-core >/dev/null
 systemctl enable --now mosquitto >/dev/null
@@ -69,7 +69,7 @@ Conflicts=getty@tty1.service
 User=$USER_NAME
 WorkingDirectory=$REPO
 Environment=TERM=linux LANG=C.UTF-8
-ExecStartPre=+/usr/bin/setfont -C /dev/tty1 $FONT
+ExecStartPre=+$REPO/scripts/console-to-spi.sh
 ExecStart=$VENV/bin/jpcan live --bus
 StandardInput=tty
 StandardOutput=tty
