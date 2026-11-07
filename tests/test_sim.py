@@ -34,8 +34,8 @@ def test_init_and_identity(stack):
 
 def test_supported_pids(stack):
     s = stack[0].supported_pids()
-    assert {0x0C, 0x0D, 0x46, 0x87} <= s
-    assert 0x5E not in s and 0x7F not in s
+    assert {0x0C, 0x0D, 0x46, 0x67, 0x78, 0x87, 0x7F} <= s
+    assert 0x05 not in s and 0x0B not in s   # like JP's truck
 
 
 def test_values_scale_through_profile(stack):
@@ -49,11 +49,14 @@ def test_values_scale_through_profile(stack):
     egts = [read(elm, prof, k) for k in ("egt11", "egt12", "egt13", "egt14")]
     assert egts == sorted(egts, reverse=True)
     assert 0 < read(elm, prof, "vgt_actual") <= 100
+    assert 20 <= read(elm, prof, "coolant") <= 90
+    assert read(elm, prof, "engine_hours") == pytest.approx(3712.4, abs=0.1)
+    assert read(elm, prof, "def_level") == pytest.approx(72, abs=0.5)
 
 
 def test_unsupported_paths(stack):
     elm, prof, _ = stack
     with pytest.raises(NoData):
-        read(elm, prof, "engine_hours")      # 017F unsupported in sim
+        elm.read("01", "05")                 # 0105 unsupported, like the truck
     with pytest.raises(NegativeResponse):
         read(elm, prof, "odometer_dd01")     # unknown DID -> NRC 31

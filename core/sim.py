@@ -81,8 +81,6 @@ def _u8(v: float) -> bytes:
 MODE01: dict[int, Callable[[dict], bytes]] = {
     0x01: lambda s: bytes([0x00, 0x07, 0xE5, 0x00]),          # MIL off, 0 DTCs
     0x04: lambda s: _u8(s["load"] * 255 / 100),
-    0x05: lambda s: _u8(s["coolant"] + 40),
-    0x0B: lambda s: _u8(s["map"]),
     0x0C: lambda s: _u16(s["rpm"] * 4),
     0x0D: lambda s: _u8(s["speed"]),
     0x0F: lambda s: _u8(s["iat"] + 40),
@@ -93,9 +91,18 @@ MODE01: dict[int, Callable[[dict], bytes]] = {
     0x46: lambda s: _u8(s["ambient"] + 40),
     0x5C: lambda s: _u8(s["oil"] + 40),
     0x87: lambda s: b"\x01" + _u16(s["map"] * 32) + b"\x00\x00",
+    0x5E: lambda s: _u16(s["fuel_rate"] * 20),
+    0x67: lambda s: b"\x01" + _u8(s["coolant"] + 40) + b"\x00",
+    0x6D: lambda s: b"\x03" + _u16(s["rail_des"] * 10) + _u16(s["rail_act"] * 10) + bytes(6),
+    0x71: lambda s: b"\x07" + _u8(s["vgt_des"] * 2.55) + _u8(s["vgt_act"] * 2.55) + bytes(3),
+    0x77: lambda s: b"\x01" + _u8(s["iat"] + 25 + 40) + bytes(3),
+    0x78: lambda s: b"\x0F" + b"".join(_u16((e + 40) * 10) for e in s["egt"]),
+    0x7F: lambda s: b"\x07" + int(s["hours"] * 3600).to_bytes(4, "big") + bytes(8),
+    0x85: lambda s: b"\x1F" + bytes(4) + _u8(72 * 2.55) + bytes(4),
+    0x8B: lambda s: bytes([0x07, s["regen"], 0x00, 0x00, 0x00, 0x00, 0x00]),
 }
-# Note: 0x5E (fuel rate) and 0x7F (engine hours) deliberately unsupported,
-# like an older diesel; exercises the fallback paths.
+# Mirrors JP's 2014 F-250 bitmap: no PID 05 (coolant) or 0B (MAP); coolant
+# comes from 67 and MAP from 87.
 
 # (header, DID) -> encoder(state)
 MODE22: dict[tuple[str, int], Callable[[dict], bytes]] = {

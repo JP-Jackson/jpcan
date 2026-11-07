@@ -40,7 +40,7 @@ pids:
     poll_rate: once
     verified: false
     source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-37.html
-    notes: Poster reported it matched the dash. Medium confidence.
+    notes: Read 148,200.5 mi on JP's truck 2026-11-07; awaiting dash compare.
 
   odometer_dd01:
     short: Odo DD01
@@ -54,8 +54,8 @@ pids:
     max: 16000000
     poll_rate: once
     verified: false
-    source: Generic Ford DID convention; no 6.7 source found
-    notes: Low confidence. Scaling may be /10.
+    source: Generic Ford DID convention; answered on JP's truck 2026-11-07
+    notes: Integer km. Matched 404C within 0.4 mi (148,200.1 vs 148,200.5).
 
   trans_temp:
     short: Trans
@@ -103,162 +103,195 @@ pids:
     notes: Low confidence it's supported on 2014. Compare to cluster engine hours.
 
   # ---- Phase 1 candidates ----------------------------------------------
+  # ---- Standard SAE extended PIDs this truck advertises -----------------
+  # 2026-11-07 truck bitmap (key on, engine off) lists 67 71 77 78 5C 5E 6D 87
+  # 8B 85, so these replace the F4xx mirror guesses. Scaling is per SAE J1979,
+  # but byte layouts stay verified: false until confirmed on a drive.
+  coolant:
+    short: Coolant
+    name: Coolant temp (sensor 1)
+    service: "01"
+    pid: "67"
+    header: "7DF"
+    formula: "B-40"
+    units: "°C"
+    min: -40
+    max: 130
+    poll_rate: slow
+    verified: false
+    source: SAE J1979 PID 67; truck lacks PID 05 (bitmap 2026-11-07)
+
   map_wide:
-    short: MAP wide
-    name: MAP (wide range)
+    short: MAP
+    name: MAP abs (wide range)
     service: "01"
     pid: "87"
-    header: "7E0"
+    header: "7DF"
     formula: "((B*256)+C)/32"
     units: kPa
     min: 0
     max: 400
     poll_rate: fast
     verified: false
-    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
-    notes: Boost = map_wide - baro.
-
-  boost_desired:
-    short: Boost des
-    name: Boost desired (abs)
-    service: "22"
-    pid: "F470"
-    header: "7E0"
-    formula: "((B*256)+C)/32"
-    units: kPa
-    min: 0
-    max: 400
-    poll_rate: fast
-    verified: false
-    source: SAE PID 70 layout, F4xx mirror (derived)
+    source: SAE J1979 PID 87; key-on read 97.9 kPa = baro (2026-11-07)
+    notes: Boost = map_wide - baro. Truck lacks PID 0B.
 
   vgt_desired:
     short: VGT des
-    name: VGT vane desired
-    service: "22"
-    pid: "F471"
-    header: "7E0"
+    name: VGT vane commanded
+    service: "01"
+    pid: "71"
+    header: "7DF"
     formula: "B*100/255"
     units: "%"
     min: 0
     max: 100
     poll_rate: fast
     verified: false
-    source: SAE PID 71 layout, F4xx mirror (derived)
-    notes: Ford WDS shows % closed. No 6.7 2011-16 source found.
+    source: SAE J1979 PID 71 (VGT A commanded); same bytes seen via 22F471
 
   vgt_actual:
     short: VGT act
-    name: VGT vane actual
-    service: "22"
-    pid: "F471"
-    header: "7E0"
+    name: VGT vane position
+    service: "01"
+    pid: "71"
+    header: "7DF"
     formula: "C*100/255"
     units: "%"
     min: 0
     max: 100
     poll_rate: fast
     verified: false
-    source: SAE PID 71 layout, F4xx mirror (derived)
+    source: SAE J1979 PID 71 (VGT A position)
+
+  cact:
+    short: CAC temp
+    name: Charge air cooler outlet temp
+    service: "01"
+    pid: "77"
+    header: "7DF"
+    formula: "B-40"
+    units: "°C"
+    min: -40
+    max: 215
+    poll_rate: slow
+    verified: false
+    source: SAE J1979 PID 77 (bank 1 sensor 1)
 
   egt11:
     short: EGT11
     name: EGT11 (post-turbo)
-    service: "22"
-    pid: "F478"
-    header: "7E0"
+    service: "01"
+    pid: "78"
+    header: "7DF"
     formula: "((B*256)+C)/10-40"
     units: "°C"
     min: -40
     max: 1000
     poll_rate: slow
     verified: false
-    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+    source: SAE J1979 PID 78 sensor 1; Ford naming per thedieselstop 6.7 list
 
   egt12:
     short: EGT12
     name: EGT12 (post-DOC)
-    service: "22"
-    pid: "F478"
-    header: "7E0"
+    service: "01"
+    pid: "78"
+    header: "7DF"
     formula: "((D*256)+E)/10-40"
     units: "°C"
     min: -40
     max: 1000
     poll_rate: slow
     verified: false
-    source: same as egt11
+    source: SAE J1979 PID 78 sensor 2
 
   egt13:
     short: EGT13
     name: EGT13 (pre-DPF)
-    service: "22"
-    pid: "F478"
-    header: "7E0"
+    service: "01"
+    pid: "78"
+    header: "7DF"
     formula: "((F*256)+G)/10-40"
     units: "°C"
     min: -40
     max: 1000
     poll_rate: slow
     verified: false
-    source: same as egt11
+    source: SAE J1979 PID 78 sensor 3
 
   egt14:
     short: EGT14
     name: EGT14 (post-DPF)
-    service: "22"
-    pid: "F478"
-    header: "7E0"
+    service: "01"
+    pid: "78"
+    header: "7DF"
     formula: "((H*256)+I)/10-40"
     units: "°C"
     min: -40
     max: 1000
     poll_rate: slow
     verified: false
-    source: same as egt11
-
-  rail_actual:
-    short: Rail act
-    name: Fuel rail pressure actual
-    service: "22"
-    pid: "F46D"
-    header: "7E0"
-    formula: "((D*256)+E)/10"
-    units: bar
-    min: 0
-    max: 2200
-    poll_rate: fast
-    verified: false
-    source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-18.html
+    source: SAE J1979 PID 78 sensor 4
 
   rail_desired:
     short: Rail des
-    name: Fuel rail pressure desired
-    service: "22"
-    pid: "F46D"
-    header: "7E0"
+    name: Fuel rail pressure commanded
+    service: "01"
+    pid: "6D"
+    header: "7DF"
     formula: "((B*256)+C)/10"
     units: bar
     min: 0
     max: 2200
     poll_rate: fast
     verified: false
-    source: SAE PID 6D layout (derived from same response)
+    source: SAE J1979 PID 6D; 22F46D key-on read 300 bar desired (2026-11-07)
 
-  oil_temp:
-    short: Oil
-    name: Engine oil temp
-    service: "22"
-    pid: "F45C"
-    header: "7E0"
-    formula: "A-40"
-    units: "°C"
-    min: -40
-    max: 210
+  rail_actual:
+    short: Rail act
+    name: Fuel rail pressure actual
+    service: "01"
+    pid: "6D"
+    header: "7DF"
+    formula: "((D*256)+E)/10"
+    units: bar
+    min: 0
+    max: 2200
+    poll_rate: fast
+    verified: false
+    source: SAE J1979 PID 6D; 22F46D key-on read 6 bar (lift pump) (2026-11-07)
+
+  regen_active:
+    short: Regen
+    name: DPF regen in progress
+    service: "01"
+    pid: "8B"
+    header: "7DF"
+    formula: "B&1"
+    units: ""
+    min: 0
+    max: 1
     poll_rate: slow
     verified: false
-    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+    source: SAE J1979 PID 8B byte B bit 0
 
+  def_level:
+    short: DEF
+    name: DEF tank level
+    service: "01"
+    pid: "85"
+    header: "7DF"
+    formula: "F*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: slow
+    verified: false
+    source: SAE J1979 PID 85 (NOx reagent system) byte F, from memory
+    notes: Byte position unconfirmed; compare to dash DEF gauge.
+
+  # ---- Ford Mode 22 -------------------------------------------------------
   soot_mass:
     short: Soot
     name: DPF soot load
@@ -272,21 +305,9 @@ pids:
     poll_rate: slow
     verified: false
     source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
-
-  regen_active:
-    short: Regen
-    name: DPF regen active
-    service: "22"
-    pid: "F48B"
-    header: "7E0"
-    formula: "B&1"
-    units: ""
-    min: 0
-    max: 1
-    poll_rate: slow
-    verified: false
-    source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids.html
+    notes: Answered 1.9 g/L key-on (2026-11-07).
 
 layouts:
-  status: [rpm, speed, ambient, fuel_level, mil, dtc_count, battery, odometer,
-           trans_temp, engine_hours, coolant, map, baro, load]
+  status: [rpm, speed, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
+           map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass, def_level,
+           mil, dtc_count]

@@ -33,15 +33,15 @@ def test_shared_request_polled_once_per_cycle():
     p, sim, bus = setup(["egt11", "egt12", "egt13", "egt14"])
     sim.obd.clear()
     p.cycle()
-    assert sim.obd.count("22F478") == 1
+    assert sim.obd.count("0178") == 1
     assert all(bus.latest()[k].value is not None for k in ("egt11", "egt14"))
 
 
 def test_unsupported_mode01_skipped():
-    p, sim, _ = setup(["engine_hours", "rpm"])
+    p, sim, _ = setup(["map", "rpm"])      # base 010B: truck lacks it
     sim.obd.clear()
     p.cycle()
-    assert "017F" not in sim.obd and "010C" in sim.obd
+    assert "010B" not in sim.obd and "010C" in sim.obd
 
 
 def test_once_and_backoff():
