@@ -126,7 +126,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 67; truck lacks PID 05 (bitmap 2026-11-07)
-    notes: Idle read 26 C, same as CACT and trans; may be the secondary (low-temp) loop.
+    notes: "Live engine coolant: 26 C at start, climbed 51->60 C over ~10 min idle (2026-11-07)."
 
   coolant2:
     short: Coolant2
@@ -141,7 +141,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 67 sensor 2
-    notes: Idle read 65 C a few min after start; likely engine (primary) coolant.
+    notes: "Fixed at 65.0 C on every read (2026-11-07) - placeholder on JP's tuned truck?"
 
   map_wide:
     short: MAP
@@ -171,7 +171,7 @@ pids:
     poll_rate: fast
     verified: false
     source: SAE J1979 PID 71 (VGT A commanded); same bytes seen via 22F471
-    notes: "Idle 2026-11-07: raw 07 61 C0 -> 38% cmd vs 75% pos. Check FORScan."
+    notes: "Position tracks RPM (52% @600, 41% @920, 28% @1545, 2026-11-07). Cmd/pos meaning: check FORScan."
 
   vgt_actual:
     short: VGT act
@@ -214,7 +214,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 78 sensor 1; Ford naming per thedieselstop 6.7 list
-    notes: "Idle 2026-11-07: raw 0F 0190 0190 1324 1324 -> 0 C / 450 C. Not plausible; check FORScan."
+    notes: "Fixed 0 C (raw 0190) on every read 2026-11-07; sensors 3/4 fixed 450 C. Placeholders? Check what's installed."
 
   egt12:
     short: EGT12
@@ -332,6 +332,6 @@ pids:
     notes: Answered 1.9 g/L key-on (2026-11-07).
 
 layouts:
-  status: [rpm, speed, coolant2, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
+  status: [rpm, speed, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
            map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]

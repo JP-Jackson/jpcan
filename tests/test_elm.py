@@ -50,7 +50,7 @@ def test_read_prefers_7e8_and_strips_echo():
 
 
 def test_read_mode22_sets_header_and_filter():
-    elm, t = make({"22404C1": "7280662404C01ABCD"}, headers={"720"})
+    elm, t = make({"22404C": "7280662404C01ABCD", "22404C1": "7280662404C01ABCD"}, headers={"720"})
     assert elm.read("22", "404C", "720") == bytes.fromhex("01ABCD")
     assert t.sent[:2] == ["ATSH720", "ATCRA728"]
     elm.read("22", "404C", "720")
@@ -59,7 +59,7 @@ def test_read_mode22_sets_header_and_filter():
 
 
 def test_negative_response():
-    elm, _ = make({"22DD011": "7E803 7F2231".replace(" ", "")})
+    elm, _ = make({"22DD01": "7E803 7F2231".replace(" ", "")})
     with pytest.raises(NegativeResponse) as e:
         elm.read("22", "DD01", "7E0")
     assert e.value.nrc == 0x31
@@ -85,12 +85,20 @@ def test_vin():
     assert elm.vin() == "1FT7W2BT0EEA12345"
 
 
-def test_physical_requests_get_response_count_broadcast_does_not():
-    elm, t = make({"010C1": "7E804410C1AF8", "010C": "7E804410C1AF8"})
-    elm.read("01", "0C", "7E0")
-    elm.read("01", "0C", "7DF")
+def test_fast_path_learned_only_for_single_frame_physical():
+    mf = "7E8100F417F070010EF\r7E82100047E6C00\r7E822000035 0D".replace(" ", "")
+    elm, t = make({"010C": "7E804410C1AF8", "010C1": "7E804410C1AF8", "017F": mf})
+    for _ in range(2):
+        elm.read("01", "0C", "7E0")   # 1st normal, 2nd fast (learned single frame)
+        elm.read("01", "7F", "7E0")   # multi-frame: never fast
+        elm.read("01", "0C", "7DF")   # broadcast: never fast
     obd = [c for c in t.sent if not c.startswith("AT")]
-    assert obd == ["010C1", "010C"]
+    assert obd == ["010C", "017F", "010C", "010C1", "017F", "010C"]
+
+
+def test_truncated_multiframe_is_dropped():
+    # First frame only (what the truck returned for 017F with count digit)
+    assert parse_frames("7E810 0F 41 7F 07 00 10 EF".replace(" ", "")) == {}
 
 
 def test_filter_set_explicitly_for_every_header():

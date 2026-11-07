@@ -164,6 +164,7 @@ class SimTransport:
         if cmd.startswith("ST"):
             return {"I": "STN2230 v5.10.3 (JpCAN sim)", "DI": "OBDLink EX r1.0 (sim)",
                     "SN": "SIM000001"}.get(cmd[2:], "OK")
+        self._count1 = len(cmd) % 2 == 1 and cmd.endswith("1")
         return self._obd(bytes.fromhex(cmd[: len(cmd) // 2 * 2]))
 
     def _at(self, a: str) -> str:
@@ -232,6 +233,8 @@ class SimTransport:
             while rest:
                 frames.append(bytes([0x20 | (seq & 0x0F)]) + rest[:7])
                 rest, seq = rest[7:], seq + 1
+        if getattr(self, "_count1", False):
+            frames = frames[:1]  # like the STN: response count 1 = stop after first frame
         lines = []
         for f in frames:
             data = f if self.headers else f[1:]

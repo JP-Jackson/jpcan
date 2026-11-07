@@ -69,3 +69,16 @@ def test_pcm_reads_after_cluster_read(stack):
     assert read(elm, prof, "fuel_level") > 0   # back to PCM: filter must move to 7E8
     read(elm, prof, "trans_temp")          # 7E1
     assert read(elm, prof, "rpm") > 0
+
+
+def test_multiframe_pids_complete(stack):
+    """Regression (truck 2026-11-07): 017F and 016D cut off after first frame."""
+    elm, prof, _ = stack
+    from core.bus import Bus
+    from core.poller import Poller
+
+    bus = Bus()
+    Poller(elm, prof, bus, keys=["engine_hours", "rail_actual", "egt14", "rpm"]).cycle()
+    got = bus.latest()
+    assert all(got[k].error == "" for k in got), {k: got[k].error for k in got}
+    assert got["engine_hours"].value == pytest.approx(3712.4, abs=0.1)

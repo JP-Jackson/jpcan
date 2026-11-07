@@ -62,7 +62,9 @@ def parse_frames(reply: str) -> dict[str, bytes]:
             out[cid] = bytearray(frame[2:])
         elif kind == 2 and cid in out:  # consecutive frame
             out[cid] += frame[1:]
-    return {cid: bytes(buf[:total.get(cid, len(buf))]) for cid, buf in out.items()}
+    # Drop incomplete multi-frame messages rather than return truncated data.
+    return {cid: bytes(buf[:total[cid]]) for cid, buf in out.items()
+            if len(buf) >= total.get(cid, 0)}
 
 
 @dataclass
@@ -77,6 +79,7 @@ class Elm:
     def __init__(self, port: GuardedPort):
         self.port = port
         self.header: str | None = None
+        self._single: dict[tuple[str, str], bool] = {}  # learned: reply fits one frame
 
     # -- adapter-local ---------------------------------------------------
     def at(self, cmd: str, timeout: float = 1.0) -> str:
@@ -120,26 +123,36 @@ class Elm:
         self.header = header
 
     # -- requests --------------------------------------------------------
-    def request(self, cmd: str, header: str = "7DF", timeout: float = 1.0) -> dict[str, bytes]:
+    def request(self, cmd: str, header: str = "7DF", timeout: float = 1.0,
+                single_frame: bool = False) -> dict[str, bytes]:
         self.set_header(header)
-        if header.upper() != "7DF":
-            cmd += "1"  # physical request: one responder, STN returns as soon as it answers
+        if single_frame and header.upper() != "7DF":
+            # Response-count digit: STN returns after the first frame instead of
+            # waiting out the timeout. Only safe when the reply fits in ONE frame
+            # (truck 2026-11-07: 017F/016D were cut off after the first frame).
+            cmd += "1"
         frames = parse_frames(self.port.query(cmd, timeout))
         if not frames:
             raise NoData(cmd)
         return frames
 
     def read(self, service: str, pid: str, header: str = "7DF", timeout: float = 1.0) -> bytes:
-        """Return data bytes after the echoed service/PID. Raises NoData/NegativeResponse."""
+        """Return data bytes after the echoed service/PID. Raises NoData/NegativeResponse.
+
+        The first read of each request waits normally; if the reply turned out
+        to fit in one CAN frame, later reads use the fast single-frame path.
+        """
         svc = int(service, 16)
         echo = bytes.fromhex(pid)
-        frames = self.request(f"{service}{pid}", header, timeout)
+        key = (header.upper(), f"{service}{pid}")
+        frames = self.request(key[1], header, timeout, single_frame=self._single.get(key, False))
         neg = None
         for cid in sorted(frames):
             p = frames[cid]
             if len(p) >= 3 and p[0] == 0x7F and p[1] == svc:
                 neg = NegativeResponse(svc, p[2])
             elif p[:1] == bytes([svc + 0x40]) and p[1:1 + len(echo)] == echo:
+                self._single.setdefault(key, len(p) <= 7)  # learned from a full reply
                 return p[1 + len(echo):]
         raise neg or NoData(f"{service}{pid}")
 
