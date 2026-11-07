@@ -66,14 +66,27 @@ Type **only** `ATZ`, `ATI`, `STI` and `ATRV`. picocom bypasses
 
 ## 8. Install JpCAN
 ```bash
-git clone https://github.com/JP-Jackson/jpcan.git && cd jpcan
+git clone -b phase0 https://github.com/JP-Jackson/jpcan.git && cd jpcan
 ```
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e .
 ```
+Bench test with no truck (simulator):
 ```bash
-.venv/bin/jpcan probe --port /dev/ttyUSB0
+.venv/bin/jpcan live --sim
 ```
+In the truck, key on:
+```bash
+.venv/bin/jpcan probe --trace probe.jsonl
+```
+```bash
+.venv/bin/jpcan scan22 --trace scan22.jsonl
+```
+```bash
+.venv/bin/jpcan live
+```
+`?` marks unverified PIDs. Compare them to the dash and FORScan. The
+`--trace` files hold every request and reply, so send them back for review.
 
 Your user is already in the `dialout` group on Pi OS, so it can open the
 serial port.
