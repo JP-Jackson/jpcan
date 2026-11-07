@@ -1,0 +1,19 @@
+# Third-party repos cloned for study only
+reference/*
+!reference/README.md
+
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+build/
+dist/
+
+# Runtime output
+logs/
+traces/
+*.sqlite
+*.db
+settings.local.json
