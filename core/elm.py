@@ -103,9 +103,15 @@ class Elm:
         header = header.upper()
         if header == self.header:
             return
-        self.at(f"ATSH{header}")
-        # Non-OBD modules reply on (request id + 8); OBD range uses default filter.
-        self.at("ATCRA" if header in OBD_HEADERS else f"ATCRA{int(header, 16) + 8:03X}")
+        # Always set an explicit receive filter: bare "ATCRA" (reset) isn't
+        # supported by all firmware (JP's STN2232 v5.9.5 left it stuck on 728).
+        # Broadcast 7DF listens to the PCM (7E8); physical IDs reply on id + 8.
+        rx = "7E8" if header == "7DF" else f"{int(header, 16) + 8:03X}"
+        self.header = None  # unknown state until both commands succeed
+        for cmd in (f"ATSH{header}", f"ATCRA{rx}"):
+            reply = self.at(cmd)
+            if "OK" not in reply:
+                raise ElmError(f"adapter rejected {cmd}: {reply!r}")
         self.header = header
 
     # -- requests --------------------------------------------------------

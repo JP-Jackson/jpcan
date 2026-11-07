@@ -60,3 +60,12 @@ def test_unsupported_paths(stack):
         elm.read("01", "05")                 # 0105 unsupported, like the truck
     with pytest.raises(NegativeResponse):
         elm.read("22", "1234", "7E0")        # unknown DID -> NRC 31
+
+
+def test_pcm_reads_after_cluster_read(stack):
+    """Regression (truck 2026-11-07): after a 720 read, PCM reads must still work."""
+    elm, prof, now = stack
+    read(elm, prof, "odometer")            # header 720, filter 728
+    assert read(elm, prof, "fuel_level") > 0   # back to PCM: filter must move to 7E8
+    read(elm, prof, "trans_temp")          # 7E1
+    assert read(elm, prof, "rpm") > 0

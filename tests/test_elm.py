@@ -54,6 +54,7 @@ def test_read_mode22_sets_header_and_filter():
     assert elm.read("22", "404C", "720") == bytes.fromhex("01ABCD")
     assert t.sent[:2] == ["ATSH720", "ATCRA728"]
     elm.read("22", "404C", "720")
+    elm.read("22", "404C", "720")
     assert t.sent.count("ATSH720") == 1  # header cached
 
 
@@ -90,3 +91,22 @@ def test_physical_requests_get_response_count_broadcast_does_not():
     elm.read("01", "0C", "7DF")
     obd = [c for c in t.sent if not c.startswith("AT")]
     assert obd == ["010C1", "010C"]
+
+
+def test_filter_set_explicitly_for_every_header():
+    elm, t = make({}, headers={"720"})
+    for h in ("7DF", "7E1", "720", "7E0"):
+        elm.set_header(h)
+    pairs = [c for c in t.sent if c.startswith(("ATSH", "ATCRA"))]
+    assert pairs == ["ATSH7DF", "ATCRA7E8", "ATSH7E1", "ATCRA7E9",
+                     "ATSH720", "ATCRA728", "ATSH7E0", "ATCRA7E8"]
+    assert "ATCRA" not in t.sent  # never the bare reset
+
+
+def test_rejected_header_raises_and_forgets_state():
+    from core.elm import ElmError
+
+    elm, _ = make({"ATCRA7E8": "?"})
+    with pytest.raises(ElmError):
+        elm.set_header("7E0")
+    assert elm.header is None
