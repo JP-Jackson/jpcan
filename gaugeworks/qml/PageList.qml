@@ -8,6 +8,7 @@ Item {
     property var diag: []
     property string gearKey: ""
     signal pick(string slot, string current)
+    signal resetAsk(string kind)
     function val(k) { var v = backend.values[k]; return v === undefined ? 0 : v }
     function ok(k) { return k !== undefined && k !== "" && backend.fresh[k] === true }
     function fmt(v) {

@@ -6,7 +6,7 @@ Topics (prefix `jpcan/`):
   meta             retained    profile, VIN, channel info, layouts, shift
   status           retained    state, hint lines, rate, guard counters; LWT = offline
   fuel/history     retained    fill-up history, lifetime stats, correction factor
-  cmd/trip_reset   reset trip distance / fuel / trip average
+  cmd/trip_reset   payload "trip" (default): trip distance/fuel/average; "roll": Last N
   cmd/fillup       {"gallons": 18.2, "price": 3.459} log a fill-up (validated)
                    These two are the ONLY inputs the core accepts. Nothing from MQTT
                    ever reaches the adapter: the core subscribes to nothing else.
@@ -76,7 +76,7 @@ class MqttPublisher:
     """Core side: forwards bus readings, meta and status to the broker."""
 
     def __init__(self, bus: Bus, host: str = "localhost", port: int = 1883,
-                 on_trip_reset: Callable[[], None] | None = None,
+                 on_trip_reset: Callable[[str], None] | None = None,
                  on_fillup: Callable[..., object] | None = None):
         self.bus = bus
         self._on_fillup = on_fillup
@@ -108,7 +108,8 @@ class MqttPublisher:
 
     def _on_message(self, client, userdata, msg):
         if msg.topic == T_TRIP_RESET and self._on_trip_reset:
-            self._on_trip_reset()
+            kind = msg.payload.decode("ascii", "replace").strip()
+            self._on_trip_reset("roll" if kind == "roll" else "trip")
         elif msg.topic == T_FILLUP and self._on_fillup:
             try:
                 d = json.loads(msg.payload)
@@ -178,8 +179,8 @@ class MqttFeed:
         except (ValueError, TypeError):
             pass  # ignore malformed messages
 
-    def trip_reset(self) -> None:
-        self.c.publish(T_TRIP_RESET, b"1", qos=1)
+    def trip_reset(self, kind: str = "trip") -> None:
+        self.c.publish(T_TRIP_RESET, kind.encode(), qos=1)
 
     def fillup(self, gallons: float, price: float | None = None) -> None:
         self.c.publish(T_FILLUP, json.dumps({"gallons": gallons, "price": price}), qos=1)

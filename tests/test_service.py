@@ -90,7 +90,7 @@ def test_core_over_mqtt(tmp_path, broker):
     from core.fuelbook import FuelHub
 
     hub = FuelHub()
-    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.reset, on_fillup=hub.fillup)
+    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.handle_reset, on_fillup=hub.fillup)
     th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), pub, bus, stop, trip, hub),
                           daemon=True)
     th.start()
@@ -107,6 +107,9 @@ def test_core_over_mqtt(tmp_path, broker):
         assert wait_for(lambda: trip.trip.secs > 0.5)
         feed.trip_reset()
         assert wait_for(lambda: trip.trip.secs < 0.5)
+        trip._s_dist, trip._s_fuel = [0.0, 50.0], [0.0, 5.0]   # pretend 30 mi of history
+        feed.trip_reset("roll")                                 # Last N reset over MQTT
+        assert wait_for(lambda: len(trip._s_dist) == 1)
         feed.fillup(20.0, 3.459)                                 # baseline fill
         assert wait_for(lambda: len(feed.fuel.get("rows", [])) == 1)
         feed.fillup(500, 3.0)                                    # rejected: out of range

@@ -104,3 +104,20 @@ def test_state_survives_restart(tmp_path):
     assert again.rolling(10) == pytest.approx(trip.rolling(10), rel=1e-3)
     path.write_text("{corrupt")                  # bad file -> fresh start, no crash
     TripComputer(Bus()).attach(path)
+
+
+def test_rolling_reset_and_handle_reset():
+    bus, clock = Bus(), [0.0]
+    trip = TripComputer(bus, clock=lambda: clock[0])
+    feed(bus, clock, 900, 96.56, 12.0)                 # 15 mi
+    assert trip.rolling(10) is not None
+    tank_before, trip_before = trip.tank.dist_km, trip.trip.dist_km
+    trip.handle_reset("roll")
+    assert trip.rolling(5) is None and trip.rolling(10) is None
+    assert bus.latest()["econ_last10"].value is None   # screen shows '--' right away
+    assert trip.tank.dist_km == tank_before and trip.trip.dist_km == trip_before
+    feed(bus, clock, 360, 96.56, 12.0)                 # 6 more miles
+    assert trip.rolling(5) is not None and trip.rolling(10) is None
+    trip.handle_reset("trip")
+    assert trip.trip.dist_km == 0 and trip.tank.dist_km > 0
+    assert bus.latest()["econ_trip"].value is None

@@ -10,6 +10,15 @@ Rectangle {
     readonly property var colors: theme.colors
     color: colors.background
 
+    function askReset(kind) {
+        confirm.kind = kind
+        confirm.title = kind === "roll" ? "Reset Last " + backend.econWindow + " average?" : "Reset trip average?"
+        confirm.message = kind === "roll"
+            ? "The rolling average starts over and shows -- until you've driven " + backend.econWindow + " miles."
+            : "Trip miles, fuel used and the trip average start over.\nTank average and fill-up history are not affected."
+        confirm.visible = true
+    }
+
     function openPicker(pageName, slot, current) {
         picker.pageName = pageName; picker.slotName = slot; picker.current = current
         picker.visible = true
@@ -32,7 +41,7 @@ Rectangle {
             highlightMoveDuration: 250
             model: root.pages
             interactive: !settings.visible && !picker.visible && !fillup.visible && !history.visible
-                         && !exportPanel.visible
+                         && !exportPanel.visible && !confirm.visible
             onMovementEnded: backend.setPage(currentIndex)
             onCountChanged: positionViewAtIndex(Math.min(backend.currentPage, Math.max(0, count - 1)), ListView.Beginning)
             Component.onCompleted: positionViewAtIndex(backend.currentPage, ListView.Beginning)
@@ -55,6 +64,7 @@ Rectangle {
                         item.gearKey = Qt.binding(function() { return root.cfg.gear || "" })
                         if (item.diag !== undefined) item.diag = Qt.binding(function() { return root.cfg.diag || [] })
                         item.pick.connect(function(slot, current) { root.openPicker(pageItem.modelData.name, slot, current) })
+                        item.resetAsk.connect(function(kind) { root.askReset(kind) })
                         if (item.openFillup) item.openFillup.connect(function() { fillup.visible = true })
                         if (item.openHistory) item.openHistory.connect(function() { history.visible = true })
                     }
@@ -205,6 +215,16 @@ Rectangle {
             visible: false
             theme: root.theme; gw: backend
             onClose: visible = false
+        }
+        Confirm {
+            id: confirm
+            objectName: "confirmPanel"
+            property string kind: "trip"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme
+            onAccepted: { backend.resetEcon(kind); visible = false }
+            onRejected: visible = false
         }
         Picker {
             id: picker

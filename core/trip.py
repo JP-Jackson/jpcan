@@ -123,7 +123,27 @@ class TripComputer:
         """Trip reset (JP's button)."""
         self.trip = Acc()
         self._last_pub = 0.0
+        self._publish_clear(["econ_trip"])  # show '--' until there's new data
         self.save()
+
+    def reset_rolling(self) -> None:
+        """Last-N reset: forget the window; shows '--' until N miles are driven again."""
+        self._s_dist = [self.cum_dist]
+        self._s_fuel = [self.cum_fuel]
+        self._last_pub = 0.0
+        self._publish_clear([f"econ_last{n}" for n in ROLL_WINDOWS_MI])
+        self.save()
+
+    def handle_reset(self, kind: str = "trip") -> None:
+        """MQTT trip_reset payload: 'roll' resets Last N, anything else the trip."""
+        if kind == "roll":
+            self.reset_rolling()
+        else:
+            self.reset()
+
+    def _publish_clear(self, keys) -> None:
+        for k in keys:
+            self.bus.publish(Reading(k, None, CHANNELS[k].units, time.time(), "reset"))
 
     def reset_tank(self) -> None:
         """Called by the fuel book after a fill-up is logged."""

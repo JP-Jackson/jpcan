@@ -8,6 +8,7 @@ Item {
     property var pg: ({})
     property string gearKey: ""
     signal pick(string slot, string current)
+    signal resetAsk(string kind)
     readonly property var sl: pg.slots || ({})
 
     SlotView { x: 6; y: 60; width: 300; height: 300; theme: p.theme; cfg: p.sl.left || ({}); slotName: "left"
@@ -25,7 +26,7 @@ Item {
         Repeater {
             model: p.pg.tiles || []
             TileSlot { width: 96; height: 76; theme: p.theme; cfg: modelData; index: model.index
-                       onPick: (s, c) => p.pick(s, c) }
+                       onPick: (s, c) => p.pick(s, c); onResetAsk: (k) => p.resetAsk(k) }
         }
     }
     SlotView { x: 780; y: 432; width: 236; height: 160; theme: p.theme; cfg: p.sl.panel || ({}); slotName: "panel"

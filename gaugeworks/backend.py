@@ -410,6 +410,14 @@ class Backend(QObject):
             self.feed.fillup(round(gallons, 3), round(price, 3) if price > 0 else None)
             self.message.emit("Saving fill-up...")
 
+    @Slot(str)
+    def resetEcon(self, kind: str) -> None:
+        """Tile tap -> confirm -> here. 'trip' or 'roll' (Last N)."""
+        if hasattr(self.feed, "trip_reset"):
+            self.feed.trip_reset("roll" if kind == "roll" else "trip")
+            win = int(self._settings.get("econ_window_mi", 10))
+            self.message.emit(f"Last {win} average reset" if kind == "roll" else "Trip reset")
+
     @Slot()
     def tripReset(self) -> None:
         if hasattr(self.feed, "trip_reset"):

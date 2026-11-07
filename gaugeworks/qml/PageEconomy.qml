@@ -7,6 +7,7 @@ Item {
     property var pg: ({})
     property string gearKey: ""
     signal pick(string slot, string current)
+    signal resetAsk(string kind)
     signal openFillup()
     signal openHistory()
     readonly property var sl: pg.slots || ({})
@@ -35,7 +36,9 @@ Item {
                 Text { anchors.right: parent.right; anchors.rightMargin: 16; anchors.bottom: parent.bottom
                        anchors.bottomMargin: 10; text: c.units; color: p.theme.colors.dim; font.pixelSize: 22 }
                 MouseArea { anchors.fill: parent; pressAndHoldInterval: 600
-                            onPressAndHold: p.pick("tile" + index, c.key) }
+                            onPressAndHold: p.pick("tile" + index, c.key)
+                            onClicked: if (c.key === "econ_trip" || c.key === "econ_last")
+                                           p.resetAsk(c.key === "econ_trip" ? "trip" : "roll") }
             }
         }
     }

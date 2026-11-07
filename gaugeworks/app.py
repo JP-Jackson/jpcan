@@ -83,8 +83,8 @@ class InProcFeed:
     status = property(lambda self: self._sink.status)
     fuel = property(lambda self: self._sink.fuel)
 
-    def trip_reset(self):
-        self.trip.reset()
+    def trip_reset(self, kind="trip"):
+        self.trip.handle_reset(kind)
 
     def fillup(self, gallons, price=None):
         threading.Thread(target=self.hub.fillup, args=(gallons, price), daemon=True).start()
@@ -143,7 +143,7 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
-    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export"], help="open a panel (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm"], help="open a panel (screenshots)")
     ap.add_argument("--page", type=int, help="start on this page index (screenshots)")
     args = ap.parse_args(argv)
 
@@ -190,6 +190,10 @@ def main(argv=None) -> int:
         view.showFullScreen()
 
     want = "settings" if args.settings else args.panel
+    if want == "confirm":  # show the real Trip reset prompt
+        from PySide6.QtCore import Q_ARG, QMetaObject
+        QMetaObject.invokeMethod(view.rootObject(), "askReset", Q_ARG("QVariant", "trip"))
+        want = None
     if want:
         panel = view.rootObject().findChild(QObject, f"{want}Panel")
         if panel is not None:

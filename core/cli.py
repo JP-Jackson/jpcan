@@ -121,7 +121,7 @@ def cmd_run(args) -> int:
     if args.no_mqtt:
         sink = LocalSink(bus)
     else:
-        sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.reset,
+        sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.handle_reset,
                              on_fillup=hub.fillup)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
