@@ -38,9 +38,9 @@ pids:
     min: 0
     max: 1600000
     poll_rate: once
-    verified: false
+    verified: true
     source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-37.html
-    notes: Read 148,200.5 mi on JP's truck 2026-11-07; awaiting dash compare.
+    notes: Verified 2026-11-07. Reads 148,200.5 mi vs dash 148,197 (+3.5 mi module vs cluster).
 
   odometer_dd01:
     short: Odo DD01

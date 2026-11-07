@@ -23,11 +23,12 @@ def test_inheritance_and_fields():
     assert {"720", "7E1"} <= p.extra_headers
 
 
-def test_all_mode22_unverified():
+def test_mode22_verified_only_with_evidence():
+    """Mode 22 PIDs start unverified; flipping one requires a 'Verified <date>' note."""
     for n in list_profiles():
         for pid in load_profile(n).pids.values():
-            if pid.service == "22":
-                assert pid.verified is False, f"{n}:{pid.key}"
+            if pid.service == "22" and pid.verified:
+                assert "Verified 20" in pid.notes, f"{n}:{pid.key} verified without evidence note"
 
 
 def test_vin_selection():
