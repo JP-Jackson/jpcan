@@ -57,3 +57,27 @@ display setting.
 The repo layout matches the spec: top-level packages `core/` and
 `gaugeworks/`, with the CLI entry point `jpcan`. Install into a venv. On a
 dedicated Pi the generic name `core` won't collide with anything.
+
+## D13. MQTT topics and the one inbound command
+`jpcan/v/<key>` values are retained, so late subscribers get everything at
+once. `jpcan/meta` and `jpcan/status` are retained, with an LWT of `offline`.
+The core subscribes ONLY to `jpcan/cmd/trip_reset`, and nothing from MQTT
+reaches the adapter. Mosquitto stays localhost-only until the phone page
+(Phase 1.5) adds a read-only websockets listener.
+
+## D14. GaugeWorks layouts live in vehicle profiles
+`gaugeworks:` in each profile sets gauge ranges and warn/alarm points in
+imperial display units; metric mode converts them and picks nice tick steps.
+Computed channels (MPG, trip) come from the core's trip computer.
+
+## D15. GaugeWorks on the Pi: EGLFS on HDMI, one touch device, scoped sudo
+The launcher picks the DRM card that has the connected HDMI output (the Pi 5
+has several), uses evdev with ONLY the HDMI screen's USB touch (so touching
+the 3.5" ADS7846 doesn't steer GaugeWorks), and falls back to linuxfb +
+software rendering if EGLFS fails. The Shut Down button uses a sudoers rule
+that allows exactly `systemctl poweroff`.
+
+## D16. Phase 1 performance note
+Each PID is its own request, so poll rate drops as layouts grow (~4 Hz cycle in
+the sim with everything on). Next optimization: STN multi-PID Mode 01 requests
+(up to 6 PIDs per request), which cut request count several times over.

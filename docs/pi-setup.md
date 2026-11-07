@@ -101,6 +101,13 @@ Re-run it after any `git pull` that changes services. It installs:
   the guard, writes one SQLite log per drive to `~/jpcan-logs`, runs the trip
   computer, and publishes everything to MQTT (`jpcan/#`).
 - **jpcan-status**: the 3.5" text screen on tty1, which reads from MQTT.
+- **gaugeworks**: the 7" HDMI gauges, also reading from MQTT
+  (`scripts/gaugeworks-launch.sh`). It waits for a connected HDMI screen,
+  uses only the HDMI screen's USB touch, and tries EGLFS (GPU) with a fallback
+  to linuxfb. It also gets a sudoers rule that allows only
+  `systemctl poweroff`, for the Shut Down button.
+
+Plug the 7" into **HDMI0** (next to USB-C) and its touch USB into the Pi.
 
 With no adapter it shows "No adapter... Plugged in?"; with the key off it
 shows "Key on?". For a bench demo, set `JPCAN_ARGS="--sim"` in
@@ -111,6 +118,9 @@ sudo systemctl restart jpcan-core
 Logs and data:
 ```bash
 journalctl -u jpcan-core -f
+```
+```bash
+journalctl -u gaugeworks -n 50
 ```
 ```bash
 ~/jpcan/.venv/bin/jpcan logs
