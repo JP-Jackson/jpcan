@@ -174,18 +174,32 @@ def _row_text(s: Session, poller: Poller, latest, k, imperial):
     return p, val, u, ("old" if time.time() - r.ts > 5 else "")
 
 
-def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, page_secs=5.0):
+def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial):
     import curses
+
+    from . import settings
+    from .touch import TouchReader, horizontal
 
     curses.curs_set(0)
     scr.nodelay(True)
+    scr.keypad(True)
+    cal = settings.load()["touch"]
+    touch = TouchReader()
     t0, c0 = time.monotonic(), 0
     rate = 0.0
+    page = 0
     src = "SIM" if s.sim else "LIVE"
     while True:
         ch = scr.getch()
         if ch in (ord("q"), ord("Q"), 27):
+            touch.close()
             return
+        step = {curses.KEY_RIGHT: 1, ord("n"): 1, ord(" "): 1,
+                curses.KEY_LEFT: -1, ord("b"): -1}.get(ch, 0)
+        while touch.ok and not touch.taps.empty():
+            f = horizontal(touch.taps.get_nowait(), cal)
+            step += 1 if f is None or f >= 0.5 else -1  # uncalibrated: any tap = next
+        page += step
         h, w = scr.getmaxyx()
         now = time.monotonic()
         if now - t0 >= 1.0:
@@ -208,10 +222,11 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, page
         else:
             rows = max(1, h - 1)
             pages = (len(keys) + rows - 1) // rows
-            page = int(now // page_secs) % pages
+            page %= pages
             alert = f" BLK{s.guard.blocked}" if s.guard.blocked else ""
-            pg = f" {page + 1}/{pages}" if pages > 1 else ""
-            put(0, 0, f"{src} {rate:3.0f}Hz{alert}{pg}".ljust(w - 1), curses.A_REVERSE)
+            pg = f"< {page + 1}/{pages} >" if pages > 1 else ""
+            left = f"{src} {rate:3.0f}Hz{alert}"
+            put(0, 0, (left + pg.rjust(max(0, w - 1 - len(left)))).ljust(w - 1), curses.A_REVERSE)
             unit_w = 4
             val_w = max(4, w - 1 - 10 - 1 - unit_w)
             for i, k in enumerate(keys[page * rows:(page + 1) * rows]):
@@ -222,6 +237,31 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, page
                 put(1 + i, 10 + val_w + 1, f"{u:<{unit_w}}"[:unit_w])
         scr.refresh()
         time.sleep(0.25)
+
+
+def cmd_touch_cal(args) -> int:
+    from . import settings
+    from .touch import TouchReader, calibrate
+
+    t = TouchReader()
+    if not t.ok:
+        print(f"error: {t.error}", file=sys.stderr)
+        return 1
+    print(f"Touchscreen: {t.device}  ranges {t.ranges}")
+    taps = []
+    for where in ("LEFT", "RIGHT"):
+        print(f"Tap near the {where} edge of the screen (middle height)...")
+        taps.append(t.taps.get())
+        print(f"  got x={taps[-1].x} y={taps[-1].y}")
+        time.sleep(0.3)
+        while not t.taps.empty():  # drop bounce
+            t.taps.get_nowait()
+    t.close()
+    cal = calibrate(*taps)
+    data = settings.load()
+    data["touch"] = cal
+    print(f"Saved {cal} to {settings.save(data)}")
+    return 0
 
 
 # ---- entry point ---------------------------------------------------------
@@ -244,6 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     conn(sub.add_parser("probe", help="connect, identify, read status PIDs once")).set_defaults(func=cmd_probe)
     conn(sub.add_parser("scan22", help="try every unverified PID, show raw bytes")).set_defaults(func=cmd_scan22)
     conn(sub.add_parser("live", help="live text status screen")).set_defaults(func=cmd_live)
+    sub.add_parser("touch-cal", help="calibrate left/right taps on the touchscreen").set_defaults(func=cmd_touch_cal)
     return ap
 
 
