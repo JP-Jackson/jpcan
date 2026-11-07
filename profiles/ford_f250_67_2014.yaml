@@ -1,4 +1,6 @@
 # 2014 Ford F-250 6.7L Power Stroke (6R140 automatic).
+# JP's truck is off-road with DEF/SCR and EGR cooler removed and a tune; some
+# emissions PIDs report fixed placeholder values. See notes per PID.
 # Every Mode 22 entry is verified: false until JP confirms it against FORScan
 # or the dash. Sources are from ford-trucks.com / thedieselstop.com Torque Pro
 # lists; see docs/pid-research.md. Values are in native units (°C, kPa, km).
@@ -311,7 +313,7 @@ pids:
     poll_rate: slow
     verified: false
     source: SAE J1979 PID 85 (NOx reagent system) byte F, from memory
-    notes: "Byte position unconfirmed; read 0% at idle 2026-11-07 (raw 0F then all 00)."
+    notes: "N/A on JP's truck: DEF system removed (off-road). Read 0% 2026-11-07. Kept for other 6.7s."
 
   # ---- Ford Mode 22 -------------------------------------------------------
   soot_mass:
@@ -331,5 +333,5 @@ pids:
 
 layouts:
   status: [rpm, speed, coolant2, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
-           map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass, def_level,
+           map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]

@@ -15,6 +15,7 @@ from .elm import AdapterInfo, Elm, ElmError
 from .guard import RequestGuard
 from .poller import Poller
 from .profile import Profile, list_profiles, load_profile, select_profile
+from .sysinfo import wifi_dbm, wifi_label
 from .transport import GuardedPort, SerialTransport
 from .units import display
 
@@ -276,7 +277,7 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, touc
         wide = w >= 56 and h >= len(keys) + 5
         if wide:
             put(0, 0, f"JpCAN {__version__}  {s.profile.name}", curses.A_BOLD)
-            put(1, 0, f"VIN {s.vin or '?'}  {src}  {rate:4.1f} Hz")
+            put(1, 0, f"VIN {s.vin or '?'}  {src}  {rate:4.1f} Hz  WiFi {wifi_label(wifi_dbm())}")
             put(2, 0, "-" * (w - 1))
             for i, k in enumerate(keys):
                 p, val, u, st = _row_text(s, poller, latest, k, imperial)
@@ -290,8 +291,8 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, touc
             pages = (len(keys) + rows - 1) // rows
             page %= pages
             alert = f" BLK{s.guard.blocked}" if s.guard.blocked else ""
-            pg = f"< {page + 1}/{pages} >" if pages > 1 else ""
-            left = f"{src} {rate:3.0f}Hz{alert}"
+            pg = f"<{page + 1}/{pages}>" if pages > 1 else ""
+            left = f"{src} {rate:2.0f}Hz {wifi_label(wifi_dbm())}{alert}"
             put(0, 0, (left + pg.rjust(max(0, w - 1 - len(left)))).ljust(w - 1), curses.A_REVERSE)
             unit_w = 4
             val_w = max(4, w - 1 - 10 - 1 - unit_w)
