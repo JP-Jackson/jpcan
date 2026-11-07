@@ -90,3 +90,20 @@ In the truck, key on:
 
 Your user is already in the `dialout` group on Pi OS, so it can open the
 serial port.
+
+## Troubleshooting
+
+**Pi not on Wi-Fi after first boot** (it isn't in the router list, and
+`ping jpcan.local` fails):
+1. Plug an Ethernet cable straight from the laptop to the Pi. IPv6 link-local
+   plus mDNS lets `ssh jp@jpcan.local` work with no DHCP. The SSH session may
+   drop now and then while eth0 retries DHCP, which is harmless.
+2. Run `nmcli device status`. If `wlan0` shows no connection, Imager's Wi-Fi
+   settings weren't applied.
+3. Run `nmcli device wifi list` and check the exact SSID. **Watch for leading
+   spaces**: JP's SSID starts with a space, which Imager dropped.
+4. Connect manually, quoting the SSID exactly:
+   ```bash
+   sudo nmcli device wifi connect " SSID with leading space" password "PASSWORD"
+   ```
+   NetworkManager saves this connection, so it reconnects on every boot.
