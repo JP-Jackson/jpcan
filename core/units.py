@@ -11,6 +11,7 @@ IMPERIAL = {
     "barg": ("psig", lambda v: v * 14.5038),   # gauge
     "L/h": ("gal/h", lambda v: v * 0.264172),
     "L": ("gal", lambda v: v * 0.264172),
+    "km/L": ("mpg", lambda v: v * 2.35215),
 }
 
 

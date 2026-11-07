@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import sys
 import threading
 import time
@@ -331,6 +332,34 @@ def cmd_touch_cal(args) -> int:
     return 0
 
 
+def cmd_logs(args) -> int:
+    from .export import read_meta
+    from .logger import default_log_dir
+
+    d = Path(args.dir) if args.dir else default_log_dir()
+    files = sorted(d.glob("*.sqlite"))
+    if not files:
+        print(f"No drive logs in {d}")
+    for f in files:
+        m = read_meta(f)
+        dur = (m.get("ended") or m.get("started", 0)) - m.get("started", 0)
+        print(f"{f.name:48} {f.stat().st_size / 1e6:7.1f} MB  {dur / 60:6.1f} min")
+    return 0
+
+
+def cmd_export(args) -> int:
+    from .export import export_csv
+    from .logger import default_log_dir
+
+    src = Path(args.log)
+    if not src.exists():
+        src = (Path(args.dir) if args.dir else default_log_dir()) / args.log
+    out = Path(args.out) if args.out else src.with_suffix(".csv")
+    n = export_csv(src, out, rate=args.rate, imperial=not args.metric)
+    print(f"Wrote {n} rows to {out}")
+    return 0
+
+
 # ---- entry point ---------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="jpcan", description="JpCAN reads it. GaugeWorks shows it.")
@@ -351,6 +380,16 @@ def build_parser() -> argparse.ArgumentParser:
     conn(sub.add_parser("probe", help="connect, identify, read status PIDs once")).set_defaults(func=cmd_probe)
     conn(sub.add_parser("scan22", help="try every unverified PID, show raw bytes")).set_defaults(func=cmd_scan22)
     conn(sub.add_parser("live", help="live text status screen")).set_defaults(func=cmd_live)
+    lp = sub.add_parser("logs", help="list drive logs")
+    lp.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
+    lp.set_defaults(func=cmd_logs)
+    ep = sub.add_parser("export", help="export a drive log to CSV")
+    ep.add_argument("log", help="log file name or path")
+    ep.add_argument("--out", help="CSV path (default: next to the log)")
+    ep.add_argument("--rate", type=float, default=1.0, help="seconds per row (default 1)")
+    ep.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
+    ep.add_argument("--metric", action="store_true")
+    ep.set_defaults(func=cmd_export)
     sub.add_parser("touch-cal", help="calibrate left/right taps on the touchscreen").set_defaults(func=cmd_touch_cal)
     return ap
 
