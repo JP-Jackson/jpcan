@@ -1,0 +1,221 @@
+# Universal OBD-II base: SAE J1979 Mode 01 PIDs plus adapter voltage.
+# Values are in native ECU units; GaugeWorks converts for display.
+# Formula bytes: A = first data byte after the echoed PID.
+# Vehicle profiles `extends: base_mode01` and add or override entries.
+
+id: base_mode01
+name: Universal OBD-II (Mode 01)
+
+pids:
+  battery:
+    name: Battery voltage (adapter)
+    service: AT          # adapter-local read (ATRV), never touches the bus
+    pid: RV
+    header: "7DF"
+    formula: "A"         # parsed specially by the poller
+    units: V
+    min: 0
+    max: 16
+    poll_rate: slow
+    verified: true
+    source: OBDLink/ELM327 datasheet (ATRV)
+
+  mil:
+    name: Check engine light (1 = on)
+    service: "01"
+    pid: "01"
+    header: "7DF"
+    formula: "A>>7"
+    units: ""
+    min: 0
+    max: 1
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 01
+
+  dtc_count:
+    name: Stored DTC count
+    service: "01"
+    pid: "01"
+    header: "7DF"
+    formula: "A&127"
+    units: ""
+    min: 0
+    max: 127
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 01
+
+  load:
+    name: Engine load
+    service: "01"
+    pid: "04"
+    header: "7DF"
+    formula: "A*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 04
+
+  coolant:
+    name: Coolant temp
+    service: "01"
+    pid: "05"
+    header: "7DF"
+    formula: "A-40"
+    units: "°C"
+    min: -40
+    max: 130
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 05
+
+  map:
+    name: Intake manifold pressure (abs)
+    service: "01"
+    pid: "0B"
+    header: "7DF"
+    formula: "A"
+    units: kPa
+    min: 0
+    max: 255
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 0B
+    notes: Caps at 255 kPa (~22 psi boost). Diesels need 0187 or Mode 22 for full range.
+
+  rpm:
+    name: Engine RPM
+    service: "01"
+    pid: "0C"
+    header: "7DF"
+    formula: "((A*256)+B)/4"
+    units: rpm
+    min: 0
+    max: 8000
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 0C
+
+  speed:
+    name: Vehicle speed
+    service: "01"
+    pid: "0D"
+    header: "7DF"
+    formula: "A"
+    units: km/h
+    min: 0
+    max: 255
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 0D
+
+  iat:
+    name: Intake air temp
+    service: "01"
+    pid: "0F"
+    header: "7DF"
+    formula: "A-40"
+    units: "°C"
+    min: -40
+    max: 215
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 0F
+
+  maf:
+    name: MAF air flow
+    service: "01"
+    pid: "10"
+    header: "7DF"
+    formula: "((A*256)+B)/100"
+    units: g/s
+    min: 0
+    max: 655
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 10
+
+  run_time:
+    name: Run time since start
+    service: "01"
+    pid: "1F"
+    header: "7DF"
+    formula: "(A*256)+B"
+    units: s
+    min: 0
+    max: 65535
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 1F
+
+  fuel_level:
+    name: Fuel level
+    service: "01"
+    pid: "2F"
+    header: "7DF"
+    formula: "A*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 2F
+
+  baro:
+    name: Barometric pressure
+    service: "01"
+    pid: "33"
+    header: "7DF"
+    formula: "A"
+    units: kPa
+    min: 0
+    max: 255
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 33
+
+  ambient:
+    name: Ambient air temp
+    service: "01"
+    pid: "46"
+    header: "7DF"
+    formula: "A-40"
+    units: "°C"
+    min: -40
+    max: 215
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 46
+
+  oil_temp_std:
+    name: Engine oil temp (std)
+    service: "01"
+    pid: "5C"
+    header: "7DF"
+    formula: "A-40"
+    units: "°C"
+    min: -40
+    max: 210
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 5C
+
+  fuel_rate:
+    name: Engine fuel rate
+    service: "01"
+    pid: "5E"
+    header: "7DF"
+    formula: "((A*256)+B)/20"
+    units: L/h
+    min: 0
+    max: 3276
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 5E
+    notes: Often unsupported on older diesels; check supported-PID list.
+
+layouts:
+  status: [rpm, speed, coolant, ambient, fuel_level, mil, dtc_count, battery, map, baro, load]

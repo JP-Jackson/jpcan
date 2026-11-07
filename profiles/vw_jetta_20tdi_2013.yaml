@@ -1,0 +1,50 @@
+# 2013 VW Jetta 2.0 TDI (CJAA, EDC17, 6-speed manual).
+# Starter profile: standard Mode 01 + low-confidence VW Mode 22 candidates.
+# No CJAA-specific PID list found yet; see docs/pid-research.md.
+
+id: vw_jetta_20tdi_2013
+name: 2013 VW Jetta 2.0 TDI
+extends: base_mode01
+
+match:
+  wmi: ["3VW"]
+  year: "D"        # VIN position 10: 2013
+
+headers:
+  ecm: "7E0"
+
+shift:
+  enabled: true    # manual: full-face SHIFT state
+  rpm: 3000        # tune with your brother
+
+pids:
+  dpf_dp:
+    name: DPF differential pressure
+    service: "01"
+    pid: "7A"
+    header: "7DF"
+    formula: "((B*256)+C)/100"
+    units: kPa
+    min: 0
+    max: 100
+    poll_rate: slow
+    verified: false
+    source: https://forums.tdiclub.com/index.php?threads/obd-pid-7a-is-this-dpf-soot-load-2012-jsw-tdi.379398/
+    notes: Delta-P, not soot load.
+
+  soot_calc:
+    name: DPF soot mass (calculated)
+    service: "22"
+    pid: "114F"
+    header: "7E0"
+    formula: "((A*256)+B)/100"
+    units: g
+    min: 0
+    max: 60
+    poll_rate: slow
+    verified: false
+    source: https://www.t6forum.com/threads/vw-t6-custom-pid-codes-for-dpf.33964/
+    notes: From EA288 (T6); CJAA/EDC17 may differ. Low confidence.
+
+layouts:
+  status: [rpm, speed, coolant, ambient, fuel_level, mil, dtc_count, battery, map, baro, load, dpf_dp]

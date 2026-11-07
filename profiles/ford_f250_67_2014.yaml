@@ -1,0 +1,274 @@
+# 2014 Ford F-250 6.7L Power Stroke (6R140 automatic).
+# Every Mode 22 entry is verified: false until JP confirms it against FORScan
+# or the dash. Sources are from ford-trucks.com / thedieselstop.com Torque Pro
+# lists; see docs/pid-research.md. Values are in native units (°C, kPa, km).
+#
+# Pattern seen on the 6.7 PCM: DID F4xx returns the same layout as Mode 01 PID
+# xx (byte A = support bits, data starts at B). Entries marked "F4xx mirror"
+# are derived from that pattern, not from a 6.7-specific post.
+
+id: ford_f250_67_2014
+name: 2014 Ford F-250 6.7L Powerstroke
+extends: base_mode01
+
+match:
+  wmi: ["1FT"]
+  year: "E"        # VIN position 10: 2014
+  engine: "T"      # VIN position 8: 6.7L diesel (unverified)
+
+headers:
+  pcm: "7E0"
+  tcm: "7E1"
+  ipc: "720"
+
+shift:
+  enabled: false   # automatic; warning states handle EGT/coolant/trans instead
+  rpm: 3000
+
+pids:
+  # ---- Phase 0: confirmable on the dash --------------------------------
+  odometer:
+    name: Odometer (IPC)
+    service: "22"
+    pid: "404C"
+    header: "720"
+    formula: "((A*65536)+(B*256)+C)/10"
+    units: km
+    min: 0
+    max: 1600000
+    poll_rate: once
+    verified: false
+    source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-37.html
+    notes: Poster reported it matched the dash. Medium confidence.
+
+  odometer_dd01:
+    name: Odometer (PCM DD01, fallback)
+    service: "22"
+    pid: "DD01"
+    header: "7E0"
+    formula: "(A*65536)+(B*256)+C"
+    units: km
+    min: 0
+    max: 16000000
+    poll_rate: once
+    verified: false
+    source: Generic Ford DID convention; no 6.7 source found
+    notes: Low confidence. Scaling may be /10.
+
+  trans_temp:
+    name: Trans fluid temp (TCM)
+    service: "22"
+    pid: "1E1C"
+    header: "7E1"
+    formula: "((signed(A)*256)+B)/16"
+    units: "°C"
+    min: -40
+    max: 150
+    poll_rate: slow
+    verified: false
+    source: https://www.ford-trucks.com/forums/1319750-pids-and-calibrations-for-torque-pro.html
+    notes: Compare to the cluster trans temp gauge. Some lists use header 7E0.
+
+  trans_temp_pcm:
+    name: Trans fluid temp (via PCM)
+    service: "22"
+    pid: "1E1C"
+    header: "7E0"
+    formula: "((signed(A)*256)+B)/16"
+    units: "°C"
+    min: -40
+    max: 150
+    poll_rate: slow
+    verified: false
+    source: Same as trans_temp, alternate header
+    notes: Fallback if 7E1 doesn't answer.
+
+  engine_hours:
+    name: Engine hours (total run time)
+    service: "01"
+    pid: "7F"
+    header: "7DF"
+    formula: "((B*16777216)+(C*65536)+(D*256)+E)/3600"
+    units: h
+    min: 0
+    max: 100000
+    poll_rate: once
+    verified: false
+    source: SAE J1979 PID 7F layout; no 6.7 source found
+    notes: Low confidence it's supported on 2014. Compare to cluster engine hours.
+
+  # ---- Phase 1 candidates ----------------------------------------------
+  map_wide:
+    name: MAP (wide range)
+    service: "01"
+    pid: "87"
+    header: "7E0"
+    formula: "((B*256)+C)/32"
+    units: kPa
+    min: 0
+    max: 400
+    poll_rate: fast
+    verified: false
+    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+    notes: Boost = map_wide - baro.
+
+  boost_desired:
+    name: Boost desired (abs)
+    service: "22"
+    pid: "F470"
+    header: "7E0"
+    formula: "((B*256)+C)/32"
+    units: kPa
+    min: 0
+    max: 400
+    poll_rate: fast
+    verified: false
+    source: SAE PID 70 layout, F4xx mirror (derived)
+
+  vgt_desired:
+    name: VGT vane desired
+    service: "22"
+    pid: "F471"
+    header: "7E0"
+    formula: "B*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: fast
+    verified: false
+    source: SAE PID 71 layout, F4xx mirror (derived)
+    notes: Ford WDS shows % closed. No 6.7 2011-16 source found.
+
+  vgt_actual:
+    name: VGT vane actual
+    service: "22"
+    pid: "F471"
+    header: "7E0"
+    formula: "C*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: fast
+    verified: false
+    source: SAE PID 71 layout, F4xx mirror (derived)
+
+  egt11:
+    name: EGT11 (post-turbo)
+    service: "22"
+    pid: "F478"
+    header: "7E0"
+    formula: "((B*256)+C)/10-40"
+    units: "°C"
+    min: -40
+    max: 1000
+    poll_rate: slow
+    verified: false
+    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+
+  egt12:
+    name: EGT12 (post-DOC)
+    service: "22"
+    pid: "F478"
+    header: "7E0"
+    formula: "((D*256)+E)/10-40"
+    units: "°C"
+    min: -40
+    max: 1000
+    poll_rate: slow
+    verified: false
+    source: same as egt11
+
+  egt13:
+    name: EGT13 (pre-DPF)
+    service: "22"
+    pid: "F478"
+    header: "7E0"
+    formula: "((F*256)+G)/10-40"
+    units: "°C"
+    min: -40
+    max: 1000
+    poll_rate: slow
+    verified: false
+    source: same as egt11
+
+  egt14:
+    name: EGT14 (post-DPF)
+    service: "22"
+    pid: "F478"
+    header: "7E0"
+    formula: "((H*256)+I)/10-40"
+    units: "°C"
+    min: -40
+    max: 1000
+    poll_rate: slow
+    verified: false
+    source: same as egt11
+
+  rail_actual:
+    name: Fuel rail pressure actual
+    service: "22"
+    pid: "F46D"
+    header: "7E0"
+    formula: "((D*256)+E)/10"
+    units: bar
+    min: 0
+    max: 2200
+    poll_rate: fast
+    verified: false
+    source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-18.html
+
+  rail_desired:
+    name: Fuel rail pressure desired
+    service: "22"
+    pid: "F46D"
+    header: "7E0"
+    formula: "((B*256)+C)/10"
+    units: bar
+    min: 0
+    max: 2200
+    poll_rate: fast
+    verified: false
+    source: SAE PID 6D layout (derived from same response)
+
+  oil_temp:
+    name: Engine oil temp
+    service: "22"
+    pid: "F45C"
+    header: "7E0"
+    formula: "A-40"
+    units: "°C"
+    min: -40
+    max: 210
+    poll_rate: slow
+    verified: false
+    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+
+  soot_mass:
+    name: DPF soot load
+    service: "22"
+    pid: "042C"
+    header: "7E0"
+    formula: "((A*256)+B)*100/65535"
+    units: g/L
+    min: 0
+    max: 100
+    poll_rate: slow
+    verified: false
+    source: https://www.thedieselstop.com/threads/torque-pro-app-ford-6-7l-extended-pids.446986/
+
+  regen_active:
+    name: DPF regen active
+    service: "22"
+    pid: "F48B"
+    header: "7E0"
+    formula: "B&1"
+    units: ""
+    min: 0
+    max: 1
+    poll_rate: slow
+    verified: false
+    source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids.html
+
+layouts:
+  status: [rpm, speed, ambient, fuel_level, mil, dtc_count, battery, odometer,
+           trans_temp, engine_hours, coolant, map, baro, load]
