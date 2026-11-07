@@ -15,10 +15,17 @@ CMDLINE=/boot/firmware/cmdline.txt
 
 echo "== packages (first run downloads Qt, ~100 MB; give it a few minutes)"
 apt-get install -y -q mosquitto mosquitto-clients fbset \
-    libegl1 libgles2 libgbm1 libdrm2 libinput10 libmtdev1 libxkbcommon0 \
-    libfontconfig1 fonts-dejavu-core >/dev/null
+    libegl1 libgles2 libgl1 libopengl0 libgbm1 libdrm2 libinput10 libmtdev1 \
+    libxkbcommon0 libfontconfig1 fonts-dejavu-core >/dev/null
+# GLib was renamed for the 64-bit time_t transition (Trixie); accept either name.
+apt-get install -y -q libglib2.0-0t64 >/dev/null 2>&1 || apt-get install -y -q libglib2.0-0 >/dev/null
 systemctl enable --now mosquitto >/dev/null
 sudo -u "$USER_NAME" "$VENV/bin/pip" install -q -e "$REPO[ui]"
+# Fail loudly if Qt is missing a system library (GaugeWorks would crash-loop).
+MISSING="$(ldd "$VENV"/lib/python3*/site-packages/PySide6/Qt/lib/*.so* 2>/dev/null | grep 'not found' | sort -u)"
+if [ -n "$MISSING" ]; then echo "WARNING: Qt is missing system libraries:"; echo "$MISSING"; fi
+sudo -u "$USER_NAME" "$VENV/bin/python" -c "from PySide6.QtGui import QGuiApplication" \
+    && echo "Qt import OK" || echo "WARNING: PySide6 import failed; see above"
 
 echo "== permissions"
 # GaugeWorks' Shut Down button: allow exactly 'systemctl poweroff', nothing else.
