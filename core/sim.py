@@ -57,7 +57,7 @@ class SimVehicle:
         egt = 180 + load * 4.5 + self.rng.uniform(-3, 3)
         return {
             "rpm": rpm, "speed": spd, "load": load,
-            "baro": 99.0, "map": 99.0 + load * 1.8,
+            "baro": 99.0, "map": 99.0 + 2 + max(0.0, load - 15) * 2.2,
             "coolant": 20 + 68 * warm(300), "iat": 30.0, "ambient": 24.0,
             "maf": 5 + load * 2.5, "fuel_level": 63.0, "run_s": t,
             "fuel_rate": 1.2 + load * 0.25,

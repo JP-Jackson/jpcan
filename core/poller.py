@@ -43,12 +43,18 @@ class Poller:
     fault: str = ""      # set if the link dies (adapter unplugged)
 
     def __post_init__(self):
-        keys = self.keys or list(self.profile.pids)
-        self.pids: list[Pid] = [self.profile.pids[k] for k in keys]
+        keys = list(self.keys or self.profile.pids)
+        wanted = [self.profile.pids[k] for k in keys]
+        self.derived: list[Pid] = [p for p in wanted if p.is_derived]
+        for d in self.derived:  # make sure inputs get polled
+            keys += [v for v in sorted(d.formula.vars) if v not in keys]
+        self.pids: list[Pid] = [self.profile.pids[k] for k in keys if not self.profile.pids[k].is_derived]
         self.state = {p.key: PidState() for p in self.pids}
         self._last_slow = 0.0
 
     def is_skipped(self, p: Pid) -> bool:
+        if p.is_derived:
+            return any(self.is_skipped(self.profile.pids[v]) for v in p.formula.vars)
         return (self.supported is not None and p.service == "01"
                 and int(p.pid, 16) not in self.supported)
 
@@ -95,7 +101,21 @@ class Poller:
             st.fails, st.last_ok = 0, now
             st.done = p.poll_rate == "once"
             self.bus.publish(Reading(p.key, value, p.units, time.time()))
+        self._compute_derived()
         self.cycles += 1
+
+    def _compute_derived(self) -> None:
+        latest = self.bus.latest()
+        for d in self.derived:
+            inputs = {v: latest.get(v) for v in d.formula.vars}
+            if any(r is None or r.value is None for r in inputs.values()):
+                continue  # wait until every input has a good value
+            try:
+                value = d.formula({v: r.value for v, r in inputs.items()})
+            except (FormulaError, ZeroDivisionError) as e:
+                self.bus.publish(Reading(d.key, None, d.units, time.time(), str(e)))
+                continue
+            self.bus.publish(Reading(d.key, value, d.units, time.time()))
 
     def run(self, stop: threading.Event) -> None:
         while not stop.is_set():

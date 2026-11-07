@@ -75,3 +75,16 @@ def test_unsafe_formula_rejected(tmp_path):
     _write(tmp_path, "bad", {"pids": {"x": {**ENTRY, "formula": "__import__('os')"}}})
     with pytest.raises(ValueError):
         load_profile("bad", tmp_path)
+
+
+def test_derived_entry_validation(tmp_path):
+    base = {"pids": {"a": ENTRY, "d": {"name": "d", "derived": "a * 2", "units": "",
+                                       "min": 0, "max": 1, "verified": False, "source": "t"}}}
+    _write(tmp_path, "ok", base)
+    p = load_profile("ok", tmp_path)
+    assert p.pids["d"].is_derived and p.pids["d"].formula.vars == {"a"}
+    assert "" not in p.extra_headers
+    bad = {"pids": {"a": ENTRY, "d": {**base["pids"]["d"], "derived": "a + zz"}}}
+    _write(tmp_path, "bad", bad)
+    with pytest.raises(ValueError):
+        load_profile("bad", tmp_path)

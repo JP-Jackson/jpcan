@@ -42,16 +42,21 @@ class FormulaError(ValueError):
 
 
 class Formula:
-    def __init__(self, text: str):
+    """Bytes formula (A, B, ...) or, with `names`, an expression over PID keys."""
+
+    def __init__(self, text: str, names: set[str] | None = None):
         self.text = text
+        self.names = names
         try:
             tree = ast.parse(text, mode="eval")
         except SyntaxError as e:
             raise FormulaError(f"bad formula {text!r}: {e}") from None
         self._check(tree.body)
         self._tree = tree.body
-        self.nbytes = max((_LETTERS.index(n.id) + 1 for n in ast.walk(tree)
-                           if isinstance(n, ast.Name) and n.id in _LETTERS), default=0)
+        used = {n.id for n in ast.walk(tree) if isinstance(n, ast.Name)} - set(_FUNCS)
+        self.vars = used if names is not None else set()
+        self.nbytes = 0 if names is not None else max(
+            (_LETTERS.index(v) + 1 for v in used), default=0)
 
     def _check(self, node):
         if isinstance(node, ast.BinOp) and type(node.op) in _BIN:
@@ -61,7 +66,7 @@ class Formula:
             self._check(node.operand)
         elif isinstance(node, ast.Constant) and type(node.value) in (int, float):
             pass
-        elif isinstance(node, ast.Name) and (node.id in _LETTERS and len(node.id) == 1):
+        elif isinstance(node, ast.Name) and self._name_ok(node.id):
             pass
         elif (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
               and node.func.id in _FUNCS and not node.keywords):
@@ -70,7 +75,17 @@ class Formula:
         else:
             raise FormulaError(f"disallowed element in {self.text!r}: {ast.dump(node)[:60]}")
 
-    def __call__(self, data: Sequence[int]) -> float:
+    def _name_ok(self, name: str) -> bool:
+        if self.names is not None:
+            return name in self.names
+        return name in _LETTERS and len(name) == 1
+
+    def __call__(self, data) -> float:
+        if self.names is not None:  # derived: mapping of PID key -> value
+            missing = self.vars - set(data)
+            if missing:
+                raise FormulaError(f"{self.text!r} missing {sorted(missing)}")
+            return self._eval(self._tree, data)
         if len(data) < self.nbytes:
             raise FormulaError(f"{self.text!r} needs {self.nbytes} bytes, got {len(data)}")
         env = dict(zip(_LETTERS, data))

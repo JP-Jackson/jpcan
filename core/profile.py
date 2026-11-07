@@ -16,7 +16,9 @@ from .guard import RequestGuard
 PROFILES_DIR = Path(__file__).resolve().parent.parent / "profiles"
 REQUIRED = ("name", "service", "pid", "header", "formula", "units", "min", "max",
             "poll_rate", "verified", "source")
+DERIVED_REQUIRED = ("name", "derived", "units", "min", "max", "verified", "source")
 POLL_RATES = {"fast", "slow", "once"}
+DERIVED = "DERIVED"
 
 
 class ProfileError(ValueError):
@@ -48,6 +50,10 @@ class Pid:
     def request(self) -> str:
         return f"{self.service}{self.pid}"
 
+    @property
+    def is_derived(self) -> bool:
+        return self.service == DERIVED
+
 
 @dataclass
 class Profile:
@@ -66,8 +72,8 @@ class Profile:
 
     @property
     def extra_headers(self) -> set[str]:
-        return ({p.header for p in self.pids.values()} | set(self.headers.values())
-                | {self.obd_header})
+        return ({p.header for p in self.pids.values() if not p.is_derived}
+                | set(self.headers.values()) | {self.obd_header})
 
     def matches_vin(self, vin: str | None) -> bool:
         if not vin or len(vin) != 17 or not self.match:
@@ -102,7 +108,21 @@ def _raw(name_or_path: str | Path, base_dir: Path, seen=()) -> dict:
 def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Profile:
     data = _raw(name_or_path, base_dir)
     pids: dict[str, Pid] = {}
+    all_keys = set(data.get("pids") or {})
     for key, e in (data.get("pids") or {}).items():
+        if "derived" in e:
+            missing = [f for f in DERIVED_REQUIRED if f not in e]
+            if missing:
+                raise ProfileError(f"{key}: missing {missing}")
+            pids[key] = Pid(key=key, name=e["name"], service=DERIVED, pid="", header="",
+                            formula=Formula(str(e["derived"]), names=all_keys - {key}),
+                            units=str(e["units"]), min=float(e["min"]), max=float(e["max"]),
+                            poll_rate=e.get("poll_rate", "fast"), verified=bool(e["verified"]),
+                            source=str(e["source"]), notes=str(e.get("notes", "")),
+                            short=str(e.get("short", "")))
+            if len(pids[key].short) > 10:
+                raise ProfileError(f"{key}: short label over 10 chars")
+            continue
         missing = [f for f in REQUIRED if f not in e]
         if missing:
             raise ProfileError(f"{key}: missing {missing}")
@@ -128,6 +148,11 @@ def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Pro
 def _validate(prof: Profile) -> None:
     guard = RequestGuard(extra_headers=prof.extra_headers)
     for p in prof.pids.values():
+        if p.is_derived:
+            nested = [v for v in p.formula.vars if prof.pids[v].is_derived]
+            if nested:
+                raise ProfileError(f"{p.key}: derived from derived values {nested} not supported")
+            continue
         req = "AT" + p.pid if p.service == "AT" else p.request
         d = guard.check(req)
         if not d.allowed:

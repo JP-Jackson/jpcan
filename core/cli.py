@@ -125,7 +125,7 @@ def cmd_scan22(args) -> int:
         print("Unverified PIDs (raw bytes for FORScan comparison):\n")
         seen = {}
         for p in s.profile.pids.values():
-            if p.verified:
+            if p.verified or p.is_derived:
                 continue
             hdr = s.profile.header_for(p)
             key = (hdr, p.request)

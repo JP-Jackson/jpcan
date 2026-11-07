@@ -5,6 +5,8 @@ IMPERIAL = {
     "km": ("mi", lambda v: v * 0.621371),
     "°C": ("°F", lambda v: v * 9 / 5 + 32),
     "kPa": ("psi", lambda v: v * 0.145038),
+    "kPaa": ("psia", lambda v: v * 0.145038),   # absolute
+    "kPag": ("psig", lambda v: v * 0.145038),   # gauge (above atmosphere)
     "bar": ("psi", lambda v: v * 14.5038),
     "L/h": ("gal/h", lambda v: v * 0.264172),
     "L": ("gal", lambda v: v * 0.264172),

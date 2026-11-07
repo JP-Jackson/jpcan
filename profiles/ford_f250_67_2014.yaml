@@ -150,13 +150,25 @@ pids:
     pid: "87"
     header: "7DF"
     formula: "((B*256)+C)/32"
-    units: kPa
+    units: kPaa
     min: 0
     max: 400
     poll_rate: fast
     verified: false
     source: SAE J1979 PID 87; key-on read 97.9 kPa = baro (2026-11-07)
     notes: Boost = map_wide - baro. Truck lacks PID 0B.
+
+  boost:
+    short: Boost
+    name: Boost (gauge)
+    derived: "map_wide - baro"
+    units: kPag
+    min: -20
+    max: 300
+    poll_rate: fast
+    verified: false
+    source: Derived; MAP abs (PID 87) minus baro (PID 33)
+    notes: "Idle 2026-11-07: ~0.4 psig at 600 rpm, ~1.1 psig at 1545 rpm (from MAP/baro reads)."
 
   vgt_desired:
     short: VGT des
@@ -332,6 +344,6 @@ pids:
     notes: Answered 1.9 g/L key-on (2026-11-07).
 
 layouts:
-  status: [rpm, speed, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
+  status: [rpm, speed, boost, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
            map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]

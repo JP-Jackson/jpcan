@@ -1,3 +1,4 @@
+import pytest
 from core.bus import Bus
 from core.elm import Elm
 from core.guard import RequestGuard
@@ -53,3 +54,16 @@ def test_once_and_backoff():
     assert sim.obd.count("22404C") == 1          # once: read a single time
     assert sim.obd.count("221E1C") == p.max_fails  # NRC 31 via PCM, then backs off
     assert bus.latest()["trans_temp_pcm"].error
+
+
+def test_derived_boost_psig():
+    from core.units import display
+
+    p, sim, bus = setup(["boost"])          # inputs map_wide + baro polled automatically
+    p.cycle()
+    got = bus.latest()
+    assert {"map_wide", "baro", "boost"} <= set(got)
+    b = got["boost"]
+    assert b.value == pytest.approx(got["map_wide"].value - got["baro"].value)
+    v, u = display(b.value, b.units)
+    assert u == "psig" and v >= 0

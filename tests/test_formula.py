@@ -34,3 +34,18 @@ def test_rejects_unsafe(text):
 def test_short_data():
     with pytest.raises(FormulaError):
         Formula("A*256+B")([1])
+
+
+def test_named_formula():
+    f = Formula("map_wide - baro", names={"map_wide", "baro", "rpm"})
+    assert f.vars == {"map_wide", "baro"}
+    assert f({"map_wide": 150.0, "baro": 99.0, "rpm": 700}) == 51.0
+    with pytest.raises(FormulaError):
+        f({"map_wide": 150.0})
+
+
+def test_named_formula_rejects_unknown_and_letters():
+    with pytest.raises(FormulaError):
+        Formula("map_wide - nope", names={"map_wide"})
+    with pytest.raises(FormulaError):
+        Formula("A - B", names={"map_wide"})

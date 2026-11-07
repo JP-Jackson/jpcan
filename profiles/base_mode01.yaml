@@ -84,7 +84,7 @@ pids:
     pid: "0B"
     header: "7DF"
     formula: "A"
-    units: kPa
+    units: kPaa
     min: 0
     max: 255
     poll_rate: fast
@@ -183,7 +183,7 @@ pids:
     pid: "33"
     header: "7DF"
     formula: "A"
-    units: kPa
+    units: kPaa
     min: 0
     max: 255
     poll_rate: slow
