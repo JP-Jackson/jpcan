@@ -81,3 +81,16 @@ that allows exactly `systemctl poweroff`.
 Each PID is its own request, so poll rate drops as layouts grow (~4 Hz cycle in
 the sim with everything on). Next optimization: STN multi-PID Mode 01 requests
 (up to 6 PIDs per request), which cut request count several times over.
+
+## D17. Gear: estimated now, real TCM DID once found
+Standard PID A4 isn't supported. Until didscan/didwatch finds Ford's TCM gear
+DID, the core estimates the gear from rpm and speed with the 6R140 ratios,
+the axle ratio and tire size from the profile (`gear:`). It's shown big in
+the tach and marked unverified. When a real `gear` PID is added to the
+profile, the estimator switches off.
+
+## D18. MPG adjust lives in the core
+GaugeWorks sends `jpcan/cmd/econ_cal` (percent, clamped to +/-30), and the
+core applies it to instant/average economy and saves it. That makes it the
+second and last allowed MQTT input, after trip_reset; neither reaches the
+adapter.

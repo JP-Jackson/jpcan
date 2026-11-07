@@ -31,6 +31,14 @@ shift:
   enabled: false   # automatic; warning states handle EGT/coolant/trans instead
   rpm: 3000
 
+# Estimated gear until the TCM's real gear DID is found (jpcan didscan/didwatch).
+# 6R140 ratios; JP's truck: 3.55 axle, 275/65R20 tires (34.1 in).
+gear:
+  ratios: [3.97, 2.32, 1.52, 1.15, 0.86, 0.67]
+  axle: 3.55
+  tire_diameter_in: 34.1
+  tolerance: 0.12
+
 pids:
   # ---- Phase 0: confirmable on the dash --------------------------------
   odometer:
@@ -356,7 +364,7 @@ pids:
     notes: Answered 1.9 g/L key-on (2026-11-07).
 
 layouts:
-  status: [rpm, speed, boost, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
+  status: [rpm, speed, gear, boost, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
            map_wide, baro, egt11, vgt_desired, vgt_actual, vgt_dev, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]
 
@@ -369,4 +377,5 @@ gaugeworks:
     trans:   {key: trans_temp, min: 100, max: 260, major: 40, minor: 4, label: TRANS, warn: 220, alarm: 240}
     vgt:     {desired: vgt_desired, actual: vgt_actual, label: VGT}
   tiles: [econ_inst, econ_avg, ambient, oil_temp_std, battery, fuel_level, mil, trip_dist]
+  gear: gear
 

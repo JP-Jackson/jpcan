@@ -17,7 +17,7 @@ from .logger import DriveLogger, default_log_dir
 from .poller import Poller
 from .profile import Profile
 from .session import Session, connect, why
-from .trip import CHANNELS, TripComputer
+from .trip import CHANNELS, GEAR_CHANNEL, TripComputer
 
 
 def poll_keys(profile: Profile) -> list[str]:
@@ -31,9 +31,12 @@ def poll_keys(profile: Profile) -> list[str]:
 def channel_info(profile: Profile) -> dict:
     info = {k: {"name": p.name, "short": p.label, "units": p.units, "min": p.min,
                 "max": p.max, "verified": p.verified} for k, p in profile.pids.items()}
-    for c in CHANNELS.values():
+    computed = list(CHANNELS.values())
+    if profile.gear and "gear" not in profile.pids:
+        computed.append(GEAR_CHANNEL)
+    for c in computed:
         info[c.key] = {"name": c.name, "short": c.short, "units": c.units, "min": c.min,
-                       "max": c.max, "verified": True}
+                       "max": c.max, "verified": c.key != "gear"}
     return info
 
 
@@ -52,6 +55,7 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
     """Main loop. `sink` has publish_meta/publish_status/close (MQTT or LocalSink)."""
     trip = trip or TripComputer(bus)
     logger: DriveLogger | None = None
+    gear_est = None
 
     def status(state, lines, **extra):
         sink.publish_status({"state": state, "lines": lines, "ts": time.time(), **extra})
@@ -71,6 +75,9 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
                 stop.wait(5)
                 continue
             poller = Poller(s.elm, s.profile, bus, keys=poll_keys(s.profile), supported=s.supported)
+            if s.profile.gear and "gear" not in s.profile.pids and gear_est is None:
+                from .gear import GearEstimator
+                gear_est = GearEstimator(bus, s.profile.gear)
             meta = build_meta(s, poller)
             sink.publish_meta(meta)
             if logger is None and not getattr(args, "no_log", False):
@@ -90,7 +97,8 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
                     c0, t0 = poller.cycles, now
                     status("running", [], hz=round(hz, 1), sent=s.guard.sent,
                            blocked=s.guard.blocked, errors=poller.errors,
-                           log=str(logger.path) if logger else "", rows=logger.rows if logger else 0)
+                           log=str(logger.path) if logger else "", rows=logger.rows if logger else 0,
+                           econ_cal=trip.cal_pct)
             finally:
                 pstop.set()
                 th.join(timeout=2)

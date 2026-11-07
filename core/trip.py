@@ -34,6 +34,9 @@ CHANNELS = {c.key: c for c in (
     Channel("trip_fuel", "Trip fuel used", "Fuel used", "L", 0, 1000),
     Channel("trip_time", "Trip time", "Trip time", "s", 0, 864000),
 )}
+# Estimated gear (core/gear.py) when the profile has a gear block and no gear PID.
+GEAR_CHANNEL = Channel("gear", "Gear (estimated)", "Gear", "", 0, 10)
+ECON_CAL_LIMIT = 30.0  # percent
 
 
 class TripComputer:
@@ -48,7 +51,17 @@ class TripComputer:
         self._fuel_rate: float | None = None
         self._last_t: float | None = None
         self._last_pub = 0.0
+        self.cal_pct = 0.0  # MPG adjust: +5 means show 5% better economy
         bus.subscribe(self.on_reading)
+
+    def set_cal(self, pct: float) -> float:
+        self.cal_pct = max(-ECON_CAL_LIMIT, min(ECON_CAL_LIMIT, float(pct)))
+        self._last_pub = 0.0  # republish soon with the new factor
+        return self.cal_pct
+
+    @property
+    def _k(self) -> float:
+        return 1 + self.cal_pct / 100
 
     def reset(self) -> None:
         self.dist_km = self.fuel_l = 0.0
@@ -80,15 +93,15 @@ class TripComputer:
             return 0.0
         if self._fuel_rate < COAST_LPH:
             return ECON_CAP
-        return min(ECON_CAP, self._speed / self._fuel_rate)
+        return min(ECON_CAP, self._speed / self._fuel_rate * self._k)
 
     def average(self) -> float | None:
-        return self.dist_km / self.fuel_l if self.fuel_l > 0.01 else None
+        return self.dist_km / self.fuel_l * self._k if self.fuel_l > 0.01 else None
 
     def _publish(self, now: float) -> None:
         ts = time.time()
         for key, value in (("econ_inst", self.instant()), ("econ_avg", self.average()),
-                           ("trip_dist", self.dist_km), ("trip_fuel", self.fuel_l),
+                           ("trip_dist", self.dist_km), ("trip_fuel", self.fuel_l / self._k),
                            ("trip_time", now - self.t_start)):
             if value is not None:
                 self.bus.publish(Reading(key, value, CHANNELS[key].units, ts))

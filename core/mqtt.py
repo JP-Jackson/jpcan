@@ -5,8 +5,10 @@ Topics (prefix `jpcan/`):
   v/<key>          retained    live value {"v": float|null, "u": units, "t": ts, "e": err}
   meta             retained    profile, VIN, channel info, layouts, shift
   status           retained    state, hint lines, rate, guard counters; LWT = offline
-  cmd/trip_reset   the ONLY command the core accepts. Nothing from MQTT ever
-                   reaches the adapter: the core never subscribes to anything else.
+  cmd/trip_reset   reset trip distance / fuel / average MPG
+  cmd/econ_cal     MPG adjust in percent (clamped to +/-30)
+                   These two are the ONLY inputs the core accepts. Nothing from MQTT
+                   ever reaches the adapter: the core subscribes to nothing else.
 
 paho-mqtt is EPL-2.0 / EDL-1.0 dual licensed (EDL = BSD-3); not GPL.
 """
@@ -25,7 +27,8 @@ T_VALUE = f"{PREFIX}/v/"
 T_META = f"{PREFIX}/meta"
 T_STATUS = f"{PREFIX}/status"
 T_TRIP_RESET = f"{PREFIX}/cmd/trip_reset"
-CORE_SUBSCRIPTIONS = (T_TRIP_RESET,)  # allowlist; see module docstring
+T_ECON_CAL = f"{PREFIX}/cmd/econ_cal"
+CORE_SUBSCRIPTIONS = (T_TRIP_RESET, T_ECON_CAL)  # allowlist; see module docstring
 OFFLINE = json.dumps({"state": "offline", "lines": ["JpCAN core", "not running"]})
 
 
@@ -67,8 +70,10 @@ class MqttPublisher:
     """Core side: forwards bus readings, meta and status to the broker."""
 
     def __init__(self, bus: Bus, host: str = "localhost", port: int = 1883,
-                 on_trip_reset: Callable[[], None] | None = None):
+                 on_trip_reset: Callable[[], None] | None = None,
+                 on_econ_cal: Callable[[float], None] | None = None):
         self.bus = bus
+        self._on_econ_cal = on_econ_cal
         self.meta: dict = {}
         self.status: dict = {}
         self._on_trip_reset = on_trip_reset
@@ -95,6 +100,11 @@ class MqttPublisher:
     def _on_message(self, client, userdata, msg):
         if msg.topic == T_TRIP_RESET and self._on_trip_reset:
             self._on_trip_reset()
+        elif msg.topic == T_ECON_CAL and self._on_econ_cal:
+            try:
+                self._on_econ_cal(float(msg.payload.decode("ascii", "replace")))
+            except ValueError:
+                pass  # ignore garbage
 
     def on_reading(self, r: Reading) -> None:
         # Retained so late subscribers (screen restart, phone page) get every
@@ -152,6 +162,9 @@ class MqttFeed:
 
     def trip_reset(self) -> None:
         self.c.publish(T_TRIP_RESET, b"1", qos=1)
+
+    def set_econ_cal(self, pct: float) -> None:
+        self.c.publish(T_ECON_CAL, f"{pct:.1f}".encode(), qos=1)
 
     def close(self) -> None:
         self.c.loop_stop()

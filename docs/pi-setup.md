@@ -139,6 +139,30 @@ themselves. Stop the core first: `sudo systemctl stop jpcan-core`.
 Touch: run `jpcan touch-cal` once (tap left edge, then right edge). Tap the
 right half of the screen for the next page, the left half to go back.
 
+## 10. Finding Ford-specific IDs (gear, etc.)
+The dash shows the gear, so the TCM has it, but not as a standard OBD PID.
+`didscan` asks a module for each ID in a range (service 22 reads only,
+through the guard, throttled), and `didwatch` shows which value tracks the
+gear on a drive. Stop the core first, since these tools open the adapter
+themselves:
+```bash
+sudo systemctl stop jpcan-core
+```
+In the truck, key on (engine running is fine):
+```bash
+~/jpcan/.venv/bin/jpcan didscan --header 7E1 --range 1E00-1EFF --out ~/tcm_scan.json
+```
+On a drive (have a passenger watch it, or use `--log` and review later):
+```bash
+~/jpcan/.venv/bin/jpcan didwatch --from ~/tcm_scan.json --log ~/gear_watch.jsonl
+```
+The `gear%` column scores how often a value equals the estimated gear; the
+real gear ID should be near 100% and step 1-6 through the shifts. Press `q`
+to quit and print the top candidates. Afterwards:
+```bash
+sudo systemctl start jpcan-core
+```
+
 ## Troubleshooting
 
 **Pi not on Wi-Fi after first boot** (it isn't in the router list, and

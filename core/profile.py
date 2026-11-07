@@ -66,6 +66,7 @@ class Profile:
     layouts: dict[str, list[str]] = field(default_factory=dict)
     obd_header: str = "7DF"   # where 7DF (broadcast) PIDs are actually sent
     gaugeworks: dict = field(default_factory=dict)  # GaugeWorks layout config (display units)
+    gear: dict = field(default_factory=dict)        # gear estimator config (ratios, axle, tire)
 
     def gauge_keys(self) -> list[str]:
         """Every channel key the GaugeWorks layout uses."""
@@ -74,6 +75,7 @@ class Profile:
         for g in (gw.get("gauges") or {}).values():
             keys += [g.get("desired"), g.get("actual")]
         keys += list(gw.get("tiles") or [])
+        keys.append(gw.get("gear"))
         return [k for k in keys if k]
 
     def header_for(self, p: "Pid") -> str:
@@ -152,7 +154,8 @@ def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Pro
                    shift=data.get("shift") or {"enabled": False, "rpm": 3000},
                    match=data.get("match") or {}, layouts=data.get("layouts") or {},
                    obd_header=_s(data.get("obd_header", "7DF")),
-                   gaugeworks=data.get("gaugeworks") or {})
+                   gaugeworks=data.get("gaugeworks") or {},
+                   gear=data.get("gear") or {})
     _validate(prof)
     return prof
 
@@ -171,12 +174,13 @@ def _validate(prof: Profile) -> None:
             raise ProfileError(f"{p.key}: request {req} blocked by guard ({d.reason})")
         if p.service != "AT" and not guard.check(f"ATSH{p.header}").allowed:
             raise ProfileError(f"{p.key}: header {p.header} invalid")
+    from .trip import CHANNELS  # computed channels may be shown but not polled
+    computed = set(CHANNELS) | ({"gear"} if prof.gear else set())
     for name, keys in prof.layouts.items():
-        bad = [k for k in keys if k not in prof.pids]
+        bad = [k for k in keys if k not in prof.pids and k not in computed]
         if bad:
             raise ProfileError(f"layout {name}: unknown pids {bad}")
-    from .trip import CHANNELS  # computed channels may be shown but not polled
-    bad = [k for k in prof.gauge_keys() if k not in prof.pids and k not in CHANNELS]
+    bad = [k for k in prof.gauge_keys() if k not in prof.pids and k not in computed]
     if bad:
         raise ProfileError(f"gaugeworks: unknown keys {bad}")
 

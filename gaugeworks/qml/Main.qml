@@ -71,7 +71,9 @@ Rectangle {
             x: 512 - 190; y: 44; width: 380; height: 380
             value: val(cfg.key); valid: ok(cfg.key)
             shiftActive: backend.shift.enabled && valid && value >= backend.shift.rpm
-            sub: cfg.units === undefined ? "" : (ok(root.cfg.gear) ? "GEAR " + val(root.cfg.gear).toFixed(0) : cfg.units)
+            readonly property bool hasGear: (root.cfg.gear || "") !== ""
+            bigText: hasGear ? (ok(root.cfg.gear) ? val(root.cfg.gear).toFixed(0) : "\u2013") : ""
+            bigDim: hasGear && !ok(root.cfg.gear)
         }
         Gauge {
             id: boostGauge

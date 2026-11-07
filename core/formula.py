@@ -9,7 +9,7 @@ from __future__ import annotations
 import ast
 import operator
 import string
-from typing import Callable, Sequence
+from typing import Callable
 
 _BIN = {
     ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul,

@@ -9,7 +9,9 @@ Item {
     property real value: 0
     property bool valid: false
     property bool shiftActive: false
-    property string sub: ""           // small text under readout (e.g. gear)
+    property string sub: ""           // small text under readout
+    property string bigText: ""       // big centre text (gear); label moves under readout
+    property bool bigDim: false       // e.g. no gear right now
 
     readonly property real minValue: cfg.min !== undefined ? cfg.min : 0
     readonly property real maxValue: cfg.max !== undefined ? cfg.max : 100
@@ -131,7 +133,19 @@ Item {
             font.bold: true
         }
     }
+    Text {  // big gear numeral
+        visible: g.bigText !== ""
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.verticalCenter
+        anchors.bottomMargin: g.size * 0.05
+        text: g.bigText
+        color: g.bigDim ? (g.colors.minorTick || "gray") : (g.colors.text || "white")
+        font.family: g.theme ? g.theme.fonts.digits : ""
+        font.pixelSize: g.size * 0.27
+        font.bold: true
+    }
     Text {
+        visible: g.bigText === ""
         anchors.horizontalCenter: parent.horizontalCenter
         y: g.cy - g.size * 0.17
         text: (g.cfg.label || "") + (g.cfg.scaleLabel ? " " + g.cfg.scaleLabel : "")
@@ -175,7 +189,9 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: g.sub !== "" ? g.sub : (g.cfg.units || "")
+            text: g.sub !== "" ? g.sub
+                  : g.bigText !== "" ? (g.cfg.label || "") + (g.cfg.scaleLabel ? " " + g.cfg.scaleLabel : "")
+                  : (g.cfg.units || "")
             color: g.colors.dim || "gray"
             font.family: g.theme ? g.theme.fonts.label : ""
             font.pixelSize: g.size * 0.055

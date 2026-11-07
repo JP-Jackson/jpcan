@@ -18,18 +18,18 @@ QML_DIR = Path(__file__).resolve().parent / "qml"
 
 # Demo scenes in native units (km/h, °C, kPa...). Used for screenshots/review.
 DEMO_SCENES = {
-    "cruise": {"rpm": 1650, "speed": 104.6, "boost": 55, "baro": 99, "coolant": 88, "trans_temp": 77,
+    "cruise": {"gear": 6, "rpm": 1650, "speed": 104.6, "boost": 55, "baro": 99, "coolant": 88, "trans_temp": 77,
                "vgt_desired": 45, "vgt_actual": 48, "econ_inst": 7.2, "econ_avg": 6.4,
                "ambient": 32, "oil_temp_std": 96, "battery": 14.2, "fuel_level": 70, "mil": 0,
                "trip_dist": 52.3, "map": 155, "iat": 30, "dpf_dp": 1.2},
-    "alarm": {"rpm": 2900, "speed": 88.5, "boost": 240, "coolant": 115, "trans_temp": 110,
+    "alarm": {"gear": 3, "rpm": 2900, "speed": 88.5, "boost": 240, "coolant": 115, "trans_temp": 110,
               "vgt_desired": 70, "vgt_actual": 74, "econ_inst": 2.1, "econ_avg": 5.9,
               "ambient": 40, "oil_temp_std": 118, "battery": 14.1, "fuel_level": 22, "mil": 1,
               "trip_dist": 140.2, "map": 250, "iat": 45, "dpf_dp": 2.0},
     "vgtfault": {"rpm": 2100, "speed": 96.6, "boost": 90, "baro": 99, "coolant": 89, "trans_temp": 80,
                  "vgt_desired": 40, "vgt_actual": 75, "econ_inst": 5.8, "econ_avg": 6.3,
                  "ambient": 32, "oil_temp_std": 99, "battery": 14.2, "fuel_level": 68, "mil": 0,
-                 "trip_dist": 61.0},
+                 "trip_dist": 61.0, "gear": 5},
     "shift": {"rpm": 3200, "speed": 72.4, "map": 210, "baro": 99, "boost": 111, "coolant": 90, "iat": 35,
               "econ_inst": 6.0, "econ_avg": 16.0, "ambient": 22, "battery": 14.0,
               "fuel_level": 55, "mil": 0, "trip_dist": 30.0, "dpf_dp": 0.8},
@@ -61,6 +61,9 @@ class InProcFeed:
     def trip_reset(self):
         self.trip.reset()
 
+    def set_econ_cal(self, pct):
+        self.trip.set_cal(pct)
+
     def close(self):
         self.stop.set()
 
@@ -79,7 +82,8 @@ class DemoFeed:
         ch = channel_info(p)
         self.meta = {"profile": p.id, "name": p.name, "vin": None, "sim": True, "shift": p.shift,
                      "layouts": p.layouts, "gaugeworks": p.gaugeworks, "channels": ch, "skipped": []}
-        self.status = {"state": "running", "hz": 10.0, "sent": 1234, "blocked": 0, "lines": []}
+        self.status = {"state": "running", "hz": 10.0, "sent": 1234, "blocked": 0, "lines": [],
+                       "econ_cal": 0.0}
         self.connected = True
         self.bus = Bus()
         now = time.time()

@@ -65,3 +65,14 @@ def test_logger_and_export(tmp_path):
     last = lines[-1].split(",")
     assert float(last[2]) == pytest.approx(280 * 0.621371, abs=0.01)
     assert float(last[3]) == pytest.approx(14.5, abs=0.01)
+
+
+def test_econ_calibration():
+    bus, clock = Bus(), [0.0]
+    trip = TripComputer(bus, clock=lambda: clock[0])
+    feed(bus, clock, 600, 100.0, 12.5)
+    base_avg, base_inst = trip.average(), trip.instant()
+    assert trip.set_cal(5) == 5
+    assert trip.average() == pytest.approx(base_avg * 1.05)
+    assert trip.instant() == pytest.approx(base_inst * 1.05)
+    assert trip.set_cal(-80) == -30   # clamped

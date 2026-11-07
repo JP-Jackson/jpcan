@@ -148,6 +148,8 @@ class Backend(QObject):
         return {"enabled": bool(meta_shift.get("enabled")), "rpm": float(rpm)}
 
     shift = Property("QVariantMap", lambda self: self._shift(), notify=configChanged)
+    econCal = Property(float, lambda self: float((self.feed.status or {}).get("econ_cal", 0.0)),
+                       notify=statusChanged)
 
     # -- periodic update
     @Slot()
@@ -189,7 +191,7 @@ class Backend(QObject):
         else:
             text = " ".join(st.get("lines", [])) or state
         new = {"state": state, "text": text, "mode": "SIM" if meta.get("sim") else "LIVE",
-               "profile": meta.get("name", "")}
+               "profile": meta.get("name", ""), "econ_cal": st.get("econ_cal", 0.0)}
         if new != self._status:
             self._status = new
             self.statusChanged.emit()
@@ -235,6 +237,13 @@ class Backend(QObject):
         self._settings.setdefault("shift_rpm", {})[prof] = max(1000, min(8000, rpm))
         self._save()
         self.configChanged.emit()
+
+    @Slot(int)
+    def adjustEcon(self, delta: int) -> None:
+        """MPG adjust: the core applies and saves it, so every screen agrees."""
+        if hasattr(self.feed, "set_econ_cal"):
+            pct = max(-30.0, min(30.0, float((self.feed.status or {}).get("econ_cal", 0.0)) + delta))
+            self.feed.set_econ_cal(pct)
 
     @Slot()
     def tripReset(self) -> None:

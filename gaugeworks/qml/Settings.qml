@@ -15,7 +15,7 @@ Rectangle {
     Rectangle {
         id: panel
         anchors.centerIn: parent
-        width: 700; height: 520; radius: 16
+        width: 720; height: 560; radius: 16
         color: s.theme.colors.background
         border.color: s.theme.colors.panelBorder; border.width: 2
 
@@ -59,8 +59,20 @@ Rectangle {
             }
             Row {
                 spacing: 14
+                Text { width: 150; text: "MPG adjust"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Btn { theme: s.theme; text: "-1%"; width: 100; onClicked: s.gw.adjustEcon(-1) }
+                Text {
+                    width: 120; horizontalAlignment: Text.AlignHCenter
+                    text: (s.gw.econCal > 0 ? "+" : "") + s.gw.econCal.toFixed(0) + "%"
+                    color: s.theme.colors.text; font.pixelSize: 30; font.bold: true
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Btn { theme: s.theme; text: "+1%"; width: 100; onClicked: s.gw.adjustEcon(1) }
+            }
+            Row {
+                spacing: 14
                 Text { width: 150; text: "Trip"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
-                Btn { theme: s.theme; text: "Reset trip"; width: 200; onClicked: s.gw.tripReset() }
+                Btn { theme: s.theme; text: "Reset trip + avg MPG"; width: 280; onClicked: s.gw.tripReset() }
             }
         }
 

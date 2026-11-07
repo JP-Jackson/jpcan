@@ -56,6 +56,7 @@ class SimVehicle:
         vgt_act = 40 + self._load((c - 0.7) % CYCLE) * 0.5
         egt = 180 + load * 4.5 + self.rng.uniform(-3, 3)
         return {
+            "gear": gear + 1 if spd > 1 else 0,
             "rpm": rpm, "speed": spd, "load": load,
             "baro": 99.0, "map": 99.0 + 2 + max(0.0, load - 15) * 2.2,
             "coolant": 20 + 68 * warm(300), "iat": 30.0, "ambient": 24.0,
@@ -108,6 +109,11 @@ MODE01: dict[int, Callable[[dict], bytes]] = {
 MODE22: dict[tuple[str, int], Callable[[dict], bytes]] = {
     ("720", 0x404C): lambda s: int(s["odo_km"] * 10).to_bytes(3, "big"),
     ("7E0", 0xDD01): lambda s: int(s["odo_km"]).to_bytes(3, "big"),
+    # Fictional TCM DIDs so didscan/didwatch can be exercised in the sim. The
+    # real Ford gear DID is what didscan is for; these are NOT real IDs.
+    ("7E1", 0x1E10): lambda s: b"\x00",
+    ("7E1", 0x1E12): lambda s: bytes([s["gear"]]),
+    ("7E1", 0x1E23): lambda s: _u16(s["rpm"]),
     ("7E1", 0x1E1C): lambda s: int(s["trans"] * 16).to_bytes(2, "big", signed=True),
     ("7E0", 0xF470): lambda s: b"\x01" + _u16(s["map"] * 32) + _u16(s["map"] * 32),
     ("7E0", 0xF471): lambda s: b"\x03" + _u8(s["vgt_des"] * 2.55) + _u8(s["vgt_act"] * 2.55),

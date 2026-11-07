@@ -113,12 +113,23 @@ def cmd_run(args) -> int:
     from .service import run_core
     from .trip import TripComputer
 
+    from . import settings as settings_mod
+
     bus = Bus()
     trip = TripComputer(bus)
+    st = settings_mod.load()
+    trip.set_cal(st.get("econ_cal_pct", 0.0))
+
+    def econ_cal(pct: float) -> None:
+        cur = settings_mod.load()
+        cur["econ_cal_pct"] = trip.set_cal(pct)
+        settings_mod.save(cur)
+
     if args.no_mqtt:
         sink = LocalSink(bus)
     else:
-        sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.reset)
+        sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.reset,
+                             on_econ_cal=econ_cal)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     last = [""]
@@ -443,6 +454,96 @@ def cmd_export(args) -> int:
     return 0
 
 
+def cmd_didscan(args) -> int:
+    import json
+
+    from .didscan import parse_ranges, scan
+
+    dids = parse_ranges(args.range or ["1E00-1EFF"])
+    s = connect(args)
+    try:
+        hdr = args.header.upper()
+        if not s.guard.check(f"ATSH{hdr}").allowed:
+            print(f"error: header {hdr} not allowed (add it to the profile's headers)", file=sys.stderr)
+            return 1
+        print(f"Scanning {len(dids)} DIDs on {hdr} (service 22, read-only), "
+              f"~{len(dids) * max(args.min_gap, 0.05) * 1.5:.0f} s ...")
+
+        def prog(i, n, r):
+            if r.status == "ok":
+                print(f"  {r.did:04X}  {r.data.hex(' ').upper()}")
+            elif r.status == "nrc" and r.nrc == 0x33:
+                print(f"  {r.did:04X}  (exists, security-locked: NRC 33)")
+            if i % 64 == 0 or i == n:
+                print(f"  ... {i}/{n}", flush=True)
+
+        results = scan(s.elm, hdr, dids, prog)
+        ok = [r for r in results if r.status == "ok"]
+        out = Path(args.out or f"didscan_{hdr}_{time.strftime('%Y%m%d-%H%M%S')}.json")
+        out.write_text(json.dumps({"header": hdr, "profile": s.profile.id, "vin": s.vin,
+                                   "results": [r.as_dict() for r in results]}, indent=1))
+        print(f"\n{len(ok)} of {len(dids)} DIDs answered. Saved {out}")
+        print(f"Guard: {s.guard.sent} sent, {s.guard.blocked} blocked")
+        if ok:
+            print(f"Next, on a drive:  jpcan didwatch --header {hdr} --from {out}")
+    finally:
+        s.close()
+    return 0
+
+
+def cmd_didwatch(args) -> int:
+    import curses
+    import json
+
+    from .didscan import Watcher, parse_ranges
+
+    if args.from_file:
+        data = json.loads(Path(args.from_file).read_text())
+        dids = [int(r["did"], 16) for r in data["results"]
+                if r["status"] == "ok" and len(r["data"]) // 2 <= args.max_bytes]
+        hdr = (args.header or data["header"]).upper()
+    else:
+        dids, hdr = parse_ranges(args.dids or []), (args.header or "7E1").upper()
+    if not dids:
+        print("No DIDs to watch (use --from a didscan file or --dids).", file=sys.stderr)
+        return 1
+    s = connect(args)
+    est = None
+    if s.profile.gear:
+        from .gear import GearEstimator
+        est = GearEstimator(Bus(), s.profile.gear)
+    log = open(args.log, "a", encoding="utf-8") if args.log else None
+    w = Watcher(s.elm, hdr, dids, s.profile.obd_header, est, log)
+
+    def screen(scr):
+        scr.nodelay(True)
+        while scr.getch() not in (ord("q"), 27):
+            w.cycle()
+            scr.erase()
+            h, wd = scr.getmaxyx()
+            g = "-" if w.gear is None else str(w.gear)
+            scr.addnstr(0, 0, f"{hdr}  rpm {w.rpm or 0:5.0f}  mph {(w.kmh or 0) * 0.621:4.0f}  est gear {g}"
+                              f"   q=quit", wd - 1, curses.A_REVERSE)
+            scr.addnstr(1, 0, "DID   now                 chg  values(1st byte)   gear%", wd - 1)
+            for i, st in enumerate(w.ranked()[: h - 3]):
+                vals = ",".join(str(v) for v in sorted(st.first_byte_values)[:8])
+                scr.addnstr(2 + i, 0, f"{st.did:04X}  {st.last.hex(' ').upper():18}  {st.changes:4}  "
+                                      f"{vals:18} {st.gear_match * 100:5.0f}", wd - 1)
+            scr.refresh()
+
+    try:
+        curses.wrapper(screen)
+    finally:
+        s.close()
+        if log:
+            log.close()
+    print("Top gear candidates:")
+    for st in w.ranked()[:5]:
+        print(f"  {hdr} 22{st.did:04X}  gear match {st.gear_match * 100:.0f}%  "
+              f"changes {st.changes}  values {sorted(st.first_byte_values)[:10]}")
+    return 0
+
+
 # ---- entry point ---------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="jpcan", description="JpCAN reads it. GaugeWorks shows it.")
@@ -485,6 +586,20 @@ def build_parser() -> argparse.ArgumentParser:
     ep.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
     ep.add_argument("--metric", action="store_true")
     ep.set_defaults(func=cmd_export)
+    ds = conn(sub.add_parser("didscan", help="find Ford DIDs on a module (service 22 reads)"))
+    ds.add_argument("--header", default="7E1", help="module to scan (default 7E1 = TCM)")
+    ds.add_argument("--range", action="append", default=None,
+                    help="hex DID range(s), e.g. 1E00-1EFF (repeatable)")
+    ds.add_argument("--out", help="JSON results file")
+    ds.set_defaults(func=cmd_didscan, min_gap=0.1)
+    dw = conn(sub.add_parser("didwatch", help="watch DIDs live to spot the gear (or any) value"))
+    dw.add_argument("--header", help="module (default: from --from file, else 7E1)")
+    src = dw.add_mutually_exclusive_group()
+    src.add_argument("--from", dest="from_file", help="didscan JSON file")
+    src.add_argument("--dids", action="append", help="hex DIDs/ranges to watch")
+    dw.add_argument("--max-bytes", type=int, default=4, help="skip DIDs with longer replies (default 4)")
+    dw.add_argument("--log", help="append every sample to this JSONL file")
+    dw.set_defaults(func=cmd_didwatch)
     sub.add_parser("touch-cal", help="calibrate left/right taps on the touchscreen").set_defaults(func=cmd_touch_cal)
     return ap
 

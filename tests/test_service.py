@@ -54,8 +54,11 @@ def test_core_local_sink(tmp_path):
     assert len(logs) == 1 and logs[0].stat().st_size > 0
 
 
-def test_core_only_listens_to_trip_reset():
-    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET,)
+def test_core_only_listens_to_its_two_commands():
+    """The core's ONLY MQTT inputs; neither can reach the adapter."""
+    from core.mqtt import T_ECON_CAL
+    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET, T_ECON_CAL)
+    assert all(t.startswith("jpcan/cmd/") for t in CORE_SUBSCRIPTIONS)
 
 
 def _free_port():
@@ -84,7 +87,7 @@ def test_core_over_mqtt(tmp_path, broker):
 
     bus, stop = Bus(), threading.Event()
     trip = TripComputer(bus)
-    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.reset)
+    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.reset, on_econ_cal=trip.set_cal)
     th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), pub, bus, stop, trip),
                           daemon=True)
     th.start()
@@ -101,10 +104,31 @@ def test_core_over_mqtt(tmp_path, broker):
         before = trip.t_start
         feed.trip_reset()
         assert wait_for(lambda: trip.t_start > before)
-        feed.c.publish("jpcan/cmd/anything_else", b"x")  # ignored; core doesn't subscribe
+        feed.set_econ_cal(7)
+        assert wait_for(lambda: trip.cal_pct == 7)
+        feed.set_econ_cal(99)                              # clamped
+        assert wait_for(lambda: trip.cal_pct == 30)
+        feed.c.publish("jpcan/cmd/econ_cal", b"garbage")   # ignored
+        feed.c.publish("jpcan/cmd/anything_else", b"x")    # ignored; core doesn't subscribe
+        time.sleep(0.3)
+        assert trip.cal_pct == 30 and th.is_alive()
         stop.set()
         th.join(10)
         assert wait_for(lambda: feed.status.get("state") == "offline")
     finally:
         stop.set()
         feed.close()
+
+
+def test_core_estimates_gear_in_sim(tmp_path):
+    bus, stop = Bus(), threading.Event()
+    sink = LocalSink(bus)
+    th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), sink, bus, stop), daemon=True)
+    th.start()
+    try:
+        assert wait_for(lambda: "gear" in bus.latest())
+        assert sink.meta["channels"]["gear"]["verified"] is False   # estimated -> shows "?"
+        assert wait_for(lambda: "econ_cal" in sink.status)
+    finally:
+        stop.set()
+        th.join(10)
