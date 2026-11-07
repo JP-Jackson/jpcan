@@ -71,10 +71,11 @@ Rectangle {
                 Loader {
                     id: loader
                     anchors.fill: parent
-                    source: {
+                    source: {  // theme "skin" page if the theme ships one, else the standard page
                         var t = pageItem.modelData.template
-                        return t === "quad" ? "PageQuad.qml" : t === "economy" ? "PageEconomy.qml"
-                             : t === "list" ? "PageList.qml" : "PageDash.qml"
+                        var src = (root.theme.pages || {})[t]
+                        return src ? src : (t === "quad" ? "PageQuad.qml" : t === "economy" ? "PageEconomy.qml"
+                                            : t === "list" ? "PageList.qml" : "PageDash.qml")
                     }
                     onLoaded: {
                         item.theme = Qt.binding(function() { return root.theme })

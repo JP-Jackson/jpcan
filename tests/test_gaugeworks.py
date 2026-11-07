@@ -134,3 +134,14 @@ def test_render_every_theme(tmp_path, theme):
     if r.returncode != 0 and "libEGL" in r.stderr:
         pytest.skip("no GL libs in this environment")
     assert r.returncode == 0, r.stderr[-2000:]
+
+
+def test_theme_skin_pages_override_and_fallback(tmp_path):
+    from gaugeworks.backend import QML_DIR, page_sources
+
+    (tmp_path / "skinny" / "qml").mkdir(parents=True)
+    (tmp_path / "skinny" / "qml" / "PageDash.qml").write_text("import QtQuick\nItem {}\n")
+    src = page_sources("skinny", tmp_path)
+    assert src["dash"].endswith("/skinny/qml/PageDash.qml")          # theme's own layout
+    assert src["quad"].endswith(str(QML_DIR / "PageQuad.qml"))       # standard fallback
+    assert set(src) == {"dash", "quad", "economy", "list"}

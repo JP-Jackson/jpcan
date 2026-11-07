@@ -151,7 +151,24 @@ def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
     t["assets"] = {k: url(v) for k, v in (t.get("assets") or {}).items()}
     t.setdefault("style", {"gauge": "needle"})
     t["id"] = d.name
+    t["pages"] = page_sources(d.name, themes_dir)
     return t
+
+
+QML_DIR = Path(__file__).resolve().parent / "qml"
+TEMPLATES = {"dash": "PageDash.qml", "quad": "PageQuad.qml", "economy": "PageEconomy.qml",
+             "list": "PageList.qml"}
+
+
+def page_sources(theme_id: str, themes_dir: Path = THEMES_DIR, qml_dir: Path = QML_DIR) -> dict:
+    """Template -> QML file URL. A theme may ship its own page layouts in
+    themes/<id>/qml/Page*.qml (a "skin"); otherwise the standard page is used.
+    Theme pages import the standard components with: import "../../../qml"."""
+    out = {}
+    for template, fname in TEMPLATES.items():
+        skin = themes_dir / theme_id / "qml" / fname
+        out[template] = QUrl.fromLocalFile(str(skin if skin.exists() else qml_dir / fname)).toString()
+    return out
 
 
 THEME_ORDER = ["classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
