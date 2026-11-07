@@ -51,7 +51,7 @@ pids:
     units: km
     min: 0
     max: 1600000
-    poll_rate: once
+    poll_rate: slow
     verified: true
     source: https://www.ford-trucks.com/forums/1322804-torque-pro-ford-6-7l-extended-pids-37.html
     notes: Verified 2026-11-07. Reads 148,200.5 mi vs dash 148,197 (+3.5 mi module vs cluster).
@@ -376,6 +376,6 @@ gaugeworks:
     coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 235}
     trans:   {key: trans_temp, min: 100, max: 260, major: 40, minor: 4, label: TRANS, warn: 220, alarm: 240}
     vgt:     {desired: vgt_desired, actual: vgt_actual, label: VGT}
-  tiles: [econ_inst, econ_avg, ambient, oil_temp_std, battery, fuel_level, mil, trip_dist]
+  tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
   gear: gear
 

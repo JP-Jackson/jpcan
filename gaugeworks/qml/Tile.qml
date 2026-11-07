@@ -33,6 +33,13 @@ Rectangle {
         font.pixelSize: 30
         font.bold: true
     }
+    Text {  // fill-up corrected economy tag
+        anchors.right: parent.right; anchors.rightMargin: 8; y: 7
+        visible: t.cfg.econ === true && backend.econCorrected && backend.econFactor > 0
+        text: "corr"
+        color: t.colors.accent || "orange"
+        font.pixelSize: 13; font.bold: true
+    }
     Text {
         anchors.right: parent.right; anchors.rightMargin: 8
         anchors.bottom: parent.bottom; anchors.bottomMargin: 4

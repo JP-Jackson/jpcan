@@ -69,7 +69,7 @@ def gauge_config(g: dict, native: str, imperial: bool) -> dict:
     return c
 
 
-def tile_config(key: str, info: dict, imperial: bool) -> dict:
+def tile_config(key: str, info: dict, imperial: bool, window_mi: int = 10) -> dict:
     _, units = display(0.0, info.get("units", ""), imperial)
     if key == "trip_dist":
         decimals = 1
@@ -78,10 +78,12 @@ def tile_config(key: str, info: dict, imperial: bool) -> dict:
     else:
         decimals = 0
     label = info.get("short") or key
-    if key in ("econ_inst", "econ_avg") and units != "mpg":
-        label = "Economy" if key == "econ_inst" else "Avg econ"
+    if key == "econ_last":
+        label = f"Last {window_mi}" if imperial else f"Last {round(window_mi * 1.609)} km"
+    elif key == "econ_inst" and units != "mpg":
+        label = "Economy"
     return {"key": key, "label": label, "units": units, "decimals": decimals,
-            "verified": bool(info.get("verified", True))}
+            "verified": bool(info.get("verified", True)), "econ": key.startswith("econ_")}
 
 
 def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
@@ -100,12 +102,22 @@ def list_themes(themes_dir: Path = THEMES_DIR) -> list[str]:
     return sorted(p.parent.name for p in themes_dir.glob("*/theme.json"))
 
 
+def fillup_message(res: dict) -> str:
+    if res.get("error"):
+        return f"Fill-up not saved: {res['error']}"
+    if res.get("mpg"):
+        src = "" if res.get("miles_src") == "odometer" else " (est. miles)"
+        return f"Tank: {res['miles']:.0f} mi / {res['gallons']:.1f} gal = {res['mpg']:.1f} mpg{src}"
+    return "First fill-up saved. MPG shows after the next one."
+
+
 # ---- Qt backend -------------------------------------------------------------
 class Backend(QObject):
     configChanged = Signal()
     themeChanged = Signal()
     statusChanged = Signal()
     settingsChanged = Signal()
+    fuelChanged = Signal()
     message = Signal(str)
 
     def __init__(self, feed, settings: dict | None = None, poll_ms: int = 50):
@@ -117,6 +129,8 @@ class Backend(QObject):
         self._config: dict = {"gauges": {}, "tiles": []}
         self._theme = load_theme(self._settings.get("theme", "classic"))
         self._status = {"state": "offline", "text": "Starting...", "mode": ""}
+        self._fuel: dict = {}
+        self._last_result_ts = None
         self._meta_sig = None
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
@@ -148,19 +162,29 @@ class Backend(QObject):
         return {"enabled": bool(meta_shift.get("enabled")), "rpm": float(rpm)}
 
     shift = Property("QVariantMap", lambda self: self._shift(), notify=configChanged)
-    econCal = Property(float, lambda self: float((self.feed.status or {}).get("econ_cal", 0.0)),
-                       notify=statusChanged)
+    fuel = Property("QVariantMap", lambda self: self._fuel, notify=fuelChanged)
+    econCorrected = Property(bool, lambda self: bool(self._settings.get("econ_corrected")),
+                             notify=settingsChanged)
+    econWindow = Property(int, lambda self: int(self._settings.get("econ_window_mi", 10)),
+                          notify=settingsChanged)
+    econFactor = Property(float, lambda self: float(self._fuel.get("factor") or 0.0), notify=fuelChanged)
+
+    def _factor(self) -> float:
+        f = self._fuel.get("factor")
+        return float(f) if (f and self._settings.get("econ_corrected")) else 1.0
 
     # -- periodic update
     @Slot()
     def tick(self) -> None:
         meta = self.feed.meta or {}
         sig = (meta.get("profile"), json.dumps(meta.get("gaugeworks", {}), sort_keys=True),
-               self._settings.get("units"), json.dumps(self._settings.get("shift_rpm", {})))
+               self._settings.get("units"), json.dumps(self._settings.get("shift_rpm", {})),
+               self._settings.get("econ_window_mi"))
         if sig != self._meta_sig and meta:
             self._meta_sig = sig
             self._rebuild_config(meta)
         self._update_status(meta)
+        self._update_fuel()
         self._update_values()
 
     def _rebuild_config(self, meta: dict) -> None:
@@ -174,7 +198,9 @@ class Backend(QObject):
                                 "label": g.get("label", name.upper())}
             elif g.get("key") in ch:
                 gauges[name] = gauge_config(g, ch[g["key"]].get("units", ""), imp)
-        tiles = [tile_config(k, ch.get(k, {}), imp) for k in (gw.get("tiles") or [])]
+        win = int(self._settings.get("econ_window_mi", 10))
+        tiles = [tile_config(k, ch.get(f"econ_last{win}" if k == "econ_last" else k, {}), imp, win)
+                 for k in (gw.get("tiles") or [])]
         self._config = {"gauges": gauges, "tiles": tiles, "profile": meta.get("name", ""),
                         "gear": gw.get("gear", "")}
         self.configChanged.emit()
@@ -191,18 +217,35 @@ class Backend(QObject):
         else:
             text = " ".join(st.get("lines", [])) or state
         new = {"state": state, "text": text, "mode": "SIM" if meta.get("sim") else "LIVE",
-               "profile": meta.get("name", ""), "econ_cal": st.get("econ_cal", 0.0)}
+               "profile": meta.get("name", "")}
         if new != self._status:
             self._status = new
             self.statusChanged.emit()
+
+    def _update_fuel(self) -> None:
+        fuel = getattr(self.feed, "fuel", None) or {}
+        if fuel != self._fuel:
+            self._fuel = fuel
+            self.fuelChanged.emit()
+            res = fuel.get("last_result") or {}
+            if res.get("ts") and res["ts"] != self._last_result_ts:
+                if self._last_result_ts is not None or time.time() - res["ts"] < 30:
+                    self.message.emit(fillup_message(res))
+                self._last_result_ts = res["ts"]
 
     def _update_values(self) -> None:
         imp = self._settings.get("units", "imperial") == "imperial"
         now = time.time()
         running = (self.feed.status or {}).get("state") == "running"
-        for k, r in self.feed.bus.latest().items():
+        factor = self._factor()
+        win = int(self._settings.get("econ_window_mi", 10))
+        latest = dict(self.feed.bus.latest())
+        if f"econ_last{win}" in latest:
+            latest["econ_last"] = latest[f"econ_last{win}"]
+        for k, r in latest.items():
             ok = (running and r.value is not None and not r.error and now - r.ts <= STALE)
-            v = display(r.value, r.units, imp)[0] if r.value is not None else 0.0
+            raw = r.value * factor if (r.value is not None and k.startswith("econ_")) else r.value
+            v = display(raw, r.units, imp)[0] if raw is not None else 0.0
             if self._values.value(k) != v:
                 self._values.insert(k, v)
             if self._fresh.value(k) != ok:
@@ -238,12 +281,25 @@ class Backend(QObject):
         self._save()
         self.configChanged.emit()
 
+    @Slot(bool)
+    def setEconCorrected(self, on: bool) -> None:
+        self._settings["econ_corrected"] = bool(on)
+        self._save()
+
     @Slot(int)
-    def adjustEcon(self, delta: int) -> None:
-        """MPG adjust: the core applies and saves it, so every screen agrees."""
-        if hasattr(self.feed, "set_econ_cal"):
-            pct = max(-30.0, min(30.0, float((self.feed.status or {}).get("econ_cal", 0.0)) + delta))
-            self.feed.set_econ_cal(pct)
+    def setEconWindow(self, miles: int) -> None:
+        self._settings["econ_window_mi"] = int(miles)
+        self._save()
+
+    @Slot(float, float)
+    def fillup(self, gallons: float, price: float) -> None:
+        """Log a fill-up; the core validates, records and resets the tank average."""
+        if not 0.5 <= gallons <= 80:
+            self.message.emit("Enter gallons (0.5 - 80)")
+            return
+        if hasattr(self.feed, "fillup"):
+            self.feed.fillup(round(gallons, 3), round(price, 3) if price > 0 else None)
+            self.message.emit("Saving fill-up...")
 
     @Slot()
     def tripReset(self) -> None:

@@ -44,7 +44,7 @@ def test_core_local_sink(tmp_path):
     th.start()
     assert wait_for(lambda: sink.status.get("state") == "running" and sink.status.get("hz", 0) > 0)
     assert sink.meta["profile"] == "ford_f250_67_2014"
-    assert "econ_avg" in sink.meta["channels"]
+    assert "econ_tank" in sink.meta["channels"]
     assert wait_for(lambda: {"rpm", "boost", "econ_inst"} <= set(bus.latest()))
     assert sink.status["blocked"] == 0
     stop.set()
@@ -56,8 +56,8 @@ def test_core_local_sink(tmp_path):
 
 def test_core_only_listens_to_its_two_commands():
     """The core's ONLY MQTT inputs; neither can reach the adapter."""
-    from core.mqtt import T_ECON_CAL
-    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET, T_ECON_CAL)
+    from core.mqtt import T_FILLUP
+    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET, T_FILLUP)
     assert all(t.startswith("jpcan/cmd/") for t in CORE_SUBSCRIPTIONS)
 
 
@@ -87,8 +87,11 @@ def test_core_over_mqtt(tmp_path, broker):
 
     bus, stop = Bus(), threading.Event()
     trip = TripComputer(bus)
-    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.reset, on_econ_cal=trip.set_cal)
-    th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), pub, bus, stop, trip),
+    from core.fuelbook import FuelHub
+
+    hub = FuelHub()
+    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.reset, on_fillup=hub.fillup)
+    th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), pub, bus, stop, trip, hub),
                           daemon=True)
     th.start()
     feed = MqttFeed("127.0.0.1", broker)
@@ -100,18 +103,18 @@ def test_core_over_mqtt(tmp_path, broker):
         late = MqttFeed("127.0.0.1", broker, "late")   # joins after the once-read
         assert wait_for(lambda: "odometer" in late.bus.latest())
         late.close()
-        assert wait_for(lambda: trip.t_start < time.monotonic() - 1.0)
-        before = trip.t_start
+        assert wait_for(lambda: "rows" in feed.fuel)            # history published, retained
+        assert wait_for(lambda: trip.trip.secs > 0.5)
         feed.trip_reset()
-        assert wait_for(lambda: trip.t_start > before)
-        feed.set_econ_cal(7)
-        assert wait_for(lambda: trip.cal_pct == 7)
-        feed.set_econ_cal(99)                              # clamped
-        assert wait_for(lambda: trip.cal_pct == 30)
-        feed.c.publish("jpcan/cmd/econ_cal", b"garbage")   # ignored
-        feed.c.publish("jpcan/cmd/anything_else", b"x")    # ignored; core doesn't subscribe
+        assert wait_for(lambda: trip.trip.secs < 0.5)
+        feed.fillup(20.0, 3.459)                                 # baseline fill
+        assert wait_for(lambda: len(feed.fuel.get("rows", [])) == 1)
+        feed.fillup(500, 3.0)                                    # rejected: out of range
+        assert wait_for(lambda: "error" in (feed.fuel.get("last_result") or {}))
+        feed.c.publish("jpcan/cmd/fillup", b"garbage")           # ignored
+        feed.c.publish("jpcan/cmd/anything_else", b"x")          # ignored; not subscribed
         time.sleep(0.3)
-        assert trip.cal_pct == 30 and th.is_alive()
+        assert len(feed.fuel["rows"]) == 1 and th.is_alive()
         stop.set()
         th.join(10)
         assert wait_for(lambda: feed.status.get("state") == "offline")
@@ -128,7 +131,7 @@ def test_core_estimates_gear_in_sim(tmp_path):
     try:
         assert wait_for(lambda: "gear" in bus.latest())
         assert sink.meta["channels"]["gear"]["verified"] is False   # estimated -> shows "?"
-        assert wait_for(lambda: "econ_cal" in sink.status)
+        assert wait_for(lambda: sink.status.get("state") == "running")
     finally:
         stop.set()
         th.join(10)

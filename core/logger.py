@@ -1,7 +1,8 @@
 """Drive logger: one SQLite file per drive, long format (ts, key, value).
 
 Readings are queued from the bus and written by a background thread in
-batches (WAL mode, so a power cut loses at most the last batch). Errors are
+batches every 5 s (WAL mode, so a power cut loses at most the last batch;
+batching also keeps SD-card write cycles down). Errors are
 logged once per key until a good value returns, to keep files small.
 """
 
@@ -28,7 +29,7 @@ def default_log_dir() -> Path:
 
 class DriveLogger:
     def __init__(self, bus: Bus, log_dir: Path, profile_id: str, meta: dict,
-                 flush_every: float = 1.0):
+                 flush_every: float = 5.0):
         log_dir = Path(log_dir)
         log_dir.mkdir(parents=True, exist_ok=True)
         self.path = log_dir / f"{time.strftime('%Y%m%d-%H%M%S')}_{profile_id}.sqlite"

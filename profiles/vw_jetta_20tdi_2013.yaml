@@ -58,5 +58,5 @@ gaugeworks:
     boost:   {key: boost, min: 0, max: 30, major: 5, minor: 5, label: BOOST, warn: 24, alarm: 27}
     coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 240}
     trans:   {key: iat, min: 0, max: 200, major: 50, minor: 5, label: IAT}
-  tiles: [econ_inst, econ_avg, ambient, battery, fuel_level, mil, trip_dist, dpf_dp]
+  tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
 

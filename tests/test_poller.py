@@ -46,12 +46,12 @@ def test_unsupported_mode01_skipped():
 
 
 def test_once_and_backoff():
-    p, sim, bus = setup(["odometer", "trans_temp_pcm"])
+    p, sim, bus = setup(["engine_hours", "trans_temp_pcm"])
     sim.obd.clear()
     for _ in range(5):
         p._last_slow = 0  # force slow due
         p.cycle()
-    assert sim.obd.count("22404C") == 1          # once: read a single time
+    assert sim.obd.count("017F") == 1            # once: read a single time
     assert sim.obd.count("221E1C") == p.max_fails  # NRC 31 via PCM, then backs off
     assert bus.latest()["trans_temp_pcm"].error
 

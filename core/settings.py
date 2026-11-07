@@ -9,7 +9,8 @@ from pathlib import Path
 DEFAULTS: dict = {
     "units": "imperial",
     "touch": {"axis": None, "invert": False},  # set by `jpcan touch-cal`
-    "econ_cal_pct": 0.0,                        # MPG adjust, set from GaugeWorks
+    "econ_corrected": False,                    # show fill-up-corrected MPG
+    "econ_window_mi": 10,                       # "Last N" tile: 5/10/25/50
 }
 
 

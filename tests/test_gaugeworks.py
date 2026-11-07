@@ -35,8 +35,10 @@ def test_gauge_config_metric_converts_range_and_thresholds():
 
 
 def test_tile_labels_follow_units():
-    assert tile_config("econ_avg", {"short": "Avg MPG", "units": "km/L"}, True)["label"] == "Avg MPG"
-    assert tile_config("econ_avg", {"short": "Avg MPG", "units": "km/L"}, False)["label"] == "Avg econ"
+    assert tile_config("econ_tank", {"short": "Tank", "units": "km/L"}, True)["label"] == "Tank"
+    assert tile_config("econ_last", {"short": "Last 10", "units": "km/L"}, True, 25)["label"] == "Last 25"
+    assert tile_config("econ_inst", {"short": "MPG", "units": "km/L"}, False)["label"] == "Economy"
+    assert tile_config("econ_tank", {"units": "km/L"}, True)["econ"] is True
 
 
 def test_theme_loads():

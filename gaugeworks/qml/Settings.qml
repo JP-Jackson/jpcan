@@ -1,5 +1,5 @@
-// Touch settings menu, titled "GaugeWorks". Everything here is local to the UI;
-// trip reset is the only message sent to the core, and nothing reaches the truck.
+// Touch settings menu, titled "GaugeWorks". Display prefs are local; trip reset
+// and fill-ups go to the core over MQTT. Nothing here reaches the truck.
 import QtQuick
 
 Rectangle {
@@ -8,6 +8,8 @@ Rectangle {
     property var gw
     property bool confirmShutdown: false
     signal close()
+    signal openFillup()
+    signal openHistory()
     color: "#cc000000"
 
     MouseArea { anchors.fill: parent; onClicked: {} }  // swallow taps behind the panel
@@ -15,7 +17,7 @@ Rectangle {
     Rectangle {
         id: panel
         anchors.centerIn: parent
-        width: 720; height: 560; radius: 16
+        width: 760; height: 580; radius: 16
         color: s.theme.colors.background
         border.color: s.theme.colors.panelBorder; border.width: 2
 
@@ -28,16 +30,16 @@ Rectangle {
         Btn { theme: s.theme; text: "Close"; x: panel.width - width - 24; y: 18; onClicked: s.close() }
 
         Column {
-            x: 28; y: 96; spacing: 18
+            x: 28; y: 90; spacing: 14
 
             Row {
-                spacing: 14
+                spacing: 12
                 Text { width: 150; text: "Units"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                 Btn { theme: s.theme; text: "Imperial"; active: s.gw.imperial; onClicked: s.gw.setImperial(true) }
                 Btn { theme: s.theme; text: "Metric"; active: !s.gw.imperial; onClicked: s.gw.setImperial(false) }
             }
             Row {
-                spacing: 14
+                spacing: 12
                 Text { width: 150; text: "Theme"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                 Repeater {
                     model: s.gw.themes
@@ -45,7 +47,7 @@ Rectangle {
                 }
             }
             Row {
-                spacing: 14
+                spacing: 12
                 visible: s.gw.shift.enabled
                 Text { width: 150; text: "Shift at"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                 Btn { theme: s.theme; text: "-100"; width: 100; onClicked: s.gw.adjustShift(-100) }
@@ -58,26 +60,38 @@ Rectangle {
                 Btn { theme: s.theme; text: "+100"; width: 100; onClicked: s.gw.adjustShift(100) }
             }
             Row {
-                spacing: 14
-                Text { width: 150; text: "MPG adjust"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
-                Btn { theme: s.theme; text: "-1%"; width: 100; onClicked: s.gw.adjustEcon(-1) }
+                spacing: 12
+                Text { width: 150; text: "MPG shown"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Btn { theme: s.theme; text: "Raw"; width: 120; active: !s.gw.econCorrected; onClicked: s.gw.setEconCorrected(false) }
+                Btn { theme: s.theme; text: "Corrected"; width: 150; active: s.gw.econCorrected; onClicked: s.gw.setEconCorrected(true) }
                 Text {
-                    width: 120; horizontalAlignment: Text.AlignHCenter
-                    text: (s.gw.econCal > 0 ? "+" : "") + s.gw.econCal.toFixed(0) + "%"
-                    color: s.theme.colors.text; font.pixelSize: 30; font.bold: true
                     anchors.verticalCenter: parent.verticalCenter
+                    text: s.gw.econFactor > 0
+                          ? "x" + s.gw.econFactor.toFixed(2) + " from " + s.gw.fuel.factor_tanks + " tank" + (s.gw.fuel.factor_tanks === 1 ? "" : "s")
+                          : "needs 2 fill-ups"
+                    color: s.theme.colors.dim; font.pixelSize: 18
                 }
-                Btn { theme: s.theme; text: "+1%"; width: 100; onClicked: s.gw.adjustEcon(1) }
             }
             Row {
-                spacing: 14
-                Text { width: 150; text: "Trip"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
-                Btn { theme: s.theme; text: "Reset trip + avg MPG"; width: 280; onClicked: s.gw.tripReset() }
+                spacing: 12
+                Text { width: 150; text: "Last N avg"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Repeater {
+                    model: [5, 10, 25, 50]
+                    Btn { theme: s.theme; width: 90; text: modelData + " mi"; active: s.gw.econWindow === modelData
+                          onClicked: s.gw.setEconWindow(modelData) }
+                }
+            }
+            Row {
+                spacing: 12
+                Text { width: 150; text: "Fuel"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Btn { theme: s.theme; text: "Fill-up"; width: 150; onClicked: s.openFillup() }
+                Btn { theme: s.theme; text: "History"; width: 150; onClicked: s.openHistory() }
+                Btn { theme: s.theme; text: "Reset trip"; width: 170; onClicked: s.gw.tripReset() }
             }
         }
 
         Row {
-            x: 28; y: panel.height - 84; spacing: 14
+            x: 28; y: panel.height - 80; spacing: 14
             Btn {
                 theme: s.theme; width: 220
                 text: s.confirmShutdown ? "Tap to confirm" : "Shut down Pi"

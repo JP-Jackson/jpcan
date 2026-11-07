@@ -113,23 +113,16 @@ def cmd_run(args) -> int:
     from .service import run_core
     from .trip import TripComputer
 
-    from . import settings as settings_mod
+    from .fuelbook import FuelHub
 
     bus = Bus()
     trip = TripComputer(bus)
-    st = settings_mod.load()
-    trip.set_cal(st.get("econ_cal_pct", 0.0))
-
-    def econ_cal(pct: float) -> None:
-        cur = settings_mod.load()
-        cur["econ_cal_pct"] = trip.set_cal(pct)
-        settings_mod.save(cur)
-
+    hub = FuelHub()
     if args.no_mqtt:
         sink = LocalSink(bus)
     else:
         sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.reset,
-                             on_econ_cal=econ_cal)
+                             on_fillup=hub.fillup)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     last = [""]
@@ -146,7 +139,7 @@ def cmd_run(args) -> int:
     orig = sink.publish_status
     sink.publish_status = lambda st: (orig(st), show(st))
     try:
-        run_core(args, sink, bus, stop, trip)
+        run_core(args, sink, bus, stop, trip, hub)
     except KeyboardInterrupt:
         stop.set()
     return 0
@@ -431,7 +424,7 @@ def cmd_logs(args) -> int:
     from .logger import default_log_dir
 
     d = Path(args.dir) if args.dir else default_log_dir()
-    files = sorted(d.glob("*.sqlite"))
+    files = sorted(f for f in d.glob("*.sqlite") if f.name != "fuel.sqlite")
     if not files:
         print(f"No drive logs in {d}")
     for f in files:

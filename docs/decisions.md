@@ -89,8 +89,19 @@ the axle ratio and tire size from the profile (`gear:`). It's shown big in
 the tach and marked unverified. When a real `gear` PID is added to the
 profile, the estimator switches off.
 
-## D18. MPG adjust lives in the core
-GaugeWorks sends `jpcan/cmd/econ_cal` (percent, clamped to +/-30), and the
-core applies it to instant/average economy and saves it. That makes it the
-second and last allowed MQTT input, after trip_reset; neither reaches the
-adapter.
+## D18. MPG: tank / trip / last-N, fill-up log, correction factor
+(Replaces the manual MPG adjust, which was a misread of "reset and adjust".)
+- The core's trip computer keeps tank (since fill-up), trip (reset button) and
+  rolling last 5/10/25/50 mi averages, all raw from the fuel-rate PID. They're
+  saved every 60 s and at shutdown so they survive power-offs (SD wear is
+  negligible).
+- Fill-ups: GaugeWorks sends `jpcan/cmd/fillup` {gallons, price}. The core
+  takes miles from the truck's odometer (falling back to tank distance),
+  stores actual MPG, price and the raw estimate in `fuel.sqlite` per vehicle,
+  and resets the tank average. History is published retained on
+  `jpcan/fuel/history`.
+- Correction factor = mean(actual / estimate) over the last 3 tanks, clamped
+  to 0.7-1.3. The UI toggles Raw vs Corrected and tags corrected tiles "corr".
+  Logs always stay raw.
+- The core's only MQTT inputs are trip_reset and fillup, and neither reaches
+  the adapter.

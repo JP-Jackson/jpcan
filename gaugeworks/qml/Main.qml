@@ -123,6 +123,42 @@ Rectangle {
             visible: false
             theme: root.theme; gw: backend
             onClose: visible = false
+            onOpenFillup: { visible = false; fillup.visible = true }
+            onOpenHistory: { visible = false; history.visible = true }
+        }
+        FillUp {
+            id: fillup
+            objectName: "fillupPanel"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme; gw: backend
+            onClose: visible = false
+        }
+        History {
+            id: history
+            objectName: "historyPanel"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme; gw: backend
+            onClose: visible = false
+        }
+
+        // ---- toast for fill-up results and other messages
+        Rectangle {
+            id: toast
+            property string text: ""
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 52
+            width: toastText.implicitWidth + 40; height: 52; radius: 12
+            color: colors.panel; border.color: colors.accent; border.width: 2
+            opacity: 0; visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 250 } }
+            Text { id: toastText; anchors.centerIn: parent; text: toast.text; color: colors.text; font.pixelSize: 22; font.bold: true }
+            Timer { id: toastTimer; interval: 6000; onTriggered: toast.opacity = 0 }
+            Connections {
+                target: backend
+                function onMessage(msg) { toast.text = msg; toast.opacity = 1; toastTimer.restart() }
+            }
         }
 
         // ---- splash (placeholder logo until JP's SVG)

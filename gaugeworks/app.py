@@ -19,20 +19,40 @@ QML_DIR = Path(__file__).resolve().parent / "qml"
 # Demo scenes in native units (km/h, °C, kPa...). Used for screenshots/review.
 DEMO_SCENES = {
     "cruise": {"gear": 6, "rpm": 1650, "speed": 104.6, "boost": 55, "baro": 99, "coolant": 88, "trans_temp": 77,
-               "vgt_desired": 45, "vgt_actual": 48, "econ_inst": 7.2, "econ_avg": 6.4,
+               "vgt_desired": 45, "vgt_actual": 48, "econ_inst": 7.2, "econ_tank": 6.6, "econ_trip": 6.4, "econ_last10": 7.0,
                "ambient": 32, "oil_temp_std": 96, "battery": 14.2, "fuel_level": 70, "mil": 0,
                "trip_dist": 52.3, "map": 155, "iat": 30, "dpf_dp": 1.2},
     "alarm": {"gear": 3, "rpm": 2900, "speed": 88.5, "boost": 240, "coolant": 115, "trans_temp": 110,
-              "vgt_desired": 70, "vgt_actual": 74, "econ_inst": 2.1, "econ_avg": 5.9,
+              "vgt_desired": 70, "vgt_actual": 74, "econ_inst": 2.1, "econ_tank": 5.9, "econ_trip": 5.7, "econ_last10": 3.1,
               "ambient": 40, "oil_temp_std": 118, "battery": 14.1, "fuel_level": 22, "mil": 1,
               "trip_dist": 140.2, "map": 250, "iat": 45, "dpf_dp": 2.0},
     "vgtfault": {"rpm": 2100, "speed": 96.6, "boost": 90, "baro": 99, "coolant": 89, "trans_temp": 80,
-                 "vgt_desired": 40, "vgt_actual": 75, "econ_inst": 5.8, "econ_avg": 6.3,
+                 "vgt_desired": 40, "vgt_actual": 75, "econ_inst": 5.8, "econ_tank": 6.3, "econ_trip": 6.1, "econ_last10": 5.5,
                  "ambient": 32, "oil_temp_std": 99, "battery": 14.2, "fuel_level": 68, "mil": 0,
                  "trip_dist": 61.0, "gear": 5},
     "shift": {"rpm": 3200, "speed": 72.4, "map": 210, "baro": 99, "boost": 111, "coolant": 90, "iat": 35,
-              "econ_inst": 6.0, "econ_avg": 16.0, "ambient": 22, "battery": 14.0,
+              "econ_inst": 6.0, "econ_tank": 16.0, "econ_trip": 15.2, "econ_last10": 15.8, "ambient": 22, "battery": 14.0,
               "fuel_level": 55, "mil": 0, "trip_dist": 30.0, "dpf_dp": 0.8},
+}
+
+
+_D = 86400
+DEMO_FUEL = {
+    "vehicle": "demo", "factor": 0.93, "factor_tanks": 3,
+    "lifetime": {"tanks": 4, "miles": 1412.0, "gallons": 92.1, "mpg": 15.33, "cost": 318.65,
+                 "cost_per_mile": 0.226},
+    "rows": [
+        {"id": 5, "ts": time.time() - 2 * _D, "odo_mi": 148197, "miles": 351.2, "miles_src": "odometer",
+         "gallons": 22.4, "price": 3.459, "total": 77.48, "mpg": 15.68, "est_mpg": 16.9},
+        {"id": 4, "ts": time.time() - 9 * _D, "odo_mi": 147846, "miles": 338.0, "miles_src": "odometer",
+         "gallons": 23.1, "price": 3.399, "total": 78.52, "mpg": 14.63, "est_mpg": 15.8},
+        {"id": 3, "ts": time.time() - 16 * _D, "odo_mi": 147508, "miles": 377.4, "miles_src": "odometer",
+         "gallons": 24.0, "price": 3.499, "total": 83.98, "mpg": 15.73, "est_mpg": 16.7},
+        {"id": 2, "ts": time.time() - 24 * _D, "odo_mi": 147131, "miles": 345.4, "miles_src": "estimate",
+         "gallons": 22.6, "price": 3.489, "total": 78.85, "mpg": 15.28, "est_mpg": None},
+        {"id": 1, "ts": time.time() - 31 * _D, "odo_mi": 146786, "miles": None, "miles_src": "baseline",
+         "gallons": 21.0, "price": 3.549, "total": 74.53, "mpg": None, "est_mpg": None},
+    ],
 }
 
 
@@ -40,29 +60,34 @@ class InProcFeed:
     """Core service + simulator in this process (laptop dev)."""
 
     def __init__(self, args):
+        import tempfile
+
         from core.bus import Bus
+        from core.fuelbook import FuelHub
         from core.mqtt import LocalSink
         from core.service import run_core
         from core.trip import TripComputer
 
         self.bus = Bus()
         self.trip = TripComputer(self.bus)
+        self.hub = FuelHub()
         self._sink = LocalSink(self.bus)
         self.stop = threading.Event()
         cargs = Namespace(sim=True, port="SIM", baud=115200, profile=args.profile, trace=None,
-                          min_gap=0.02, no_log=True, log_dir=None)
-        threading.Thread(target=run_core, args=(cargs, self._sink, self.bus, self.stop, self.trip),
+                          min_gap=0.02, no_log=True, log_dir=tempfile.mkdtemp(prefix="jpcan-sim-"))
+        threading.Thread(target=run_core, args=(cargs, self._sink, self.bus, self.stop, self.trip, self.hub),
                          daemon=True).start()
         self.connected = True
 
     meta = property(lambda self: self._sink.meta)
     status = property(lambda self: self._sink.status)
+    fuel = property(lambda self: self._sink.fuel)
 
     def trip_reset(self):
         self.trip.reset()
 
-    def set_econ_cal(self, pct):
-        self.trip.set_cal(pct)
+    def fillup(self, gallons, price=None):
+        threading.Thread(target=self.hub.fillup, args=(gallons, price), daemon=True).start()
 
     def close(self):
         self.stop.set()
@@ -82,8 +107,8 @@ class DemoFeed:
         ch = channel_info(p)
         self.meta = {"profile": p.id, "name": p.name, "vin": None, "sim": True, "shift": p.shift,
                      "layouts": p.layouts, "gaugeworks": p.gaugeworks, "channels": ch, "skipped": []}
-        self.status = {"state": "running", "hz": 10.0, "sent": 1234, "blocked": 0, "lines": [],
-                       "econ_cal": 0.0}
+        self.status = {"state": "running", "hz": 10.0, "sent": 1234, "blocked": 0, "lines": []}
+        self.fuel = DEMO_FUEL
         self.connected = True
         self.bus = Bus()
         now = time.time()
@@ -118,6 +143,7 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history"], help="open a panel (screenshots)")
     args = ap.parse_args(argv)
 
     from PySide6.QtCore import QObject, QTimer, QUrl
@@ -160,8 +186,9 @@ def main(argv=None) -> int:
     else:
         view.showFullScreen()
 
-    if args.settings:
-        panel = view.rootObject().findChild(QObject, "settingsPanel")
+    want = "settings" if args.settings else args.panel
+    if want:
+        panel = view.rootObject().findChild(QObject, f"{want}Panel")
         if panel is not None:
             panel.setProperty("visible", True)
 

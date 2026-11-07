@@ -175,7 +175,7 @@ def _validate(prof: Profile) -> None:
         if p.service != "AT" and not guard.check(f"ATSH{p.header}").allowed:
             raise ProfileError(f"{p.key}: header {p.header} invalid")
     from .trip import CHANNELS  # computed channels may be shown but not polled
-    computed = set(CHANNELS) | ({"gear"} if prof.gear else set())
+    computed = set(CHANNELS) | {"econ_last"} | ({"gear"} if prof.gear else set())
     for name, keys in prof.layouts.items():
         bad = [k for k in keys if k not in prof.pids and k not in computed]
         if bad:

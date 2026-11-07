@@ -5,8 +5,9 @@ Topics (prefix `jpcan/`):
   v/<key>          retained    live value {"v": float|null, "u": units, "t": ts, "e": err}
   meta             retained    profile, VIN, channel info, layouts, shift
   status           retained    state, hint lines, rate, guard counters; LWT = offline
-  cmd/trip_reset   reset trip distance / fuel / average MPG
-  cmd/econ_cal     MPG adjust in percent (clamped to +/-30)
+  fuel/history     retained    fill-up history, lifetime stats, correction factor
+  cmd/trip_reset   reset trip distance / fuel / trip average
+  cmd/fillup       {"gallons": 18.2, "price": 3.459} log a fill-up (validated)
                    These two are the ONLY inputs the core accepts. Nothing from MQTT
                    ever reaches the adapter: the core subscribes to nothing else.
 
@@ -27,8 +28,9 @@ T_VALUE = f"{PREFIX}/v/"
 T_META = f"{PREFIX}/meta"
 T_STATUS = f"{PREFIX}/status"
 T_TRIP_RESET = f"{PREFIX}/cmd/trip_reset"
-T_ECON_CAL = f"{PREFIX}/cmd/econ_cal"
-CORE_SUBSCRIPTIONS = (T_TRIP_RESET, T_ECON_CAL)  # allowlist; see module docstring
+T_FILLUP = f"{PREFIX}/cmd/fillup"
+T_FUEL = f"{PREFIX}/fuel/history"
+CORE_SUBSCRIPTIONS = (T_TRIP_RESET, T_FILLUP)  # allowlist; see module docstring
 OFFLINE = json.dumps({"state": "offline", "lines": ["JpCAN core", "not running"]})
 
 
@@ -48,10 +50,14 @@ class LocalSink:
         self.bus = bus
         self.meta: dict = {}
         self.status: dict = {}
+        self.fuel: dict = {}
         self.connected = True
 
     def publish_meta(self, meta: dict) -> None:
         self.meta = meta
+
+    def publish_fuel(self, history: dict) -> None:
+        self.fuel = history
 
     def publish_status(self, status: dict) -> None:
         self.status = status
@@ -71,9 +77,10 @@ class MqttPublisher:
 
     def __init__(self, bus: Bus, host: str = "localhost", port: int = 1883,
                  on_trip_reset: Callable[[], None] | None = None,
-                 on_econ_cal: Callable[[float], None] | None = None):
+                 on_fillup: Callable[..., object] | None = None):
         self.bus = bus
-        self._on_econ_cal = on_econ_cal
+        self._on_fillup = on_fillup
+        self.fuel: dict = {}
         self.meta: dict = {}
         self.status: dict = {}
         self._on_trip_reset = on_trip_reset
@@ -94,17 +101,21 @@ class MqttPublisher:
             self.publish_meta(self.meta)
         if self.status:
             self.publish_status(self.status)
+        if self.fuel:
+            self.publish_fuel(self.fuel)
         for r in self.bus.latest().values():
             self.on_reading(r)
 
     def _on_message(self, client, userdata, msg):
         if msg.topic == T_TRIP_RESET and self._on_trip_reset:
             self._on_trip_reset()
-        elif msg.topic == T_ECON_CAL and self._on_econ_cal:
+        elif msg.topic == T_FILLUP and self._on_fillup:
             try:
-                self._on_econ_cal(float(msg.payload.decode("ascii", "replace")))
-            except ValueError:
-                pass  # ignore garbage
+                d = json.loads(msg.payload)
+                self._on_fillup(float(d["gallons"]),
+                                None if d.get("price") in (None, "") else float(d["price"]))
+            except (ValueError, TypeError, KeyError):
+                pass  # ignore garbage; FuelBook also validates ranges
 
     def on_reading(self, r: Reading) -> None:
         # Retained so late subscribers (screen restart, phone page) get every
@@ -120,6 +131,10 @@ class MqttPublisher:
         self.status = status
         self.c.publish(T_STATUS, json.dumps(status), qos=1, retain=True)
 
+    def publish_fuel(self, history: dict) -> None:
+        self.fuel = history
+        self.c.publish(T_FUEL, json.dumps(history), qos=1, retain=True)
+
     def close(self) -> None:
         self.c.publish(T_STATUS, OFFLINE, qos=1, retain=True).wait_for_publish(2)
         self.c.loop_stop()
@@ -133,6 +148,7 @@ class MqttFeed:
         self.bus = Bus()
         self.meta: dict = {}
         self.status: dict = {}
+        self.fuel: dict = {}
         self.connected = False
         self._lock = threading.Lock()
         self.c = _client(f"{client_id}-{int(time.time() * 1000) % 100000}")
@@ -157,14 +173,16 @@ class MqttFeed:
                 self.meta = json.loads(msg.payload)
             elif msg.topic == T_STATUS:
                 self.status = json.loads(msg.payload)
+            elif msg.topic == T_FUEL:
+                self.fuel = json.loads(msg.payload)
         except (ValueError, TypeError):
             pass  # ignore malformed messages
 
     def trip_reset(self) -> None:
         self.c.publish(T_TRIP_RESET, b"1", qos=1)
 
-    def set_econ_cal(self, pct: float) -> None:
-        self.c.publish(T_ECON_CAL, f"{pct:.1f}".encode(), qos=1)
+    def fillup(self, gallons: float, price: float | None = None) -> None:
+        self.c.publish(T_FILLUP, json.dumps({"gallons": gallons, "price": price}), qos=1)
 
     def close(self) -> None:
         self.c.loop_stop()

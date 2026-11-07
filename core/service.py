@@ -51,9 +51,18 @@ def build_meta(s: Session, poller: Poller) -> dict:
     }
 
 
-def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | None = None) -> None:
-    """Main loop. `sink` has publish_meta/publish_status/close (MQTT or LocalSink)."""
+def vehicle_key(s: Session) -> str:
+    return s.vin or s.profile.id
+
+
+def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | None = None,
+             fuel_hub=None) -> None:
+    """Main loop. `sink` has publish_meta/publish_status/publish_fuel/close."""
+    from .fuelbook import FuelBook
+
     trip = trip or TripComputer(bus)
+    data_dir = Path(args.log_dir) if getattr(args, "log_dir", None) else default_log_dir()
+    attached = None
     logger: DriveLogger | None = None
     gear_est = None
 
@@ -80,10 +89,16 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
                 gear_est = GearEstimator(bus, s.profile.gear)
             meta = build_meta(s, poller)
             sink.publish_meta(meta)
+            vkey = vehicle_key(s)
+            if attached != vkey and not getattr(args, "no_state", False):
+                safe = "".join(c for c in vkey if c.isalnum() or c in "_-")
+                trip.attach(data_dir / f"economy_{safe}.json")
+                if fuel_hub is not None:
+                    fuel_hub.attach(FuelBook(data_dir / "fuel.sqlite", vkey, bus, trip), sink.publish_fuel)
+                attached = vkey
             if logger is None and not getattr(args, "no_log", False):
-                log_dir = Path(args.log_dir) if getattr(args, "log_dir", None) else default_log_dir()
                 units = {k: v["units"] for k, v in meta["channels"].items()}
-                logger = DriveLogger(bus, log_dir, s.profile.id,
+                logger = DriveLogger(bus, data_dir, s.profile.id,
                                      {"units": units, "vin": s.vin, "sim": s.sim})
             pstop = threading.Event()
             th = threading.Thread(target=poller.run, args=(pstop,), daemon=True)
@@ -97,8 +112,7 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
                     c0, t0 = poller.cycles, now
                     status("running", [], hz=round(hz, 1), sent=s.guard.sent,
                            blocked=s.guard.blocked, errors=poller.errors,
-                           log=str(logger.path) if logger else "", rows=logger.rows if logger else 0,
-                           econ_cal=trip.cal_pct)
+                           log=str(logger.path) if logger else "", rows=logger.rows if logger else 0)
             finally:
                 pstop.set()
                 th.join(timeout=2)
@@ -109,4 +123,5 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
     finally:
         if logger:
             logger.close()
+        trip.save()
         sink.close()
