@@ -22,7 +22,13 @@ apt-get install -y -q libglib2.0-0t64 >/dev/null 2>&1 || apt-get install -y -q l
 systemctl enable --now mosquitto >/dev/null
 sudo -u "$USER_NAME" "$VENV/bin/pip" install -q -e "$REPO[ui]"
 # Fail loudly if Qt is missing a system library (GaugeWorks would crash-loop).
-MISSING="$(ldd "$VENV"/lib/python3*/site-packages/PySide6/Qt/lib/*.so* 2>/dev/null | grep 'not found' | sort -u)"
+# Only the pieces GaugeWorks loads (EGLFS, no desktop); X11/Wayland libs are irrelevant.
+QT="$(echo "$VENV"/lib/python3*/site-packages/PySide6/Qt)"
+MISSING="$(ldd "$QT"/lib/libQt6Core.so.6 "$QT"/lib/libQt6Gui.so.6 "$QT"/lib/libQt6Qml.so.6 \
+    "$QT"/lib/libQt6Quick.so.6 "$QT"/lib/libQt6EglFSDeviceIntegration.so.6 \
+    "$QT"/plugins/platforms/libqeglfs.so "$QT"/plugins/platforms/libqlinuxfb.so \
+    "$QT"/plugins/egldeviceintegrations/libqeglfs-kms-integration.so \
+    2>/dev/null | grep 'not found' | sort -u)"
 if [ -n "$MISSING" ]; then echo "WARNING: Qt is missing system libraries:"; echo "$MISSING"; fi
 sudo -u "$USER_NAME" "$VENV/bin/python" -c "from PySide6.QtGui import QGuiApplication" \
     && echo "Qt import OK" || echo "WARNING: PySide6 import failed; see above"
