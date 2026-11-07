@@ -115,3 +115,15 @@ automatic ranges from their PID min/max. Press-and-hold any slot or tile (not
 a tap, so bumps on the road don't trigger it) to pick what it shows. Picks
 are saved per vehicle and page in settings.json, and "Reset page" restores
 the profile default. The picker hides PIDs the vehicle doesn't support.
+
+## D20. USB export via a root-owned helper and a scoped sudoers rule
+GaugeWorks detects a stick by reading /dev/disk/by-id, which needs no
+privileges. Mounting uses /usr/local/sbin/jpcan-usb: root-owned and installed
+by the installer, NOT the user-editable repo copy, since a sudoers rule
+pointing into the repo would be a root escalation. It mounts FAT32/exFAT/NTFS
+as the user with noexec,nosuid,nodev. The bundle (core/bundle.py) copies drive
+logs as SQLite backup-API snapshots (safe while a log is being written) plus
+CSV, fuel history (SQLite + CSV), scan files, and a diagnostics report with
+versions, service status, journals, settings and guard counters. Nothing is
+deleted from the Pi, and nothing talks to the truck. `jpcan export-all --dest`
+does the same from SSH.

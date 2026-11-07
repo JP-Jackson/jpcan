@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import math
 import subprocess
+import threading
 import time
 from pathlib import Path
 
@@ -170,6 +171,7 @@ class Backend(QObject):
     statusChanged = Signal()
     settingsChanged = Signal()
     fuelChanged = Signal()
+    usbChanged = Signal()
     message = Signal(str)
 
     def __init__(self, feed, settings: dict | None = None, poll_ms: int = 50):
@@ -184,6 +186,14 @@ class Backend(QObject):
         self._fuel: dict = {}
         self._last_result_ts = None
         self._meta_sig = None
+        from .usb import UsbExporter
+
+        self._usb = UsbExporter(lambda: {"status": self.feed.status, "meta": self.feed.meta})
+        self._usb_seen: dict = {}
+        self._usb_timer = QTimer(self)
+        self._usb_timer.timeout.connect(self._usb.poll)
+        self._usb_timer.start(2000)
+        self._usb.poll()
         self._timer = QTimer(self)
         self._timer.timeout.connect(self.tick)
         self._timer.start(poll_ms)
@@ -239,6 +249,12 @@ class Backend(QObject):
         self._update_status(meta)
         self._update_fuel()
         self._update_values()
+        if self._usb.state != self._usb_seen:
+            prev = self._usb_seen
+            self._usb_seen = dict(self._usb.state)
+            self.usbChanged.emit()
+            if self._usb_seen.get("state") in ("done", "error") and prev.get("state") == "exporting":
+                self.message.emit(self._usb_seen.get("result", ""))
 
     def _rebuild_config(self, meta: dict) -> None:
         imp = self._settings.get("units", "imperial") == "imperial"
@@ -334,6 +350,22 @@ class Backend(QObject):
         self.configChanged.emit()
 
     currentPage = Property(int, lambda self: int(self._settings.get("page", 0)), notify=settingsChanged)
+    usb = Property("QVariantMap", lambda self: {**self._usb_seen,
+                                                "dismissed": self._usb.dismissed == self._usb_seen.get("name")},
+                   notify=usbChanged)
+
+    @Slot()
+    def exportUsb(self) -> None:
+        self._usb.start()
+
+    @Slot()
+    def ejectUsb(self) -> None:
+        threading.Thread(target=self._usb.eject, daemon=True).start()
+
+    @Slot()
+    def dismissUsb(self) -> None:
+        self._usb.dismissed = self._usb.state.get("name", "")
+        self._usb_seen = {}
 
     @Slot(int)
     def setPage(self, index: int) -> None:

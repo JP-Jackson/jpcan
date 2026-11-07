@@ -1,0 +1,50 @@
+#!/bin/sh
+# jpcan-usb: mount / unmount the first USB storage partition for JpCAN exports.
+# Installed root-owned to /usr/local/sbin by install-services.sh, with a sudoers
+# rule that allows exactly this command (no other root access).
+#   jpcan-usb mount     -> prints the mount point
+#   jpcan-usb unmount   -> syncs and unmounts
+#   jpcan-usb status    -> prints the device and filesystem, if any
+set -eu
+MP=/media/jpcan-usb
+OWNER="__JPCAN_USER__"
+
+find_dev() {
+    for d in /dev/disk/by-id/usb-*-part*; do
+        [ -e "$d" ] && { readlink -f "$d"; return 0; }
+    done
+    for d in /dev/disk/by-id/usb-*; do       # unpartitioned stick
+        [ -e "$d" ] && { readlink -f "$d"; return 0; }
+    done
+    return 1
+}
+
+case "${1:-}" in
+    mount)
+        if mountpoint -q "$MP"; then echo "$MP"; exit 0; fi
+        DEV="$(find_dev)" || { echo "no USB drive found" >&2; exit 2; }
+        FS="$(blkid -o value -s TYPE "$DEV" 2>/dev/null || true)"
+        U="$(id -u "$OWNER")"; G="$(id -g "$OWNER")"
+        mkdir -p "$MP"
+        case "$FS" in
+            vfat|exfat)
+                mount -t "$FS" -o "uid=$U,gid=$G,umask=022,noexec,nosuid,nodev" "$DEV" "$MP" ;;
+            ntfs|ntfs3)
+                mount -t ntfs3 -o "uid=$U,gid=$G,umask=022,noexec,nosuid,nodev" "$DEV" "$MP" ;;
+            ext2|ext3|ext4)
+                mount -o noexec,nosuid,nodev "$DEV" "$MP"
+                mkdir -p "$MP/JpCAN_export" && chown "$U:$G" "$MP/JpCAN_export" ;;
+            *)
+                echo "unsupported filesystem '$FS' on $DEV (use FAT32, exFAT or NTFS)" >&2; exit 3 ;;
+        esac
+        echo "$MP" ;;
+    unmount)
+        sync
+        if mountpoint -q "$MP"; then umount "$MP"; fi
+        echo ok ;;
+    status)
+        DEV="$(find_dev)" || { echo none; exit 0; }
+        echo "$DEV $(blkid -o value -s TYPE "$DEV" 2>/dev/null || echo unknown)" ;;
+    *)
+        echo "usage: jpcan-usb mount|unmount|status" >&2; exit 64 ;;
+esac

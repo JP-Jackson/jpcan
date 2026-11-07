@@ -39,7 +39,15 @@ SUDOERS=/etc/sudoers.d/jpcan-poweroff
 echo "$USER_NAME ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff" > "$SUDOERS.tmp"
 chmod 0440 "$SUDOERS.tmp"
 visudo -cf "$SUDOERS.tmp" >/dev/null && mv "$SUDOERS.tmp" "$SUDOERS"
-for grp in video render input dialout; do usermod -aG "$grp" "$USER_NAME"; done
+# USB export: root-owned helper (NOT the user-editable repo copy) + a rule for exactly it.
+install -o root -g root -m 0755 "$REPO/scripts/jpcan-usb" /usr/local/sbin/jpcan-usb
+sed -i "s/__JPCAN_USER__/$USER_NAME/" /usr/local/sbin/jpcan-usb
+SUDOERS_USB=/etc/sudoers.d/jpcan-usb
+echo "$USER_NAME ALL=(root) NOPASSWD: /usr/local/sbin/jpcan-usb" > "$SUDOERS_USB.tmp"
+chmod 0440 "$SUDOERS_USB.tmp"
+visudo -cf "$SUDOERS_USB.tmp" >/dev/null && mv "$SUDOERS_USB.tmp" "$SUDOERS_USB"
+mkdir -p /media/jpcan-usb
+for grp in video render input dialout systemd-journal; do usermod -aG "$grp" "$USER_NAME" 2>/dev/null || true; done
 
 echo "== 3.5in screen + console"
 grep -q '^dtoverlay=piscreen' "$CONFIG" || echo "dtoverlay=piscreen,speed=24000000,rotate=270" >> "$CONFIG"

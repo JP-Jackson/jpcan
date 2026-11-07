@@ -32,6 +32,7 @@ Rectangle {
             highlightMoveDuration: 250
             model: root.pages
             interactive: !settings.visible && !picker.visible && !fillup.visible && !history.visible
+                         && !exportPanel.visible
             onMovementEnded: backend.setPage(currentIndex)
             onCountChanged: positionViewAtIndex(Math.min(backend.currentPage, Math.max(0, count - 1)), ListView.Beginning)
             Component.onCompleted: positionViewAtIndex(backend.currentPage, ListView.Beginning)
@@ -146,6 +147,29 @@ Rectangle {
             }
         }
 
+        // ---- USB drive prompt (bottom centre)
+        Rectangle {
+            id: usbPrompt
+            visible: backend.usb.present === true && backend.usb.state === "idle" && !backend.usb.dismissed
+                     && !exportPanel.visible
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 600 - height - 10; width: 640; height: 70; radius: 12
+            color: colors.panel; border.color: colors.accent; border.width: 2
+            Text {
+                x: 18; anchors.verticalCenter: parent.verticalCenter
+                text: "USB drive found: " + (backend.usb.name || "")
+                color: colors.text; font.pixelSize: 21; font.bold: true
+                width: 330; elide: Text.ElideRight
+            }
+            Row {
+                anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                spacing: 10
+                Btn { theme: root.theme; width: 130; height: 50; text: "Export"; active: true
+                      onClicked: { exportPanel.visible = true; backend.exportUsb() } }
+                Btn { theme: root.theme; width: 130; height: 50; text: "Not now"; onClicked: backend.dismissUsb() }
+            }
+        }
+
         // ---- overlays
         Settings {
             id: settings
@@ -156,6 +180,15 @@ Rectangle {
             onClose: visible = false
             onOpenFillup: { visible = false; fillup.visible = true }
             onOpenHistory: { visible = false; history.visible = true }
+            onOpenExport: { visible = false; exportPanel.visible = true }
+        }
+        ExportPanel {
+            id: exportPanel
+            objectName: "exportPanel"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme; gw: backend
+            onClose: visible = false
         }
         FillUp {
             id: fillup

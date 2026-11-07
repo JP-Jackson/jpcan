@@ -163,6 +163,15 @@ to quit and print the top candidates. Afterwards:
 sudo systemctl start jpcan-core
 ```
 
+## 11. USB export
+Plug a USB stick (FAT32, exFAT or NTFS) into the Pi. GaugeWorks shows **USB drive
+found → Export** (or use ⚙ → USB export). It writes `JpCAN_export/<date>/`
+with drive logs (+CSV), fuel history (+CSV), scan files and a diagnostics
+report, then unmounts: "Safe to remove". From SSH, to any folder:
+```bash
+~/jpcan/.venv/bin/jpcan export-all --dest /path/to/folder
+```
+
 ## Troubleshooting
 
 **Pi not on Wi-Fi after first boot** (it isn't in the router list, and

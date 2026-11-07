@@ -10,6 +10,7 @@ Rectangle {
     signal close()
     signal openFillup()
     signal openHistory()
+    signal openExport()
     color: "#cc000000"
 
     MouseArea { anchors.fill: parent; onClicked: {} }  // swallow taps behind the panel
@@ -101,9 +102,10 @@ Rectangle {
                     else { s.confirmShutdown = true; confirmTimer.restart() }
                 }
             }
+            Btn { theme: s.theme; width: 190; text: "USB export"; onClicked: s.openExport() }
             Text {
-                text: "Wait for the green LED to stop, then unplug."
-                color: s.theme.colors.dim; font.pixelSize: 18
+                text: "Unplug after the\ngreen LED stops."
+                color: s.theme.colors.dim; font.pixelSize: 16
                 anchors.verticalCenter: parent.verticalCenter
             }
         }

@@ -537,6 +537,19 @@ def cmd_didwatch(args) -> int:
     return 0
 
 
+def cmd_export_all(args) -> int:
+    from . import settings as settings_mod
+    from .bundle import export_bundle
+    from .logger import default_log_dir
+
+    repo = Path(__file__).resolve().parent.parent
+    summary = export_bundle(Path(args.dest), Path(args.dir) if args.dir else default_log_dir(),
+                            settings_mod.path().parent, scan_dirs=[Path.home(), repo, Path.cwd()],
+                            journals=not args.no_journals, progress=lambda m: print(" ", m, flush=True))
+    print(f"Exported {summary['files']} files ({summary['bytes'] / 1e6:.1f} MB) to {summary['path']}")
+    return 0
+
+
 # ---- entry point ---------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="jpcan", description="JpCAN reads it. GaugeWorks shows it.")
@@ -593,6 +606,11 @@ def build_parser() -> argparse.ArgumentParser:
     dw.add_argument("--max-bytes", type=int, default=4, help="skip DIDs with longer replies (default 4)")
     dw.add_argument("--log", help="append every sample to this JSONL file")
     dw.set_defaults(func=cmd_didwatch)
+    xa = sub.add_parser("export-all", help="export logs, fuel history, scans, diagnostics to a folder")
+    xa.add_argument("--dest", required=True, help="destination folder (e.g. a mounted USB drive)")
+    xa.add_argument("--dir", help="data directory (default ~/jpcan-logs)")
+    xa.add_argument("--no-journals", action="store_true", help="skip service logs")
+    xa.set_defaults(func=cmd_export_all)
     sub.add_parser("touch-cal", help="calibrate left/right taps on the touchscreen").set_defaults(func=cmd_touch_cal)
     return ap
 
