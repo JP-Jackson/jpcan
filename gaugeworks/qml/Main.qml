@@ -114,6 +114,38 @@ Rectangle {
             }
         }
 
+        // ---- check engine banner: only when the light is ON, over every page but Diagnostic
+        Rectangle {
+            id: celBanner
+            readonly property bool active: backend.fresh["mil"] === true && backend.values["mil"] >= 1
+            readonly property int diagIndex: {
+                for (var i = 0; i < root.pages.length; i++) if (root.pages[i].template === "list") return i
+                return -1
+            }
+            readonly property bool onDiag: diagIndex >= 0 && pagesView.currentIndex === diagIndex
+            readonly property bool hasCount: backend.fresh["dtc_count"] === true
+            visible: active && !onDiag
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 48; width: 520; height: 56; radius: 12
+            color: colors.warn
+            border.color: "#000000"; border.width: 2
+            Row {
+                anchors.centerIn: parent; spacing: 14
+                Text { text: "\u26a0"; color: "#111111"; font.pixelSize: 30; anchors.verticalCenter: parent.verticalCenter }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "CHECK ENGINE" + (celBanner.hasCount
+                          ? "  \u2022  " + backend.values["dtc_count"].toFixed(0) + " code" + (backend.values["dtc_count"] === 1 ? "" : "s")
+                          : "")
+                    color: "#111111"; font.family: theme.fonts.label; font.pixelSize: 26; font.bold: true
+                }
+            }
+            MouseArea {  // tap: jump to the Diagnostic page
+                anchors.fill: parent
+                onClicked: if (celBanner.diagIndex >= 0) { pagesView.currentIndex = celBanner.diagIndex; backend.setPage(celBanner.diagIndex) }
+            }
+        }
+
         // ---- overlays
         Settings {
             id: settings

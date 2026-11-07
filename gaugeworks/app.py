@@ -24,7 +24,7 @@ DEMO_SCENES = {
                "trip_dist": 52.3, "map": 155, "iat": 30, "dpf_dp": 1.2},
     "alarm": {"gear": 3, "rpm": 2900, "speed": 88.5, "boost": 240, "coolant": 115, "trans_temp": 110,
               "vgt_desired": 70, "vgt_actual": 74, "econ_inst": 2.1, "econ_tank": 5.9, "econ_trip": 5.7, "econ_last10": 3.1,
-              "ambient": 40, "oil_temp_std": 118, "battery": 14.1, "fuel_level": 22, "mil": 1,
+              "ambient": 40, "oil_temp_std": 118, "battery": 14.1, "fuel_level": 22, "mil": 1, "dtc_count": 2,
               "trip_dist": 140.2, "map": 250, "iat": 45, "dpf_dp": 2.0},
     "vgtfault": {"rpm": 2100, "speed": 96.6, "boost": 90, "baro": 99, "coolant": 89, "trans_temp": 80,
                  "vgt_desired": 40, "vgt_actual": 75, "econ_inst": 5.8, "econ_tank": 6.3, "econ_trip": 6.1, "econ_last10": 5.5,

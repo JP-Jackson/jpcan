@@ -12,6 +12,7 @@ IMPERIAL = {
     "L/h": ("gal/h", lambda v: v * 0.264172),
     "L": ("gal", lambda v: v * 0.264172),
     "km/L": ("mpg", lambda v: v * 2.35215),
+    "Nm": ("lb-ft", lambda v: v * 0.737562),
 }
 
 

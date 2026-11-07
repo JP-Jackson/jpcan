@@ -245,6 +245,218 @@ pids:
     source: SAE J1979 PID 5E
     notes: Often unsupported on older diesels; check supported-PID list.
 
+  # ---- More standard PIDs for the Diagnostic page (read in the background) ----
+  dist_mil:
+    short: Dist MIL
+    name: Distance with check engine light on
+    service: "01"
+    pid: "21"
+    header: "7DF"
+    formula: "(A*256)+B"
+    units: km
+    min: 0
+    max: 65535
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 21
+
+  warmups:
+    short: Warmups
+    name: Warm-ups since codes cleared
+    service: "01"
+    pid: "30"
+    header: "7DF"
+    formula: "A"
+    units: ""
+    min: 0
+    max: 255
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 30
+
+  dist_clear:
+    short: Dist clr
+    name: Distance since codes cleared
+    service: "01"
+    pid: "31"
+    header: "7DF"
+    formula: "(A*256)+B"
+    units: km
+    min: 0
+    max: 65535
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 31
+
+  ecu_volts:
+    short: ECU volts
+    name: Control module voltage
+    service: "01"
+    pid: "42"
+    header: "7DF"
+    formula: "((A*256)+B)/1000"
+    units: V
+    min: 0
+    max: 20
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 42
+
+  pedal_d:
+    short: Pedal
+    name: Accelerator pedal position D
+    service: "01"
+    pid: "49"
+    header: "7DF"
+    formula: "A*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 49
+
+  pedal_e:
+    short: Pedal E
+    name: Accelerator pedal position E
+    service: "01"
+    pid: "4A"
+    header: "7DF"
+    formula: "A*100/255"
+    units: "%"
+    min: 0
+    max: 100
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 4A
+
+  inj_timing:
+    short: Inj timing
+    name: Fuel injection timing
+    service: "01"
+    pid: "5D"
+    header: "7DF"
+    formula: "((A*256)+B)/128-210"
+    units: "°"
+    min: -210
+    max: 302
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 5D
+    notes: Degrees relative to TDC (negative = before TDC).
+
+  torque_demand:
+    short: Trq demand
+    name: Driver demand engine torque
+    service: "01"
+    pid: "61"
+    header: "7DF"
+    formula: "A-125"
+    units: "%"
+    min: -125
+    max: 130
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 61
+
+  torque_actual:
+    short: Torque %
+    name: Actual engine torque
+    service: "01"
+    pid: "62"
+    header: "7DF"
+    formula: "A-125"
+    units: "%"
+    min: -125
+    max: 130
+    poll_rate: fast
+    verified: true
+    source: SAE J1979 PID 62
+
+  torque_ref:
+    short: Trq ref
+    name: Engine reference torque
+    service: "01"
+    pid: "63"
+    header: "7DF"
+    formula: "(A*256)+B"
+    units: Nm
+    min: 0
+    max: 65535
+    poll_rate: once
+    verified: true
+    source: SAE J1979 PID 63
+
+  friction_torque:
+    short: Friction
+    name: Engine friction torque
+    service: "01"
+    pid: "8E"
+    header: "7DF"
+    formula: "A-125"
+    units: "%"
+    min: -125
+    max: 130
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 8E
+
+  exhaust_press:
+    short: Exh press
+    name: Exhaust back-pressure (bank 1)
+    service: "01"
+    pid: "73"
+    header: "7DF"
+    formula: "((B*256)+C)/100"
+    units: kPaa
+    min: 0
+    max: 655
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 73
+
+  egr_temp:
+    short: EGR temp
+    name: EGR temperature
+    service: "01"
+    pid: "6B"
+    header: "7DF"
+    formula: "B-40"
+    units: "°C"
+    min: -40
+    max: 215
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 6B
+
+  maf_sensor:
+    short: MAF A
+    name: Mass air flow sensor A
+    service: "01"
+    pid: "66"
+    header: "7DF"
+    formula: "((B*256)+C)/32"
+    units: g/s
+    min: 0
+    max: 2048
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 66
+
+  iat_sensor:
+    short: IAT 1
+    name: Intake air temp sensor (bank 1)
+    service: "01"
+    pid: "68"
+    header: "7DF"
+    formula: "B-40"
+    units: "°C"
+    min: -40
+    max: 215
+    poll_rate: slow
+    verified: true
+    source: SAE J1979 PID 68
+
 layouts:
   status: [rpm, speed, coolant, ambient, fuel_level, mil, dtc_count, battery, map, baro, load]
 
@@ -269,7 +481,7 @@ gaugeworks:
     - name: Daily
       template: dash
       slots: {left: speed, center: rpm, right: boost, small1: coolant, small2: iat}
-      tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
+      tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, battery, trip_dist]
     - name: Economy
       template: economy
       slots: {gauge: fuel_level}

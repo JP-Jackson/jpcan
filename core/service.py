@@ -24,8 +24,16 @@ def poll_keys(profile: Profile) -> list[str]:
     """Union of every layout's keys (status screen + GaugeWorks), in order."""
     keys: list[str] = []
     for layout in [*profile.layouts.values(), profile.gauge_keys()]:
-        keys += [k for k in layout if k in profile.pids and k not in keys]
+        for k in layout:
+            if k in profile.pids and k not in keys:
+                keys.append(k)
     return keys or list(profile.pids)
+
+
+def background_keys(profile: Profile) -> list[str]:
+    """Every PID not on a screen layout: read round-robin for the Diagnostic page."""
+    fg = set(poll_keys(profile))
+    return [k for k, p in profile.pids.items() if k not in fg and not p.is_derived]
 
 
 def channel_info(profile: Profile) -> dict:
@@ -47,7 +55,7 @@ def build_meta(s: Session, poller: Poller) -> dict:
         "shift": p.shift, "layouts": p.layouts, "gaugeworks": p.gaugeworks,
         "adapter": {"elm": s.info.elm, "stn": s.info.stn, "protocol": s.info.protocol},
         "channels": channel_info(p),
-        "skipped": [k for k in poller.state if poller.is_skipped(p.pids[k])],
+        "skipped": [k for k in p.pids if not p.pids[k].is_derived and poller.is_skipped(p.pids[k])],
     }
 
 
@@ -83,7 +91,8 @@ def run_core(args, sink, bus: Bus, stop: threading.Event, trip: TripComputer | N
                 status("waiting", [*why(e, args.port), "Retrying in 5 s"])
                 stop.wait(5)
                 continue
-            poller = Poller(s.elm, s.profile, bus, keys=poll_keys(s.profile), supported=s.supported)
+            poller = Poller(s.elm, s.profile, bus, keys=poll_keys(s.profile),
+                            background=background_keys(s.profile), supported=s.supported)
             if s.profile.gear and "gear" not in s.profile.pids and gear_est is None:
                 from .gear import GearEstimator
                 gear_est = GearEstimator(bus, s.profile.gear)

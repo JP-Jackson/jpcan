@@ -67,3 +67,17 @@ def test_derived_boost_psig():
     assert b.value == pytest.approx(got["map_wide"].value - got["baro"].value)
     v, u = display(b.value, b.units)
     assert u == "psig" and v >= 0
+
+
+def test_background_reads_one_per_cycle_round_robin():
+    p, sim, bus = setup(["rpm"])
+    from core.poller import Poller
+    p = Poller(p.elm, p.profile, bus, keys=["rpm"], background=["coolant", "ambient", "fuel_level"],
+               supported=p.supported)
+    sim.obd.clear()
+    for _ in range(6):
+        p.cycle()
+    assert sim.obd.count("010C") == 6                      # foreground every cycle
+    for req in ("0167", "0146", "012F"):                   # each background PID twice
+        assert sim.obd.count(req) == 2
+    assert {"coolant", "ambient", "fuel_level"} <= set(bus.latest())

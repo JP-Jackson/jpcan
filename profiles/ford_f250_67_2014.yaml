@@ -387,11 +387,11 @@ gaugeworks:
     - name: Daily
       template: dash
       slots: {left: speed, center: rpm, right: boost, small1: coolant, small2: trans_temp, panel: vgt}
-      tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, mil, trip_dist]
+      tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, oil_temp_std, trip_dist]
     - name: Towing
       template: quad
       slots: {g1: trans_temp, g2: coolant, g3: boost, g4: oil_temp_std}
-      tiles: [speed, rpm, econ_inst, fuel_level, battery, mil]
+      tiles: [speed, rpm, econ_inst, fuel_level, battery, ambient]
     - name: Economy
       template: economy
       slots: {gauge: fuel_level}

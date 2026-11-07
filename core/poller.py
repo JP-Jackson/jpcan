@@ -32,6 +32,7 @@ class Poller:
     profile: Profile
     bus: Bus
     keys: list[str] | None = None
+    background: list[str] | None = None  # read one per cycle, round-robin (diagnostic list)
     supported: set[int] | None = None   # Mode 01 bitmap from the ECU, if known
     fast_interval: float = 0.1          # ~10 Hz cap for the fast class
     slow_interval: float = 1.0
@@ -49,7 +50,10 @@ class Poller:
         for d in self.derived:  # make sure inputs get polled
             keys += [v for v in sorted(d.formula.vars) if v not in keys]
         self.pids: list[Pid] = [self.profile.pids[k] for k in keys if not self.profile.pids[k].is_derived]
-        self.state = {p.key: PidState() for p in self.pids}
+        self.bg: list[Pid] = [self.profile.pids[k] for k in (self.background or [])
+                              if k not in keys and not self.profile.pids[k].is_derived]
+        self.state = {p.key: PidState() for p in [*self.pids, *self.bg]}
+        self._bg_i = 0
         self._last_slow = 0.0
 
     def is_skipped(self, p: Pid) -> bool:
@@ -73,36 +77,50 @@ class Poller:
             self._last_slow = now
         cache: dict[tuple[str, str], bytes | Exception] = {}
         for p in self.pids:
-            if not self._due(p, now, slow_due):
-                continue
-            st = self.state[p.key]
-            st.last_try = now
-            try:
-                if p.service == "AT":
-                    value = self.elm.voltage()
-                    if value is None:
-                        raise ElmError("no voltage")
-                else:
-                    hdr = self.profile.header_for(p)
-                    k = (hdr, p.request)
-                    if k not in cache:
-                        try:
-                            cache[k] = self.elm.read(p.service, p.pid, hdr)
-                        except ElmError as e:
-                            cache[k] = e
-                    if isinstance(cache[k], Exception):
-                        raise cache[k]
-                    value = p.formula(cache[k])
-            except (ElmError, FormulaError) as e:
-                st.fails += 1
-                self.errors += 1
-                self.bus.publish(Reading(p.key, None, p.units, time.time(), str(e) or type(e).__name__))
-                continue
-            st.fails, st.last_ok = 0, now
-            st.done = p.poll_rate == "once"
-            self.bus.publish(Reading(p.key, value, p.units, time.time()))
+            if self._due(p, now, slow_due):
+                self._read(p, now, cache)
+        self._background(now, cache)
         self._compute_derived()
         self.cycles += 1
+
+    def _background(self, now: float, cache) -> None:
+        """One diagnostic-list PID per cycle, so the full list never slows the gauges."""
+        for _ in range(len(self.bg)):
+            p = self.bg[self._bg_i % len(self.bg)]
+            self._bg_i += 1
+            st = self.state[p.key]
+            if self.is_skipped(p) or (st.fails >= self.max_fails and now - st.last_try < self.retry_after):
+                continue
+            self._read(p, now, cache)
+            return
+
+    def _read(self, p: Pid, now: float, cache) -> None:
+        st = self.state[p.key]
+        st.last_try = now
+        try:
+            if p.service == "AT":
+                value = self.elm.voltage()
+                if value is None:
+                    raise ElmError("no voltage")
+            else:
+                hdr = self.profile.header_for(p)
+                k = (hdr, p.request)
+                if k not in cache:
+                    try:
+                        cache[k] = self.elm.read(p.service, p.pid, hdr)
+                    except ElmError as e:
+                        cache[k] = e
+                if isinstance(cache[k], Exception):
+                    raise cache[k]
+                value = p.formula(cache[k])
+        except (ElmError, FormulaError) as e:
+            st.fails += 1
+            self.errors += 1
+            self.bus.publish(Reading(p.key, None, p.units, time.time(), str(e) or type(e).__name__))
+            return
+        st.fails, st.last_ok = 0, now
+        st.done = p.poll_rate == "once"
+        self.bus.publish(Reading(p.key, value, p.units, time.time()))
 
     def _compute_derived(self) -> None:
         latest = self.bus.latest()
