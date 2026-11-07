@@ -170,6 +170,18 @@ pids:
     source: Derived; MAP abs (PID 87) minus baro (PID 33)
     notes: "Idle 2026-11-07: ~0.4 psig at 600 rpm, ~1.1 psig at 1545 rpm (from MAP/baro reads)."
 
+  vgt_dev:
+    short: VGT dev
+    name: VGT deviation (actual - desired)
+    derived: "vgt_actual - vgt_desired"
+    units: "%"
+    min: -100
+    max: 100
+    poll_rate: fast
+    verified: false
+    source: Derived from PID 71
+    notes: Logged so mismatches show up in drive logs. Semantics of 71 B/C unverified.
+
   vgt_desired:
     short: VGT des
     name: VGT vane commanded
@@ -345,7 +357,7 @@ pids:
 
 layouts:
   status: [rpm, speed, boost, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
-           map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass,
+           map_wide, baro, egt11, vgt_desired, vgt_actual, vgt_dev, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]
 
 gaugeworks:
@@ -355,6 +367,7 @@ gaugeworks:
     boost:   {key: boost, min: 0, max: 40, major: 5, minor: 5, label: BOOST, warn: 33, alarm: 38}
     coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 235}
     trans:   {key: trans_temp, min: 100, max: 260, major: 40, minor: 4, label: TRANS, warn: 220, alarm: 240}
-    vgt:     {desired: vgt_desired, actual: vgt_actual, label: VGT}
+    # dev_*: |actual - desired| in % that must persist dev_hold seconds to warn/alarm
+    vgt:     {desired: vgt_desired, actual: vgt_actual, label: VGT, dev_warn: 10, dev_alarm: 20, dev_hold: 1.5}
   tiles: [econ_inst, econ_avg, ambient, oil_temp_std, battery, fuel_level, mil, trip_dist]
 

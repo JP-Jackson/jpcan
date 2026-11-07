@@ -26,6 +26,10 @@ DEMO_SCENES = {
               "vgt_desired": 70, "vgt_actual": 74, "econ_inst": 2.1, "econ_avg": 5.9,
               "ambient": 40, "oil_temp_std": 118, "battery": 14.1, "fuel_level": 22, "mil": 1,
               "trip_dist": 140.2, "map": 250, "iat": 45, "dpf_dp": 2.0},
+    "vgtfault": {"rpm": 2100, "speed": 96.6, "boost": 90, "baro": 99, "coolant": 89, "trans_temp": 80,
+                 "vgt_desired": 40, "vgt_actual": 75, "econ_inst": 5.8, "econ_avg": 6.3,
+                 "ambient": 32, "oil_temp_std": 99, "battery": 14.2, "fuel_level": 68, "mil": 0,
+                 "trip_dist": 61.0},
     "shift": {"rpm": 3200, "speed": 72.4, "map": 210, "baro": 99, "boost": 111, "coolant": 90, "iat": 35,
               "econ_inst": 6.0, "econ_avg": 16.0, "ambient": 22, "battery": 14.0,
               "fuel_level": 55, "mil": 0, "trip_dist": 30.0, "dpf_dp": 0.8},
@@ -158,7 +162,7 @@ def main(argv=None) -> int:
             panel.setProperty("visible", True)
 
     if args.screenshot:
-        QTimer.singleShot(1500, lambda: (view.grabWindow().save(args.screenshot), app.quit()))
+        QTimer.singleShot(2600, lambda: (view.grabWindow().save(args.screenshot), app.quit()))
 
     rc = app.exec()
     view.setSource(QUrl())  # tear down QML before the backend goes away

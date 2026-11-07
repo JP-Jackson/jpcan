@@ -169,7 +169,10 @@ class Backend(QObject):
         for name, g in (gw.get("gauges") or {}).items():
             if "desired" in g:  # dual (VGT)
                 gauges[name] = {"desired": g["desired"], "actual": g["actual"],
-                                "label": g.get("label", name.upper())}
+                                "label": g.get("label", name.upper()),
+                                "dev_warn": float(g.get("dev_warn", 10)),
+                                "dev_alarm": float(g.get("dev_alarm", 20)),
+                                "dev_hold": float(g.get("dev_hold", 1.5))}
             elif g.get("key") in ch:
                 gauges[name] = gauge_config(g, ch[g["key"]].get("units", ""), imp)
         tiles = [tile_config(k, ch.get(k, {}), imp) for k in (gw.get("tiles") or [])]

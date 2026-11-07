@@ -109,7 +109,7 @@ Rectangle {
             readonly property var c: gauges.vgt || ({})
             visible: !!gauges.vgt
             x: 780; y: 432; width: 236; height: 160
-            theme: root.theme; label: c.label || "VGT"
+            theme: root.theme; cfg: c
             desired: val(c.desired); desiredValid: ok(c.desired)
             actual: val(c.actual); actualValid: ok(c.actual)
         }
