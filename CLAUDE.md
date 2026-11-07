@@ -51,7 +51,7 @@ Every byte sent to the adapter goes through `core/guard.py::RequestGuard`, via
 - Core runs as a daemon (`jpcan run`, systemd `jpcan-core`) and is the ONLY
   process that opens the adapter. It publishes to MQTT (`jpcan/v/<key>`
   retained, `jpcan/meta`, `jpcan/status` with LWT). Its only MQTT inputs
-  are `jpcan/cmd/trip_reset` and `jpcan/cmd/fillup`, and nothing from MQTT
+  are `jpcan/cmd/trip_reset`, `jpcan/cmd/fillup` and `jpcan/cmd/fuel_edit`, and nothing from MQTT
   ever reaches the adapter.
   Clients: status screen (`live --bus`), GaugeWorks, later Node-RED/HA/phone.
   LocalSink is the in-process stand-in for the laptop simulator.

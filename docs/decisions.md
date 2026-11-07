@@ -127,3 +127,13 @@ CSV, fuel history (SQLite + CSV), scan files, and a diagnostics report with
 versions, service status, journals, settings and guard counters. Nothing is
 deleted from the Pi, and nothing talks to the truck. `jpcan export-all --dest`
 does the same from SSH.
+
+## D21. Fuel history edits
+Tap a History row to edit gallons, $/gal, odometer or date, or delete the line
+(one confirm). "Delete all" takes two confirms and only affects the current
+vehicle. The core does all edits via `jpcan/cmd/fuel_edit` (the third and
+last MQTT input), and clear needs a "DELETE" token so a stray message can't
+wipe history. It recomputes miles/MPG for the vehicle's whole chain (ordered
+by date) and rejects an odometer or date that would break the order. Before
+a delete-all it saves a backup to fuel_backups/ (10 kept), which the USB
+export includes.

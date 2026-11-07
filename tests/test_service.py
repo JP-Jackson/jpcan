@@ -56,8 +56,8 @@ def test_core_local_sink(tmp_path):
 
 def test_core_only_listens_to_its_two_commands():
     """The core's ONLY MQTT inputs; neither can reach the adapter."""
-    from core.mqtt import T_FILLUP
-    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET, T_FILLUP)
+    from core.mqtt import T_FILLUP, T_FUEL_EDIT
+    assert CORE_SUBSCRIPTIONS == (T_TRIP_RESET, T_FILLUP, T_FUEL_EDIT)
     assert all(t.startswith("jpcan/cmd/") for t in CORE_SUBSCRIPTIONS)
 
 
@@ -90,7 +90,8 @@ def test_core_over_mqtt(tmp_path, broker):
     from core.fuelbook import FuelHub
 
     hub = FuelHub()
-    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.handle_reset, on_fillup=hub.fillup)
+    pub = MqttPublisher(bus, "127.0.0.1", broker, on_trip_reset=trip.handle_reset, on_fillup=hub.fillup,
+                        on_fuel_edit=hub.edit)
     th = threading.Thread(target=run_core, args=(args(tmp_path, no_log=True), pub, bus, stop, trip, hub),
                           daemon=True)
     th.start()
@@ -114,6 +115,12 @@ def test_core_over_mqtt(tmp_path, broker):
         assert wait_for(lambda: len(feed.fuel.get("rows", [])) == 1)
         feed.fillup(500, 3.0)                                    # rejected: out of range
         assert wait_for(lambda: "error" in (feed.fuel.get("last_result") or {}))
+        row_id = feed.fuel["rows"][0]["id"]
+        feed.fuel_edit({"action": "edit", "id": row_id, "gallons": 21.5})
+        assert wait_for(lambda: feed.fuel["rows"][0]["gallons"] == 21.5)
+        feed.fuel_edit({"action": "clear"})                      # no confirm token -> refused
+        assert wait_for(lambda: "not confirmed" in (feed.fuel.get("last_result") or {}).get("error", ""))
+        feed.c.publish("jpcan/cmd/fuel_edit", b"[1,2]")          # not a dict -> ignored
         feed.c.publish("jpcan/cmd/fillup", b"garbage")           # ignored
         feed.c.publish("jpcan/cmd/anything_else", b"x")          # ignored; not subscribed
         time.sleep(0.3)

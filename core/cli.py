@@ -122,7 +122,7 @@ def cmd_run(args) -> int:
         sink = LocalSink(bus)
     else:
         sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.handle_reset,
-                             on_fillup=hub.fillup)
+                             on_fillup=hub.fillup, on_fuel_edit=hub.edit)
     stop = threading.Event()
     signal.signal(signal.SIGTERM, lambda *_: stop.set())
     last = [""]

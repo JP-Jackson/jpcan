@@ -86,3 +86,84 @@ def test_hub_publishes_result_and_errors(tmp_path):
     assert got[-1]["last_result"]["gallons"] == 18.5
     hub.fillup(999)
     assert "error" in got[-1]["last_result"]
+
+
+def three_fills(tmp_path):
+    bus, trip, book = setup(tmp_path)
+    for odo_mi, gal in ((1000, 20.0), (1300, 20.0), (1640, 20.0)):
+        odo(bus, odo_mi)
+        book.add(gal, 3.0)
+    rows = sorted(book.history()["rows"], key=lambda r: r["ts"])
+    return bus, trip, book, [r["id"] for r in rows]
+
+
+def test_edit_recomputes_chain(tmp_path):
+    _, _, book, ids = three_fills(tmp_path)
+    book.edit(ids[1], odo_mi=1320, gallons=22.0, price=3.5)
+    rows = {r["id"]: r for r in book.history()["rows"]}
+    assert rows[ids[1]]["miles"] == pytest.approx(320) and rows[ids[1]]["mpg"] == pytest.approx(320 / 22)
+    assert rows[ids[1]]["total"] == pytest.approx(77.0)
+    assert rows[ids[2]]["miles"] == pytest.approx(320)       # next line recalculated too
+    assert rows[ids[0]]["miles_src"] == "baseline"
+
+
+@pytest.mark.parametrize("odo_mi", [900, 1000, 1700])
+def test_edit_rejects_out_of_order_odometer(tmp_path, odo_mi):
+    _, _, book, ids = three_fills(tmp_path)
+    with pytest.raises(FillupError, match="odometer"):
+        book.edit(ids[1], odo_mi=odo_mi)
+
+
+def test_edit_date_and_bad_values(tmp_path):
+    _, _, book, ids = three_fills(tmp_path)
+    book.edit(ids[0], date="2020-01-15")                       # oldest moved earlier: still in order
+    r = next(r for r in book.history()["rows"] if r["id"] == ids[0])
+    assert time.strftime("%Y-%m-%d", time.localtime(r["ts"])) == "2020-01-15"
+    with pytest.raises(FillupError, match="odometer"):
+        book.edit(ids[2], date="2020-01-01")                   # newest moved first: odometer out of order
+    with pytest.raises(FillupError):
+        book.edit(ids[2], date="11/05/2026")
+    with pytest.raises(FillupError):
+        book.edit(ids[2], gallons=500)
+    with pytest.raises(FillupError):
+        book.edit(9999, gallons=10)
+
+
+def test_delete_line_recomputes(tmp_path):
+    _, _, book, ids = three_fills(tmp_path)
+    book.delete(ids[1])
+    rows = {r["id"]: r for r in book.history()["rows"]}
+    assert ids[1] not in rows and rows[ids[2]]["miles"] == pytest.approx(640)
+    book.delete(ids[0])                                       # oldest gone: next is the new baseline
+    assert book.history()["rows"][0]["miles_src"] == "baseline"
+
+
+def test_clear_current_vehicle_only_with_backup(tmp_path):
+    bus, trip, book, ids = three_fills(tmp_path)
+    other = FuelBook(tmp_path / "fuel.sqlite", "JETTA", bus, trip)
+    other.add(10.0)
+    with pytest.raises(FillupError):
+        book.clear("yes")                                     # needs the token
+    res = book.clear("DELETE")
+    assert res["deleted"] == 3 and book.history()["rows"] == []
+    assert len(other.history()["rows"]) == 1                 # Jetta untouched
+    backups = list((tmp_path / "fuel_backups").glob("fuel_*.sqlite"))
+    assert len(backups) == 1
+    import sqlite3
+    with sqlite3.connect(backups[0]) as db:
+        assert db.execute("SELECT COUNT(*) FROM fillups WHERE vehicle='VIN1'").fetchone()[0] == 3
+
+
+def test_hub_edit_actions(tmp_path):
+    _, _, book, ids = three_fills(tmp_path)
+    got = []
+    hub = FuelHub()
+    hub.attach(book, got.append)
+    hub.edit({"action": "edit", "id": ids[2], "gallons": 21.0})
+    assert got[-1]["last_result"]["action"] == "edit"
+    hub.edit({"action": "delete", "id": ids[2]})
+    assert got[-1]["last_result"]["action"] == "delete"
+    hub.edit({"action": "nuke"})
+    assert "error" in got[-1]["last_result"]
+    hub.edit({"action": "clear"})                              # no token -> refused
+    assert "error" in got[-1]["last_result"] and len(got[-1]["rows"]) == 2

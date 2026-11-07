@@ -8,7 +8,9 @@ Topics (prefix `jpcan/`):
   fuel/history     retained    fill-up history, lifetime stats, correction factor
   cmd/trip_reset   payload "trip" (default): trip distance/fuel/average; "roll": Last N
   cmd/fillup       {"gallons": 18.2, "price": 3.459} log a fill-up (validated)
-                   These two are the ONLY inputs the core accepts. Nothing from MQTT
+  cmd/fuel_edit    {"action": "edit"|"delete"|"clear", ...} fix fuel history
+                   (current vehicle only; clear needs "confirm": "DELETE")
+                   These three are the ONLY inputs the core accepts. Nothing from MQTT
                    ever reaches the adapter: the core subscribes to nothing else.
 
 paho-mqtt is EPL-2.0 / EDL-1.0 dual licensed (EDL = BSD-3); not GPL.
@@ -29,8 +31,9 @@ T_META = f"{PREFIX}/meta"
 T_STATUS = f"{PREFIX}/status"
 T_TRIP_RESET = f"{PREFIX}/cmd/trip_reset"
 T_FILLUP = f"{PREFIX}/cmd/fillup"
+T_FUEL_EDIT = f"{PREFIX}/cmd/fuel_edit"
 T_FUEL = f"{PREFIX}/fuel/history"
-CORE_SUBSCRIPTIONS = (T_TRIP_RESET, T_FILLUP)  # allowlist; see module docstring
+CORE_SUBSCRIPTIONS = (T_TRIP_RESET, T_FILLUP, T_FUEL_EDIT)  # allowlist; see module docstring
 OFFLINE = json.dumps({"state": "offline", "lines": ["JpCAN core", "not running"]})
 
 
@@ -77,9 +80,11 @@ class MqttPublisher:
 
     def __init__(self, bus: Bus, host: str = "localhost", port: int = 1883,
                  on_trip_reset: Callable[[str], None] | None = None,
-                 on_fillup: Callable[..., object] | None = None):
+                 on_fillup: Callable[..., object] | None = None,
+                 on_fuel_edit: Callable[[dict], object] | None = None):
         self.bus = bus
         self._on_fillup = on_fillup
+        self._on_fuel_edit = on_fuel_edit
         self.fuel: dict = {}
         self.meta: dict = {}
         self.status: dict = {}
@@ -117,6 +122,13 @@ class MqttPublisher:
                                 None if d.get("price") in (None, "") else float(d["price"]))
             except (ValueError, TypeError, KeyError):
                 pass  # ignore garbage; FuelBook also validates ranges
+        elif msg.topic == T_FUEL_EDIT and self._on_fuel_edit:
+            try:
+                d = json.loads(msg.payload)
+                if isinstance(d, dict):
+                    self._on_fuel_edit(d)
+            except ValueError:
+                pass
 
     def on_reading(self, r: Reading) -> None:
         # Retained so late subscribers (screen restart, phone page) get every
@@ -184,6 +196,9 @@ class MqttFeed:
 
     def fillup(self, gallons: float, price: float | None = None) -> None:
         self.c.publish(T_FILLUP, json.dumps({"gallons": gallons, "price": price}), qos=1)
+
+    def fuel_edit(self, cmd: dict) -> None:
+        self.c.publish(T_FUEL_EDIT, json.dumps(cmd), qos=1)
 
     def close(self) -> None:
         self.c.loop_stop()

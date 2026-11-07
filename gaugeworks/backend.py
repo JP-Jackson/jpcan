@@ -157,7 +157,14 @@ def list_themes(themes_dir: Path = THEMES_DIR) -> list[str]:
 
 def fillup_message(res: dict) -> str:
     if res.get("error"):
-        return f"Fill-up not saved: {res['error']}"
+        return f"Not saved: {res['error']}"
+    action = res.get("action")
+    if action == "edit":
+        return "Fill-up updated"
+    if action == "delete":
+        return "Fill-up deleted"
+    if action == "clear":
+        return f"Deleted {res.get('deleted', 0)} fill-ups (backup saved)"
     if res.get("mpg"):
         src = "" if res.get("miles_src") == "odometer" else " (est. miles)"
         return f"Tank: {res['miles']:.0f} mi / {res['gallons']:.1f} gal = {res['mpg']:.1f} mpg{src}"
@@ -399,6 +406,27 @@ class Backend(QObject):
     def setEconWindow(self, miles: int) -> None:
         self._settings["econ_window_mi"] = int(miles)
         self._save()
+
+    @Slot(int, float, float, float, str)
+    def fuelEdit(self, row_id: int, gallons: float, price: float, odo: float, date: str) -> None:
+        if not 0.5 <= gallons <= 80:
+            self.message.emit("Enter gallons (0.5 - 80)")
+            return
+        if hasattr(self.feed, "fuel_edit"):
+            self.feed.fuel_edit({"action": "edit", "id": int(row_id), "gallons": round(gallons, 3),
+                                 "price": round(price, 3), "odo_mi": odo if odo > 0 else None,
+                                 "date": date or None})
+
+    @Slot(int)
+    def fuelDelete(self, row_id: int) -> None:
+        if hasattr(self.feed, "fuel_edit"):
+            self.feed.fuel_edit({"action": "delete", "id": int(row_id)})
+
+    @Slot()
+    def fuelClear(self) -> None:
+        """Delete all fill-ups for THIS vehicle; the core backs up the database first."""
+        if hasattr(self.feed, "fuel_edit"):
+            self.feed.fuel_edit({"action": "clear", "confirm": "DELETE"})
 
     @Slot(float, float)
     def fillup(self, gallons: float, price: float) -> None:

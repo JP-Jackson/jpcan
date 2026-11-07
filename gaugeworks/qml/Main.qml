@@ -10,13 +10,31 @@ Rectangle {
     readonly property var colors: theme.colors
     color: colors.background
 
-    function askReset(kind) {
-        confirm.kind = kind
-        confirm.title = kind === "roll" ? "Reset Last " + backend.econWindow + " average?" : "Reset trip average?"
-        confirm.message = kind === "roll"
-            ? "The rolling average starts over and shows -- until you've driven " + backend.econWindow + " miles."
-            : "Trip miles, fuel used and the trip average start over.\nTank average and fill-up history are not affected."
+    function askConfirm(title, message, okText, action) {
+        confirm.title = title; confirm.message = message; confirm.okText = okText
+        confirm.action = action
         confirm.visible = true
+    }
+
+    function askReset(kind) {
+        askConfirm(kind === "roll" ? "Reset Last " + backend.econWindow + " average?" : "Reset trip average?",
+                   kind === "roll"
+                   ? "The rolling average starts over and shows -- until you've driven " + backend.econWindow + " miles."
+                   : "Trip miles, fuel used and the trip average start over.\nTank average and fill-up history are not affected.",
+                   "Reset", function() { backend.resetEcon(kind) })
+    }
+
+    function askDeleteAll() {
+        var n = (backend.fuel.rows || []).length
+        askConfirm("Delete all fill-ups?",
+                   "Deletes the fuel history for " + (backend.status.profile || "this vehicle") +
+                   " only. A backup is saved first.", "Delete all",
+                   function() {
+                       askConfirm("Are you sure?",
+                                  "This removes " + n + " fill-up" + (n === 1 ? "" : "s") +
+                                  " from the screen and the MPG history.", "Yes, delete",
+                                  function() { backend.fuelClear() })
+                   })
     }
 
     function openPicker(pageName, slot, current) {
@@ -65,7 +83,7 @@ Rectangle {
                         if (item.diag !== undefined) item.diag = Qt.binding(function() { return root.cfg.diag || [] })
                         item.pick.connect(function(slot, current) { root.openPicker(pageItem.modelData.name, slot, current) })
                         item.resetAsk.connect(function(kind) { root.askReset(kind) })
-                        if (item.openFillup) item.openFillup.connect(function() { fillup.visible = true })
+                        if (item.openFillup) item.openFillup.connect(function() { fillup.openNew() })
                         if (item.openHistory) item.openHistory.connect(function() { history.visible = true })
                     }
                 }
@@ -188,21 +206,13 @@ Rectangle {
             visible: false
             theme: root.theme; gw: backend
             onClose: visible = false
-            onOpenFillup: { visible = false; fillup.visible = true }
+            onOpenFillup: { visible = false; fillup.openNew() }
             onOpenHistory: { visible = false; history.visible = true }
             onOpenExport: { visible = false; exportPanel.visible = true }
         }
         ExportPanel {
             id: exportPanel
             objectName: "exportPanel"
-            anchors.fill: parent
-            visible: false
-            theme: root.theme; gw: backend
-            onClose: visible = false
-        }
-        FillUp {
-            id: fillup
-            objectName: "fillupPanel"
             anchors.fill: parent
             visible: false
             theme: root.theme; gw: backend
@@ -215,16 +225,19 @@ Rectangle {
             visible: false
             theme: root.theme; gw: backend
             onClose: visible = false
+            onEditRow: (row) => fillup.openEdit(row)
+            onDeleteAll: root.askDeleteAll()
         }
-        Confirm {
-            id: confirm
-            objectName: "confirmPanel"
-            property string kind: "trip"
+        FillUp {
+            id: fillup
+            objectName: "fillupPanel"
             anchors.fill: parent
             visible: false
-            theme: root.theme
-            onAccepted: { backend.resetEcon(kind); visible = false }
-            onRejected: visible = false
+            theme: root.theme; gw: backend
+            onClose: visible = false
+            onDeleteRow: (id) => root.askConfirm("Delete this fill-up?",
+                "Miles and MPG for the next fill-up are recalculated.", "Delete",
+                function() { backend.fuelDelete(id); fillup.visible = false })
         }
         Picker {
             id: picker
@@ -236,6 +249,16 @@ Rectangle {
             onClose: visible = false
         }
 
+        Confirm {
+            id: confirm
+            objectName: "confirmPanel"
+            property var action: null
+            anchors.fill: parent
+            visible: false
+            theme: root.theme
+            onAccepted: { visible = false; var a = action; action = null; if (a) a() }
+            onRejected: { visible = false; action = null }
+        }
         // ---- toast for fill-up results and other messages
         Rectangle {
             id: toast

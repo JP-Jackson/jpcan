@@ -89,6 +89,9 @@ class InProcFeed:
     def fillup(self, gallons, price=None):
         threading.Thread(target=self.hub.fillup, args=(gallons, price), daemon=True).start()
 
+    def fuel_edit(self, cmd):
+        threading.Thread(target=self.hub.edit, args=(cmd,), daemon=True).start()
+
     def close(self):
         self.stop.set()
 
@@ -143,7 +146,7 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
-    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm"], help="open a panel (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm", "edit", "deleteall"], help="open a panel (screenshots)")
     ap.add_argument("--page", type=int, help="start on this page index (screenshots)")
     args = ap.parse_args(argv)
 
@@ -190,9 +193,18 @@ def main(argv=None) -> int:
         view.showFullScreen()
 
     want = "settings" if args.settings else args.panel
-    if want == "confirm":  # show the real Trip reset prompt
+    if want in ("confirm", "deleteall", "edit"):  # real prompts, for screenshots
         from PySide6.QtCore import Q_ARG, QMetaObject
-        QMetaObject.invokeMethod(view.rootObject(), "askReset", Q_ARG("QVariant", "trip"))
+        root = view.rootObject()
+        if want == "confirm":
+            QMetaObject.invokeMethod(root, "askReset", Q_ARG("QVariant", "trip"))
+        elif want == "deleteall":
+            QMetaObject.invokeMethod(root, "askDeleteAll")
+        else:
+            fu = root.findChild(QObject, "fillupPanel")
+            rows = (feed.fuel or {}).get("rows") or []
+            if fu is not None and rows:
+                QMetaObject.invokeMethod(fu, "openEdit", Q_ARG("QVariant", rows[0]))
         want = None
     if want:
         panel = view.rootObject().findChild(QObject, f"{want}Panel")

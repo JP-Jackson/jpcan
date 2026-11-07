@@ -114,6 +114,9 @@ def export_bundle(dest: Path, data_dir: Path, config_dir: Path, scan_dirs: list[
         _snapshot_sqlite(fuel_db, root / "fuel" / "fuel.sqlite")
         fillups = fuel_csv(root / "fuel" / "fuel.sqlite", root / "fuel" / "fuel_history.csv")
         files += 2
+        for b in sorted((data_dir / "fuel_backups").glob("fuel_*.sqlite")):
+            _snapshot_sqlite(b, root / "fuel" / "backups" / b.name)
+            files += 1
 
     progress("Scan files")
     seen: set[Path] = set()
