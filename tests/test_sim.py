@@ -59,4 +59,4 @@ def test_unsupported_paths(stack):
     with pytest.raises(NoData):
         elm.read("01", "05")                 # 0105 unsupported, like the truck
     with pytest.raises(NegativeResponse):
-        elm.read("22", "F470", "7E0")        # unknown DID -> NRC 31
+        elm.read("22", "1234", "7E0")        # unknown DID -> NRC 31
