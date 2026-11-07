@@ -18,7 +18,7 @@ def test_inheritance_and_fields():
     assert "rpm" in p.pids and "odometer" in p.pids
     assert p.pids["rpm"].formula([0x1A, 0xF8]) == 1726
     assert p.pids["odometer"].header == "720"
-    assert not p.pids["odometer"].verified
+    assert p.pids["odometer"].verified and not p.pids["trans_temp"].verified
     assert p.shift["enabled"] is False
     assert {"720", "7E1"} <= p.extra_headers
 
