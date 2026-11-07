@@ -48,9 +48,12 @@ Every byte sent to the adapter goes through `core/guard.py::RequestGuard`, via
   guard).
 - Our own mock adapter plus replay of recorded sessions, not ELM327-emulator
   (non-commercial license).
-- Core runs as a daemon and publishes to a bus. GaugeWorks, Node-RED and ESP32
-  displays are clients. Two bus backends: in-process (sim/laptop) and MQTT
-  (Pi).
+- Core runs as a daemon (`jpcan run`, systemd `jpcan-core`) and is the ONLY
+  process that opens the adapter. It publishes to MQTT (`jpcan/v/<key>`
+  retained, `jpcan/meta`, `jpcan/status` with LWT). Its only MQTT input is
+  `jpcan/cmd/trip_reset`, and nothing from MQTT ever reaches the adapter.
+  Clients: status screen (`live --bus`), GaugeWorks, later Node-RED/HA/phone.
+  LocalSink is the in-process stand-in for the laptop simulator.
 - Logging is SQLite per drive in long format `(ts, pid, value)`, with CSV
   export.
 - Profiles are YAML (they need comments); settings and themes are JSON.
@@ -81,9 +84,15 @@ against FORScan or the dash.
 
 ## Phases
 
-- **0 (current):** CLI probe/scan plus a curses text status display on the
-  3.5" screen. Proves we can get data.
-- 1: GaugeWorks (RPM + shift, MPH, fuel, boost, VGT), SQLite logging, sim.
+- **0 (done):** CLI probe/scan plus a curses status screen on the 3.5". Truck
+  verified 2026-11-07: odometer, outside temp, fuel, RPM, boost, rail, VGT.
+  Truck is off-road (DEF/EGR cooler removed, tuned): EGT and coolant2 read
+  fixed placeholder values.
+- **1 (current):** core service + MQTT + SQLite logging + trip computer (done);
+  GaugeWorks on the 7" (tach, speed, boost psig, coolant, trans, VGT, gear,
+  instant/avg MPG, outside, oil, battery, fuel, CEL).
+- 1.5: Phone web dashboard (view-only) over mosquitto websockets plus a Pi
+  hotspot on the road.
 - 2: EGT1-4, rail pressure, soot, regen, trans temp, alarms, trailer layout.
 - 3: Theme editor, more themes, round screens (Pi HDMI or ESP32).
 - 4: Power: buck converter, ignition sense, safe shutdown, systemd, fast boot.

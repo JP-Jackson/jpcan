@@ -7,65 +7,15 @@ from pathlib import Path
 import sys
 import threading
 import time
-from dataclasses import dataclass
-from typing import TextIO
 
 from . import __version__
 from .bus import Bus
-from .elm import AdapterInfo, Elm, ElmError
-from .guard import RequestGuard
+from .elm import ElmError
 from .poller import Poller
-from .profile import Profile, list_profiles, load_profile, select_profile
+from .profile import list_profiles, load_profile
 from .sysinfo import wifi_dbm, wifi_label
-from .transport import GuardedPort, SerialTransport
+from .session import DEFAULT_PORT, Session, connect, why
 from .units import display
-
-DEFAULT_PORT = "COM3" if sys.platform == "win32" else "/dev/ttyUSB0"
-
-
-@dataclass
-class Session:
-    elm: Elm
-    port: GuardedPort
-    guard: RequestGuard
-    info: AdapterInfo
-    vin: str | None
-    profile: Profile
-    supported: set[int]
-    sim: bool
-    trace: TextIO | None = None
-
-    def close(self):
-        self.port.close()
-        if self.trace:
-            self.trace.close()
-
-
-def connect(args, log=print) -> Session:
-    guard = RequestGuard()
-    trace = open(args.trace, "a", encoding="utf-8") if args.trace else None
-    if args.sim:
-        from .sim import SimTransport
-        raw, log_src = SimTransport(), "simulator"
-    else:
-        raw, log_src = SerialTransport(args.port, args.baud), f"{args.port} @ {args.baud}"
-    port = GuardedPort(raw, guard, min_gap=args.min_gap, trace=trace)
-    elm = Elm(port)
-    try:
-        log(f"Connecting via {log_src} ...")
-        info = elm.init()
-        log(f"Adapter: {info.elm} | {info.stn} | {info.voltage} | {info.protocol}")
-        vin = elm.vin()
-        profile = load_profile(args.profile) if args.profile else select_profile(vin)
-        guard.extra_headers |= profile.extra_headers
-        supported = elm.supported_pids()
-    except BaseException:
-        port.close()
-        if trace:
-            trace.close()
-        raise
-    return Session(elm, port, guard, info, vin, profile, supported, args.sim, trace)
-
 
 def fmt(value, units, imperial=True) -> tuple[str, str]:
     if value is None:
@@ -153,17 +103,131 @@ def cmd_scan22(args) -> int:
 def cmd_live(args) -> int:
     import curses
 
-    return curses.wrapper(_live_main, args)
+    return curses.wrapper(_live_bus if args.bus else _live_main, args)
 
 
-def _why(e: BaseException, args) -> list[str]:
-    from .elm import NoData
+def cmd_run(args) -> int:
+    import signal
 
-    if isinstance(e, NoData):
-        return ["Adapter OK.", "No vehicle response.", "Key on?"]
-    if isinstance(e, OSError):
-        return ["No adapter on", str(args.port), "Plugged in?"]
-    return ["Error:", str(e)[:60]]
+    from .mqtt import LocalSink, MqttPublisher
+    from .service import run_core
+    from .trip import TripComputer
+
+    bus = Bus()
+    trip = TripComputer(bus)
+    if args.no_mqtt:
+        sink = LocalSink(bus)
+    else:
+        sink = MqttPublisher(bus, args.mqtt_host, args.mqtt_port, on_trip_reset=trip.reset)
+    stop = threading.Event()
+    signal.signal(signal.SIGTERM, lambda *_: stop.set())
+    last = [""]
+
+    def show(st):  # mirror status to stdout/journal when it changes
+        line = f"{st.get('state')}: {' '.join(st.get('lines', []))}"
+        if st.get("state") == "running":
+            line = f"running: {st.get('hz')} Hz, sent {st.get('sent')}, blocked {st.get('blocked')}"
+        if line.split(":")[0] != last[0].split(":")[0] or st.get("state") != "running":
+            if line != last[0]:
+                print(line, flush=True)
+        last[0] = line
+
+    orig = sink.publish_status
+    sink.publish_status = lambda st: (orig(st), show(st))
+    try:
+        run_core(args, sink, bus, stop, trip)
+    except KeyboardInterrupt:
+        stop.set()
+    return 0
+
+
+# ---- live status screen ----------------------------------------------------
+class DirectSource:
+    """Live screen fed by this process's own adapter session (debug mode)."""
+
+    def __init__(self, s: Session, poller: Poller, bus: Bus, thread):
+        from .service import channel_info
+
+        self.s, self.poller, self.bus, self.thread = s, poller, bus, thread
+        self.mode = "SIM" if s.sim else "LIVE"
+        self.title, self.vin = s.profile.name, s.vin
+        self.info_map = channel_info(s.profile)
+        self._c0, self._t0, self._rate = 0, time.monotonic(), 0.0
+
+    def keys(self):
+        return self.s.profile.layouts.get("status") or list(self.s.profile.pids)
+
+    def latest(self):
+        return self.bus.latest()
+
+    def rate(self):
+        now = time.monotonic()
+        if now - self._t0 >= 1.0:
+            self._rate = (self.poller.cycles - self._c0) / (now - self._t0)
+            self._c0, self._t0 = self.poller.cycles, now
+        return self._rate
+
+    def counters(self):
+        return self.s.guard.sent, self.s.guard.blocked, self.poller.errors
+
+    def state(self):
+        return ("running", []) if self.thread.is_alive() else ("lost", [])
+
+    def info(self, k):
+        return self.info_map.get(k, {"short": k[:10], "name": k, "verified": True})
+
+    def skipped(self, k):
+        p = self.s.profile.pids.get(k)
+        return bool(p) and self.poller.is_skipped(p)
+
+
+class BusSource:
+    """Live screen fed by the core service over MQTT."""
+
+    def __init__(self, feed):
+        self.feed = feed
+
+    @property
+    def mode(self):
+        return "SIM" if self.feed.meta.get("sim") else "LIVE"
+
+    @property
+    def title(self):
+        return self.feed.meta.get("name", "JpCAN")
+
+    @property
+    def vin(self):
+        return self.feed.meta.get("vin")
+
+    def keys(self):
+        lay = self.feed.meta.get("layouts", {})
+        return lay.get("status") or list(self.feed.meta.get("channels", {}))
+
+    def latest(self):
+        return self.feed.bus.latest()
+
+    def rate(self):
+        return float(self.feed.status.get("hz") or 0)
+
+    def counters(self):
+        st = self.feed.status
+        return st.get("sent", 0), st.get("blocked", 0), st.get("errors", 0)
+
+    def state(self):
+        if not self.feed.connected:
+            return "offline", ["No MQTT broker.", "mosquitto running?"]
+        st = self.feed.status
+        if not st:
+            return "offline", ["Waiting for", "JpCAN core..."]
+        if st.get("state") == "running" and not self.keys():
+            return "connecting", ["Waiting for", "profile info..."]
+        return st.get("state", "offline"), st.get("lines", [])
+
+    def info(self, k):
+        return self.feed.meta.get("channels", {}).get(k, {"short": k[:10], "name": k, "verified": True})
+
+    def skipped(self, k):
+        return k in self.feed.meta.get("skipped", [])
 
 
 def _message(scr, lines, title="JpCAN"):
@@ -186,7 +250,7 @@ def _wait_or_quit(scr, secs: float) -> bool:
     return False
 
 
-def _live_main(scr, args) -> int:
+def _setup_screen(scr):
     import curses
 
     from . import settings
@@ -195,8 +259,24 @@ def _live_main(scr, args) -> int:
     curses.curs_set(0)
     scr.nodelay(True)
     scr.keypad(True)
-    touch = TouchReader()
-    cal = settings.load()["touch"]
+    return TouchReader(), settings.load()["touch"]
+
+
+def _live_bus(scr, args) -> int:
+    from .mqtt import MqttFeed
+
+    touch, cal = _setup_screen(scr)
+    feed = MqttFeed(args.mqtt_host, args.mqtt_port, "jpcan-status")
+    try:
+        _live_screen(scr, BusSource(feed), not args.metric, touch, cal)
+    finally:
+        feed.close()
+        touch.close()
+    return 0
+
+
+def _live_main(scr, args) -> int:
+    touch, cal = _setup_screen(scr)
     try:
         while True:
             status: list[str] = []
@@ -208,7 +288,7 @@ def _live_main(scr, args) -> int:
             try:
                 s = connect(args, log=log)
             except (ElmError, OSError, ValueError) as e:
-                _message(scr, [*_why(e, args), "", "Retrying in 5 s"])
+                _message(scr, [*why(e, args.port), "", "Retrying in 5 s"])
                 if _wait_or_quit(scr, 5):
                     return 0
                 continue
@@ -219,7 +299,7 @@ def _live_main(scr, args) -> int:
             th = threading.Thread(target=poller.run, args=(stop,), daemon=True)
             th.start()
             try:
-                result = _live_screen(scr, s, poller, bus, keys, not args.metric, touch, cal, th)
+                result = _live_screen(scr, DirectSource(s, poller, bus, th), not args.metric, touch, cal)
             finally:
                 stop.set()
                 th.join(timeout=2)
@@ -233,34 +313,32 @@ def _live_main(scr, args) -> int:
         touch.close()
 
 
-def _row_text(s: Session, poller: Poller, latest, k, imperial):
-    """Return (label, value, units, status) for one PID."""
-    p = s.profile.pids[k]
+def _row_text(src, latest, k, imperial):
+    """Return (info, value, units, status) for one channel."""
+    info = src.info(k)
     r = latest.get(k)
-    if poller.is_skipped(p):
-        return p, "n/s", "", ""
+    if src.skipped(k):
+        return info, "n/s", "", ""
     if r is None:
-        return p, "...", "", ""
+        return info, "...", "", ""
     if r.error:
-        return p, "ERR", "", "err"
+        return info, "ERR", "", "err"
     val, u = fmt(r.value, r.units, imperial)
-    return p, val, u, ("old" if time.time() - r.ts > 5 else "")
+    return info, val, u, ("old" if time.time() - r.ts > 5 else "")
 
 
-def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, touch, cal, thread) -> str:
+def _live_screen(scr, src, imperial, touch, cal) -> str:
     import curses
 
     from .touch import horizontal
 
-    t0, c0 = time.monotonic(), 0
-    rate = 0.0
     page = 0
-    src = "SIM" if s.sim else "LIVE"
     while True:
         ch = scr.getch()
         if ch in (ord("q"), ord("Q"), 27):
             return "quit"
-        if not thread.is_alive():
+        state, lines = src.state()
+        if state == "lost":
             return "reconnect"
         step = {curses.KEY_RIGHT: 1, ord("n"): 1, ord(" "): 1,
                 curses.KEY_LEFT: -1, ord("b"): -1}.get(ch, 0)
@@ -268,38 +346,43 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, touc
             f = horizontal(touch.taps.get_nowait(), cal)
             step += 1 if f is None or f >= 0.5 else -1  # uncalibrated: any tap = next
         page += step
+        if state != "running":
+            _message(scr, lines or [state])
+            time.sleep(0.25)
+            continue
         h, w = scr.getmaxyx()
-        now = time.monotonic()
-        if now - t0 >= 1.0:
-            rate, t0, c0 = (poller.cycles - c0) / (now - t0), now, poller.cycles
+        keys = src.keys()
+        rate = src.rate()
+        sent, blocked, errors = src.counters()
         scr.erase()
         put = lambda y, x, txt, a=0: 0 <= y < h and scr.addnstr(y, x, txt, max(0, w - x - 1), a)
-        latest = bus.latest()
+        latest = src.latest()
         wide = w >= 56 and h >= len(keys) + 5
         if wide:
-            put(0, 0, f"JpCAN {__version__}  {s.profile.name}", curses.A_BOLD)
-            put(1, 0, f"VIN {s.vin or '?'}  {src}  {rate:4.1f} Hz  WiFi {wifi_label(wifi_dbm())}")
+            put(0, 0, f"JpCAN {__version__}  {src.title}", curses.A_BOLD)
+            put(1, 0, f"VIN {src.vin or '?'}  {src.mode}  {rate:4.1f} Hz  WiFi {wifi_label(wifi_dbm())}")
             put(2, 0, "-" * (w - 1))
             for i, k in enumerate(keys):
-                p, val, u, st = _row_text(s, poller, latest, k, imperial)
-                flag = "" if p.verified else "?"
-                put(3 + i, 0, f"{p.name[:24] + flag:25} {val:>10} {u:5} {st}")
+                info, val, u, st = _row_text(src, latest, k, imperial)
+                flag = "" if info.get("verified") else "?"
+                put(3 + i, 0, f"{info['name'][:24] + flag:25} {val:>10} {u:5} {st}")
             y = 4 + len(keys)
             put(y, 0, "-" * (w - 1))
-            put(y + 1, 0, f"req {s.guard.sent}  blocked {s.guard.blocked}  err {poller.errors}   q=quit")
+            put(y + 1, 0, f"req {sent}  blocked {blocked}  err {errors}   q=quit")
         else:
             rows = max(1, h - 1)
-            pages = (len(keys) + rows - 1) // rows
+            pages = max(1, (len(keys) + rows - 1) // rows)
             page %= pages
-            alert = f" BLK{s.guard.blocked}" if s.guard.blocked else ""
+            alert = f" BLK{blocked}" if blocked else ""
             pg = f"<{page + 1}/{pages}>" if pages > 1 else ""
-            left = f"{src} {rate:2.0f}Hz {wifi_label(wifi_dbm())}{alert}"
+            left = f"{src.mode} {rate:2.0f}Hz {wifi_label(wifi_dbm())}{alert}"
             put(0, 0, (left + pg.rjust(max(0, w - 1 - len(left)))).ljust(w - 1), curses.A_REVERSE)
             unit_w = 4
             val_w = max(4, w - 1 - 10 - 1 - unit_w)
             for i, k in enumerate(keys[page * rows:(page + 1) * rows]):
-                p, val, u, st = _row_text(s, poller, latest, k, imperial)
-                label = p.label + ("" if p.verified else "?")
+                info, val, u, st = _row_text(src, latest, k, imperial)
+                label = info.get("short", k)[:10 - (0 if info.get("verified") else 1)] + (
+                    "" if info.get("verified") else "?")
                 put(1 + i, 0, f"{label:<10}")
                 put(1 + i, 10, f"{val:>{val_w}}", curses.A_BOLD)
                 put(1 + i, 10 + val_w + 1, f"{u:<{unit_w}}"[:unit_w])
@@ -379,7 +462,19 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("profiles", help="list vehicle profiles").set_defaults(func=cmd_profiles)
     conn(sub.add_parser("probe", help="connect, identify, read status PIDs once")).set_defaults(func=cmd_probe)
     conn(sub.add_parser("scan22", help="try every unverified PID, show raw bytes")).set_defaults(func=cmd_scan22)
-    conn(sub.add_parser("live", help="live text status screen")).set_defaults(func=cmd_live)
+    def mqtt_args(p):
+        p.add_argument("--mqtt-host", default="localhost")
+        p.add_argument("--mqtt-port", type=int, default=1883)
+        return p
+
+    lv = mqtt_args(conn(sub.add_parser("live", help="live text status screen")))
+    lv.add_argument("--bus", action="store_true", help="read from the core service over MQTT")
+    lv.set_defaults(func=cmd_live)
+    rp = mqtt_args(conn(sub.add_parser("run", help="core service: poll, log, publish to MQTT")))
+    rp.add_argument("--no-log", action="store_true", help="don't write a drive log")
+    rp.add_argument("--log-dir", help="drive log directory (default ~/jpcan-logs)")
+    rp.add_argument("--no-mqtt", action="store_true", help="don't publish (testing)")
+    rp.set_defaults(func=cmd_run)
     lp = sub.add_parser("logs", help="list drive logs")
     lp.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
     lp.set_defaults(func=cmd_logs)

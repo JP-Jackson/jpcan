@@ -91,6 +91,44 @@ In the truck, key on:
 Your user is already in the `dialout` group on Pi OS, so it can open the
 serial port.
 
+## 9. Services: core + status screen
+```bash
+sudo ~/jpcan/scripts/install-services.sh
+```
+Re-run it after any `git pull` that changes services. It installs:
+- **mosquitto**: the local MQTT broker, localhost only.
+- **jpcan-core**: the only process that talks to the OBDLink. It polls through
+  the guard, writes one SQLite log per drive to `~/jpcan-logs`, runs the trip
+  computer, and publishes everything to MQTT (`jpcan/#`).
+- **jpcan-status**: the 3.5" text screen on tty1, which reads from MQTT.
+
+With no adapter it shows "No adapter... Plugged in?"; with the key off it
+shows "Key on?". For a bench demo, set `JPCAN_ARGS="--sim"` in
+`/etc/default/jpcan`, then run:
+```bash
+sudo systemctl restart jpcan-core
+```
+Logs and data:
+```bash
+journalctl -u jpcan-core -f
+```
+```bash
+~/jpcan/.venv/bin/jpcan logs
+```
+```bash
+~/jpcan/.venv/bin/jpcan export <file>.sqlite
+```
+```bash
+mosquitto_sub -t 'jpcan/#' -v
+```
+The last one shows the raw live feed, the same data Node-RED/HA can subscribe to.
+
+Note: `jpcan probe`, `scan22` and `live` (without `--bus`) open the adapter
+themselves. Stop the core first: `sudo systemctl stop jpcan-core`.
+
+Touch: run `jpcan touch-cal` once (tap left edge, then right edge). Tap the
+right half of the screen for the next page, the left half to go back.
+
 ## Troubleshooting
 
 **Pi not on Wi-Fi after first boot** (it isn't in the router list, and
@@ -107,21 +145,3 @@ serial port.
    sudo nmcli device wifi connect " SSID with leading space" password "PASSWORD"
    ```
    NetworkManager saves this connection, so it reconnects on every boot.
-
-## 9. Status screen at boot (3.5" screen)
-```bash
-sudo ~/jpcan/scripts/install-status-screen.sh
-```
-This runs `jpcan live` on tty1 at every boot and restarts it if it exits.
-With no adapter it shows "No adapter... Plugged in?"; with the adapter but the
-key off it shows "Key on?". It retries every 5 s. For a bench demo, set
-`JPCAN_ARGS="--sim"` in `/etc/default/jpcan`, then run:
-```bash
-sudo systemctl restart jpcan-status
-```
-Logs:
-```bash
-journalctl -u jpcan-status -n 50
-```
-Touch: run `jpcan touch-cal` once (tap left edge, then right edge). Tap the
-right half of the screen for the next page, the left half to go back.
