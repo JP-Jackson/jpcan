@@ -40,6 +40,7 @@ class Poller:
     state: dict[str, PidState] = field(default_factory=dict)
     cycles: int = 0
     errors: int = 0
+    fault: str = ""      # set if the link dies (adapter unplugged)
 
     def __post_init__(self):
         keys = self.keys or list(self.profile.pids)
@@ -98,5 +99,9 @@ class Poller:
     def run(self, stop: threading.Event) -> None:
         while not stop.is_set():
             start = time.monotonic()
-            self.cycle()
+            try:
+                self.cycle()
+            except OSError as e:  # serial gone (pyserial errors are OSError)
+                self.fault = str(e) or "adapter disconnected"
+                return
             stop.wait(max(0.0, start + self.fast_interval - time.monotonic()))

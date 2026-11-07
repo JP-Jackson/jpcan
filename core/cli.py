@@ -49,13 +49,19 @@ def connect(args, log=print) -> Session:
         raw, log_src = SerialTransport(args.port, args.baud), f"{args.port} @ {args.baud}"
     port = GuardedPort(raw, guard, min_gap=args.min_gap, trace=trace)
     elm = Elm(port)
-    log(f"Connecting via {log_src} ...")
-    info = elm.init()
-    log(f"Adapter: {info.elm} | {info.stn} | {info.voltage} | {info.protocol}")
-    vin = elm.vin()
-    profile = load_profile(args.profile) if args.profile else select_profile(vin)
-    guard.extra_headers |= profile.extra_headers
-    supported = elm.supported_pids()
+    try:
+        log(f"Connecting via {log_src} ...")
+        info = elm.init()
+        log(f"Adapter: {info.elm} | {info.stn} | {info.voltage} | {info.protocol}")
+        vin = elm.vin()
+        profile = load_profile(args.profile) if args.profile else select_profile(vin)
+        guard.extra_headers |= profile.extra_headers
+        supported = elm.supported_pids()
+    except BaseException:
+        port.close()
+        if trace:
+            trace.close()
+        raise
     return Session(elm, port, guard, info, vin, profile, supported, args.sim, trace)
 
 
@@ -144,20 +150,84 @@ def cmd_scan22(args) -> int:
 def cmd_live(args) -> int:
     import curses
 
-    s = connect(args)
-    keys = s.profile.layouts.get("status") or list(s.profile.pids)
-    bus = Bus()
-    poller = Poller(s.elm, s.profile, bus, keys=keys, supported=s.supported)
-    stop = threading.Event()
-    th = threading.Thread(target=poller.run, args=(stop,), daemon=True)
-    th.start()
+    return curses.wrapper(_live_main, args)
+
+
+def _why(e: BaseException, args) -> list[str]:
+    from .elm import NoData
+
+    if isinstance(e, NoData):
+        return ["Adapter OK.", "No vehicle response.", "Key on?"]
+    if isinstance(e, OSError):
+        return ["No adapter on", str(args.port), "Plugged in?"]
+    return ["Error:", str(e)[:60]]
+
+
+def _message(scr, lines, title="JpCAN"):
+    import curses
+
+    h, w = scr.getmaxyx()
+    scr.erase()
+    scr.addnstr(0, 0, title.ljust(w - 1), w - 1, curses.A_REVERSE)
+    for i, ln in enumerate(lines[: h - 1]):
+        scr.addnstr(1 + i, 0, ln, w - 1)
+    scr.refresh()
+
+
+def _wait_or_quit(scr, secs: float) -> bool:
+    end = time.monotonic() + secs
+    while time.monotonic() < end:
+        if scr.getch() in (ord("q"), ord("Q"), 27):
+            return True
+        time.sleep(0.1)
+    return False
+
+
+def _live_main(scr, args) -> int:
+    import curses
+
+    from . import settings
+    from .touch import TouchReader
+
+    curses.curs_set(0)
+    scr.nodelay(True)
+    scr.keypad(True)
+    touch = TouchReader()
+    cal = settings.load()["touch"]
     try:
-        curses.wrapper(_live_screen, s, poller, bus, keys, not args.metric)
+        while True:
+            status: list[str] = []
+
+            def log(msg):
+                status.append(msg[:200])
+                _message(scr, status[-6:])
+
+            try:
+                s = connect(args, log=log)
+            except (ElmError, OSError, ValueError) as e:
+                _message(scr, [*_why(e, args), "", "Retrying in 5 s"])
+                if _wait_or_quit(scr, 5):
+                    return 0
+                continue
+            keys = s.profile.layouts.get("status") or list(s.profile.pids)
+            bus = Bus()
+            poller = Poller(s.elm, s.profile, bus, keys=keys, supported=s.supported)
+            stop = threading.Event()
+            th = threading.Thread(target=poller.run, args=(stop,), daemon=True)
+            th.start()
+            try:
+                result = _live_screen(scr, s, poller, bus, keys, not args.metric, touch, cal, th)
+            finally:
+                stop.set()
+                th.join(timeout=2)
+                s.close()
+            if result == "quit":
+                return 0
+            _message(scr, ["Link lost:", poller.fault[:60], "", "Reconnecting..."])
+            if _wait_or_quit(scr, 3):
+                return 0
     finally:
-        stop.set()
-        th.join(timeout=2)
-        s.close()
-    return 0
+        touch.close()
 
 
 def _row_text(s: Session, poller: Poller, latest, k, imperial):
@@ -174,17 +244,11 @@ def _row_text(s: Session, poller: Poller, latest, k, imperial):
     return p, val, u, ("old" if time.time() - r.ts > 5 else "")
 
 
-def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial):
+def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, touch, cal, thread) -> str:
     import curses
 
-    from . import settings
-    from .touch import TouchReader, horizontal
+    from .touch import horizontal
 
-    curses.curs_set(0)
-    scr.nodelay(True)
-    scr.keypad(True)
-    cal = settings.load()["touch"]
-    touch = TouchReader()
     t0, c0 = time.monotonic(), 0
     rate = 0.0
     page = 0
@@ -192,8 +256,9 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial):
     while True:
         ch = scr.getch()
         if ch in (ord("q"), ord("Q"), 27):
-            touch.close()
-            return
+            return "quit"
+        if not thread.is_alive():
+            return "reconnect"
         step = {curses.KEY_RIGHT: 1, ord("n"): 1, ord(" "): 1,
                 curses.KEY_LEFT: -1, ord("b"): -1}.get(ch, 0)
         while touch.ok and not touch.taps.empty():

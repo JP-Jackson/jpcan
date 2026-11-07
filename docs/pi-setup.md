@@ -107,3 +107,21 @@ serial port.
    sudo nmcli device wifi connect " SSID with leading space" password "PASSWORD"
    ```
    NetworkManager saves this connection, so it reconnects on every boot.
+
+## 9. Status screen at boot (3.5" screen)
+```bash
+sudo ~/jpcan/scripts/install-status-screen.sh
+```
+This runs `jpcan live` on tty1 at every boot and restarts it if it exits.
+With no adapter it shows "No adapter... Plugged in?"; with the adapter but the
+key off it shows "Key on?". It retries every 5 s. For a bench demo, set
+`JPCAN_ARGS="--sim"` in `/etc/default/jpcan`, then run:
+```bash
+sudo systemctl restart jpcan-status
+```
+Logs:
+```bash
+journalctl -u jpcan-status -n 50
+```
+Touch: run `jpcan touch-cal` once (tap left edge, then right edge). Tap the
+right half of the screen for the next page, the left half to go back.
