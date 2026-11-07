@@ -23,7 +23,7 @@ from .trip import CHANNELS, TripComputer
 def poll_keys(profile: Profile) -> list[str]:
     """Union of every layout's keys (status screen + GaugeWorks), in order."""
     keys: list[str] = []
-    for layout in profile.layouts.values():
+    for layout in [*profile.layouts.values(), profile.gauge_keys()]:
         keys += [k for k in layout if k in profile.pids and k not in keys]
     return keys or list(profile.pids)
 
@@ -41,7 +41,7 @@ def build_meta(s: Session, poller: Poller) -> dict:
     p = s.profile
     return {
         "profile": p.id, "name": p.name, "vin": s.vin, "sim": s.sim,
-        "shift": p.shift, "layouts": p.layouts,
+        "shift": p.shift, "layouts": p.layouts, "gaugeworks": p.gaugeworks,
         "adapter": {"elm": s.info.elm, "stn": s.info.stn, "protocol": s.info.protocol},
         "channels": channel_info(p),
         "skipped": [k for k in poller.state if poller.is_skipped(p.pids[k])],

@@ -176,6 +176,18 @@ pids:
     verified: true
     source: SAE J1979 PID 2F
 
+  boost:
+    short: Boost
+    name: Boost (gauge)
+    derived: "map - baro"
+    units: kPag
+    min: -20
+    max: 300
+    poll_rate: fast
+    verified: false
+    source: Derived; MAP (PID 0B) minus baro (PID 33)
+    notes: PID 0B caps at 255 kPa abs (~22 psig). Profiles can override with a wide-range MAP.
+
   baro:
     short: Baro
     name: Barometric pressure
@@ -235,3 +247,15 @@ pids:
 
 layouts:
   status: [rpm, speed, coolant, ambient, fuel_level, mil, dtc_count, battery, map, baro, load]
+
+# GaugeWorks layout. Ranges/thresholds are in IMPERIAL display units; metric
+# mode converts them. warn/alarm: value at or above (or `below: true`).
+gaugeworks:
+  gauges:
+    tach:    {key: rpm, min: 0, max: 7000, major: 1000, minor: 5, label: RPM, scale: 0.001, scale_label: "x1000", warn: 6000, alarm: 6500}
+    speed:   {key: speed, min: 0, max: 140, major: 20, minor: 4, label: SPEED}
+    boost:   {key: boost, min: 0, max: 30, major: 5, minor: 5, label: BOOST}
+    coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 240}
+    trans:   {key: iat, min: 0, max: 200, major: 50, minor: 5, label: IAT}
+  tiles: [econ_inst, econ_avg, ambient, battery, fuel_level, mil, trip_dist, load]
+

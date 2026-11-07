@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <radialGradient id="dial" cx="50%" cy="42%" r="60%">
+      <stop offset="0%" stop-color="#1c232b"/>
+      <stop offset="70%" stop-color="#0d1116"/>
+      <stop offset="100%" stop-color="#05070a"/>
+    </radialGradient>
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5a6470"/>
+      <stop offset="50%" stop-color="#1e252d"/>
+      <stop offset="100%" stop-color="#3a434d"/>
+    </linearGradient>
+  </defs>
+  <circle cx="200" cy="200" r="198" fill="url(#bezel)"/>
+  <circle cx="200" cy="200" r="186" fill="url(#dial)"/>
+  <circle cx="200" cy="200" r="186" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="3"/>
+</svg>

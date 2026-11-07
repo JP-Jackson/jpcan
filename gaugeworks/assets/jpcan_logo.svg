@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 260">
+  <!-- Placeholder logo; JP will supply the final SVG -->
+  <g fill="none" stroke="#ff6a1a" stroke-width="10" stroke-linecap="round">
+    <path d="M70 190 A110 110 0 1 1 250 190"/>
+  </g>
+  <line x1="160" y1="150" x2="225" y2="85" stroke="#eef1f4" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="160" cy="150" r="16" fill="#eef1f4"/>
+  <text x="290" y="150" font-family="DejaVu Sans" font-weight="bold" font-size="96" fill="#eef1f4">JpCAN</text>
+  <text x="292" y="200" font-family="DejaVu Sans" font-size="30" fill="#8a929c">GaugeWorks</text>
+</svg>

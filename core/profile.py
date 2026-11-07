@@ -65,6 +65,16 @@ class Profile:
     match: dict = field(default_factory=dict)
     layouts: dict[str, list[str]] = field(default_factory=dict)
     obd_header: str = "7DF"   # where 7DF (broadcast) PIDs are actually sent
+    gaugeworks: dict = field(default_factory=dict)  # GaugeWorks layout config (display units)
+
+    def gauge_keys(self) -> list[str]:
+        """Every channel key the GaugeWorks layout uses."""
+        gw = self.gaugeworks or {}
+        keys = [g.get("key") for g in (gw.get("gauges") or {}).values()]
+        for g in (gw.get("gauges") or {}).values():
+            keys += [g.get("desired"), g.get("actual")]
+        keys += list(gw.get("tiles") or [])
+        return [k for k in keys if k]
 
     def header_for(self, p: "Pid") -> str:
         """Physical header for a PID: broadcast entries go to obd_header."""
@@ -102,6 +112,7 @@ def _raw(name_or_path: str | Path, base_dir: Path, seen=()) -> dict:
     merged = {**base, **{k: v for k, v in data.items() if k != "pids"}}
     merged["pids"] = {**(base.get("pids") or {}), **(data.get("pids") or {})}
     merged["layouts"] = {**(base.get("layouts") or {}), **(data.get("layouts") or {})}
+    merged["gaugeworks"] = {**(base.get("gaugeworks") or {}), **(data.get("gaugeworks") or {})}
     return merged
 
 
@@ -140,7 +151,8 @@ def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Pro
                    pids=pids, headers={k: _s(v) for k, v in (data.get("headers") or {}).items()},
                    shift=data.get("shift") or {"enabled": False, "rpm": 3000},
                    match=data.get("match") or {}, layouts=data.get("layouts") or {},
-                   obd_header=_s(data.get("obd_header", "7DF")))
+                   obd_header=_s(data.get("obd_header", "7DF")),
+                   gaugeworks=data.get("gaugeworks") or {})
     _validate(prof)
     return prof
 
@@ -163,6 +175,10 @@ def _validate(prof: Profile) -> None:
         bad = [k for k in keys if k not in prof.pids]
         if bad:
             raise ProfileError(f"layout {name}: unknown pids {bad}")
+    from .trip import CHANNELS  # computed channels may be shown but not polled
+    bad = [k for k in prof.gauge_keys() if k not in prof.pids and k not in CHANNELS]
+    if bad:
+        raise ProfileError(f"gaugeworks: unknown keys {bad}")
 
 
 def list_profiles(base_dir: Path = PROFILES_DIR) -> list[str]:

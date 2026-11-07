@@ -347,3 +347,14 @@ layouts:
   status: [rpm, speed, boost, coolant, trans_temp, odometer, fuel_level, ambient, battery, engine_hours,
            map_wide, baro, egt11, vgt_actual, rail_actual, fuel_rate, regen_active, soot_mass,
            mil, dtc_count]
+
+gaugeworks:
+  gauges:
+    tach:    {key: rpm, min: 0, max: 5000, major: 1000, minor: 4, label: RPM, scale: 0.001, scale_label: "x1000", warn: 3800, alarm: 4100}
+    speed:   {key: speed, min: 0, max: 120, major: 20, minor: 4, label: SPEED}
+    boost:   {key: boost, min: 0, max: 40, major: 5, minor: 5, label: BOOST, warn: 33, alarm: 38}
+    coolant: {key: coolant, min: 100, max: 260, major: 40, minor: 4, label: COOLANT, warn: 225, alarm: 235}
+    trans:   {key: trans_temp, min: 100, max: 260, major: 40, minor: 4, label: TRANS, warn: 220, alarm: 240}
+    vgt:     {desired: vgt_desired, actual: vgt_actual, label: VGT}
+  tiles: [econ_inst, econ_avg, ambient, oil_temp_std, battery, fuel_level, mil, trip_dist]
+

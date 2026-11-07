@@ -21,9 +21,13 @@ dev = ["pytest>=8"]
 
 [project.scripts]
 jpcan = "core.cli:main"
+gaugeworks = "gaugeworks.app:main"
 
 [tool.setuptools]
 packages = ["core", "gaugeworks"]
+
+[tool.setuptools.package-data]
+gaugeworks = ["qml/*.qml", "themes/*/*", "assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

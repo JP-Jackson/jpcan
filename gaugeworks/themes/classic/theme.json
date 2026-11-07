@@ -1,0 +1,26 @@
+{
+  "name": "Classic",
+  "face": "face.svg",
+  "needle": "needle.svg",
+  "colors": {
+    "background": "#07090c",
+    "panel": "#11161c",
+    "panelBorder": "#232b35",
+    "text": "#eef1f4",
+    "dim": "#8a929c",
+    "tick": "#d7dce2",
+    "minorTick": "#6f7882",
+    "ring": "#2c3540",
+    "hub": "#1b2128",
+    "accent": "#ff6a1a",
+    "ok": "#3ccf6e",
+    "warn": "#ffb000",
+    "alarm": "#ff2d2d",
+    "shift": "#ffd400",
+    "shiftText": "#111111"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}
