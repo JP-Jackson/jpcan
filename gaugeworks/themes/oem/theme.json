@@ -1,0 +1,32 @@
+{
+  "name": "Premium",
+  "face": "../modern/face.svg",
+  "needle": "../classic/needle.svg",
+  "style": {
+    "gauge": "arc",
+    "glow": true,
+    "topBar": "oem"
+  },
+  "colors": {
+    "background": "#04070c",
+    "panel": "#0d1622",
+    "panelBorder": "#22324a",
+    "text": "#e9eef5",
+    "dim": "#7d8ba0",
+    "tick": "#eef3f9",
+    "minorTick": "#56637a",
+    "ring": "#111a26",
+    "hub": "#0b1220",
+    "accent": "#4fb0ff",
+    "needle": "#ff5a1f",
+    "ok": "#2fd36b",
+    "warn": "#ffb020",
+    "alarm": "#ff3b3b",
+    "shift": "#ffd400",
+    "shiftText": "#111111"
+  },
+  "fonts": {
+    "label": "Barlow Semi Condensed SemiBold",
+    "digits": "Barlow Medium"
+  }
+}

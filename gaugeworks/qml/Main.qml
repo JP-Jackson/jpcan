@@ -8,6 +8,7 @@ Rectangle {
     readonly property var cfg: backend.config
     readonly property var pages: cfg.pages || []
     readonly property var colors: theme.colors
+    readonly property bool oemBar: !!(theme.style && theme.style.topBar === "oem")
     color: colors.background
 
     function askConfirm(title, message, okText, action) {
@@ -53,6 +54,7 @@ Rectangle {
             id: pagesView
             anchors.fill: parent
             orientation: ListView.Horizontal
+            cacheBuffer: 1024 * 4   // keep pages alive (skins keep short histories)
             snapMode: ListView.SnapOneItem
             highlightRangeMode: ListView.StrictlyEnforceRange
             boundsBehavior: Flickable.StopAtBounds
@@ -126,6 +128,7 @@ Rectangle {
             width: parent.width; height: 44
             Row {
                 x: 16; anchors.verticalCenter: parent.verticalCenter; spacing: 10
+                visible: !root.oemBar
                 Text {
                     text: root.pages.length ? root.pages[Math.max(0, pagesView.currentIndex)].name : "JpCAN"
                     color: colors.text; font.family: theme.fonts.label; font.pixelSize: 20; font.bold: true
@@ -147,7 +150,7 @@ Rectangle {
             Text {  // Turbo Snail quips replace the status for a few seconds
                 id: quip
                 anchors.centerIn: parent
-                visible: text !== ""
+                visible: text !== "" && !root.oemBar
                 color: colors.accent; font.pixelSize: 20; font.bold: true
                 property real lastAt: 0
                 property real idleSince: 0
@@ -176,7 +179,7 @@ Rectangle {
             }
             Row {
                 anchors.centerIn: parent; spacing: 10
-                visible: quip.text === ""
+                visible: quip.text === "" && !root.oemBar
                 Rectangle {
                     width: 12; height: 12; radius: 6; anchors.verticalCenter: parent.verticalCenter
                     color: backend.status.state === "running" ? colors.ok
@@ -190,10 +193,48 @@ Rectangle {
             }
             Text {
                 id: clock
+                visible: !root.oemBar
                 anchors.right: gearIcon.left; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter
                 color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 20
                 Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true
                         onTriggered: clock.text = Qt.formatTime(new Date(), "h:mm AP") }
+            }
+            // ---- OEM-style bar (Premium theme): long date + time, telltales, outside temp
+            Row {
+                visible: root.oemBar
+                x: 30; y: 12; spacing: 14
+                Text {
+                    id: oemTime
+                    color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 22
+                    Timer { interval: 1000; running: root.oemBar; repeat: true; triggeredOnStart: true
+                            onTriggered: { var n = new Date(); oemTime.text = Qt.formatTime(n, "h:mm AP")
+                                           oemDate.text = Qt.formatDate(n, "dddd, MMMM d, yyyy") } }
+                }
+                Text { id: oemDate; anchors.baseline: oemTime.baseline; color: colors.dim
+                       font.family: theme.fonts.label; font.pixelSize: 15; font.letterSpacing: 0.5 }
+                Text {  // only when the core isn't running normally
+                    anchors.baseline: oemTime.baseline
+                    visible: backend.status.state !== "running"
+                    text: "● " + backend.status.text
+                    color: backend.status.state === "offline" ? colors.alarm : colors.warn
+                    font.family: theme.fonts.label; font.pixelSize: 15
+                }
+            }
+            Row {
+                visible: root.oemBar
+                anchors.horizontalCenter: parent.horizontalCenter; y: 15; spacing: 22
+                Telltale { kind: "left"; key: "turn_left" }
+                Telltale { kind: "low"; key: "headlights" }
+                Telltale { kind: "high"; key: "high_beam"; onColor: "#3b82ff" }
+                Telltale { kind: "right"; key: "turn_right" }
+            }
+            Row {
+                visible: root.oemBar && backend.values["ambient"] !== undefined
+                anchors.right: gearIcon.left; anchors.rightMargin: 26; y: 12; spacing: 8
+                Text { anchors.baseline: outT.baseline; text: "OUTSIDE"; color: colors.dim
+                       font.family: theme.fonts.label; font.pixelSize: 11; font.letterSpacing: 1.5 }
+                Text { id: outT; color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 22
+                       text: backend.fresh["ambient"] === true ? backend.values["ambient"].toFixed(0) + "°" : "--" }
             }
             Text {
                 id: gearIcon
@@ -201,6 +242,22 @@ Rectangle {
                 text: "⚙"
                 color: colors.text; font.pixelSize: 32
                 MouseArea { anchors.fill: parent; anchors.margins: -12; onClicked: settings.visible = true }
+            }
+        }
+
+        // ---- page dots for the OEM-style bar (bottom centre)
+        Row {
+            visible: root.oemBar && root.pages.length > 1
+            anchors.horizontalCenter: parent.horizontalCenter; y: 566; spacing: 9; z: 4
+            Repeater {
+                model: root.pages.length
+                Rectangle {
+                    width: index === pagesView.currentIndex ? 22 : 8; height: 8; radius: 4
+                    color: index === pagesView.currentIndex ? colors.accent : colors.panelBorder
+                    Behavior on width { NumberAnimation { duration: 200 } }
+                    MouseArea { anchors.fill: parent; anchors.margins: -10
+                                onClicked: { pagesView.currentIndex = index; backend.setPage(index) } }
+                }
             }
         }
 

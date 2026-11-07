@@ -124,8 +124,10 @@ def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict) -> 
         ov = overrides.get(p.get("name", ""), {})
         slots = {slot: slot_cfg(ov.get(slot, key)) for slot, key in (p.get("slots") or {}).items()}
         tiles = [tile_cfg(ov.get(f"tile{i}", k)) for i, k in enumerate(p.get("tiles") or [])]
+        # gauge configs for tile channels, for theme skins that draw a tile as a dial or bar
+        gauges = {t["key"]: slot_cfg(t["key"]) for t in tiles if t["key"] in ch}
         pages.append({"name": p.get("name", ""), "template": p.get("template", "dash"),
-                      "slots": slots, "tiles": tiles, "custom": bool(ov)})
+                      "slots": slots, "tiles": tiles, "gauges": gauges, "custom": bool(ov)})
     return pages
 
 
@@ -171,7 +173,7 @@ def page_sources(theme_id: str, themes_dir: Path = THEMES_DIR, qml_dir: Path = Q
     return out
 
 
-THEME_ORDER = ["classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
+THEME_ORDER = ["oem", "classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
 
 
 def list_themes(themes_dir: Path = THEMES_DIR) -> list[dict]:

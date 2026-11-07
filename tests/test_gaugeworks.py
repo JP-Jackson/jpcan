@@ -111,7 +111,7 @@ def test_all_themes_load():
 
     themes = list_themes()
     ids = [t["id"] for t in themes]
-    assert ids[:6] == ["classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
+    assert ids[:7] == ["oem", "classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
     for t in themes:
         th = load_theme(t["id"])
         assert th["style"]["gauge"] in ("needle", "arc")
@@ -124,7 +124,7 @@ def test_all_themes_load():
     assert load_theme("turbo_snail")["assets"].keys() >= {"snail", "flame", "leaf"}
 
 
-@pytest.mark.parametrize("theme", ["classic_refined", "modern", "race", "night", "turbo_snail"])
+@pytest.mark.parametrize("theme", ["oem", "classic_refined", "modern", "race", "night", "turbo_snail"])
 def test_render_every_theme(tmp_path, theme):
     out = tmp_path / f"{theme}.png"
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "QT_QUICK_BACKEND": "software",

@@ -159,6 +159,10 @@ def main(argv=None) -> int:
 
     app = QGuiApplication(sys.argv[:1])
     app.setApplicationName("GaugeWorks")
+    from PySide6.QtGui import QFontDatabase
+
+    for f in sorted((Path(__file__).resolve().parent / "themes").glob("*/fonts/*.ttf")):
+        QFontDatabase.addApplicationFont(str(f))  # theme fonts (OFL), by family name
     if args.demo:
         feed = DemoFeed(args.demo, args.profile)
     elif args.sim:
@@ -180,6 +184,7 @@ def main(argv=None) -> int:
     view.setResizeMode(QQuickView.SizeRootObjectToView)
     ctx = view.rootContext()
     ctx.setContextProperty("backend", backend)
+    ctx.setContextProperty("demoMode", bool(args.demo))
     ctx.setContextProperty("splashMs", 0 if args.screenshot else args.splash_ms)
     errors: list[str] = []
     view.statusChanged.connect(lambda s: errors.extend(e.toString() for e in view.errors()))
