@@ -38,6 +38,11 @@ class Pid:
     verified: bool
     source: str
     notes: str = ""
+    short: str = ""     # <=10 char label for small screens
+
+    @property
+    def label(self) -> str:
+        return self.short or self.name[:10]
 
     @property
     def request(self) -> str:
@@ -101,7 +106,10 @@ def load_profile(name_or_path: str | Path, base_dir: Path = PROFILES_DIR) -> Pro
                         pid=_s(e["pid"]), header=_s(e["header"]), formula=Formula(str(e["formula"])),
                         units=str(e["units"]), min=float(e["min"]), max=float(e["max"]),
                         poll_rate=e["poll_rate"], verified=bool(e["verified"]),
-                        source=str(e["source"]), notes=str(e.get("notes", "")))
+                        source=str(e["source"]), notes=str(e.get("notes", "")),
+                        short=str(e.get("short", "")))
+        if len(pids[key].short) > 10:
+            raise ProfileError(f"{key}: short label over 10 chars")
     prof = Profile(id=data.get("id", Path(str(name_or_path)).stem), name=data.get("name", ""),
                    pids=pids, headers={k: _s(v) for k, v in (data.get("headers") or {}).items()},
                    shift=data.get("shift") or {"enabled": False, "rpm": 3000},

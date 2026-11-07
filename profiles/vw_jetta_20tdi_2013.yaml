@@ -19,6 +19,7 @@ shift:
 
 pids:
   dpf_dp:
+    short: DPF dP
     name: DPF differential pressure
     service: "01"
     pid: "7A"
@@ -33,6 +34,7 @@ pids:
     notes: Delta-P, not soot load.
 
   soot_calc:
+    short: Soot
     name: DPF soot mass (calculated)
     service: "22"
     pid: "114F"

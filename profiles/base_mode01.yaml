@@ -8,6 +8,7 @@ name: Universal OBD-II (Mode 01)
 
 pids:
   battery:
+    short: Battery
     name: Battery voltage (adapter)
     service: AT          # adapter-local read (ATRV), never touches the bus
     pid: RV
@@ -21,6 +22,7 @@ pids:
     source: OBDLink/ELM327 datasheet (ATRV)
 
   mil:
+    short: CEL
     name: Check engine light (1 = on)
     service: "01"
     pid: "01"
@@ -34,6 +36,7 @@ pids:
     source: SAE J1979 PID 01
 
   dtc_count:
+    short: DTCs
     name: Stored DTC count
     service: "01"
     pid: "01"
@@ -47,6 +50,7 @@ pids:
     source: SAE J1979 PID 01
 
   load:
+    short: Load
     name: Engine load
     service: "01"
     pid: "04"
@@ -60,6 +64,7 @@ pids:
     source: SAE J1979 PID 04
 
   coolant:
+    short: Coolant
     name: Coolant temp
     service: "01"
     pid: "05"
@@ -73,6 +78,7 @@ pids:
     source: SAE J1979 PID 05
 
   map:
+    short: MAP
     name: Intake manifold pressure (abs)
     service: "01"
     pid: "0B"
@@ -87,6 +93,7 @@ pids:
     notes: Caps at 255 kPa (~22 psi boost). Diesels need 0187 or Mode 22 for full range.
 
   rpm:
+    short: RPM
     name: Engine RPM
     service: "01"
     pid: "0C"
@@ -100,6 +107,7 @@ pids:
     source: SAE J1979 PID 0C
 
   speed:
+    short: Speed
     name: Vehicle speed
     service: "01"
     pid: "0D"
@@ -113,6 +121,7 @@ pids:
     source: SAE J1979 PID 0D
 
   iat:
+    short: IAT
     name: Intake air temp
     service: "01"
     pid: "0F"
@@ -126,6 +135,7 @@ pids:
     source: SAE J1979 PID 0F
 
   maf:
+    short: MAF
     name: MAF air flow
     service: "01"
     pid: "10"
@@ -139,6 +149,7 @@ pids:
     source: SAE J1979 PID 10
 
   run_time:
+    short: Run time
     name: Run time since start
     service: "01"
     pid: "1F"
@@ -152,6 +163,7 @@ pids:
     source: SAE J1979 PID 1F
 
   fuel_level:
+    short: Fuel
     name: Fuel level
     service: "01"
     pid: "2F"
@@ -165,6 +177,7 @@ pids:
     source: SAE J1979 PID 2F
 
   baro:
+    short: Baro
     name: Barometric pressure
     service: "01"
     pid: "33"
@@ -178,6 +191,7 @@ pids:
     source: SAE J1979 PID 33
 
   ambient:
+    short: Outside
     name: Ambient air temp
     service: "01"
     pid: "46"
@@ -191,6 +205,7 @@ pids:
     source: SAE J1979 PID 46
 
   oil_temp_std:
+    short: Oil
     name: Engine oil temp (std)
     service: "01"
     pid: "5C"
@@ -204,6 +219,7 @@ pids:
     source: SAE J1979 PID 5C
 
   fuel_rate:
+    short: Fuel rate
     name: Engine fuel rate
     service: "01"
     pid: "5E"

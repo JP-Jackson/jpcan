@@ -160,13 +160,28 @@ def cmd_live(args) -> int:
     return 0
 
 
-def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial):
+def _row_text(s: Session, poller: Poller, latest, k, imperial):
+    """Return (label, value, units, status) for one PID."""
+    p = s.profile.pids[k]
+    r = latest.get(k)
+    if poller.is_skipped(p):
+        return p, "n/s", "", ""
+    if r is None:
+        return p, "...", "", ""
+    if r.error:
+        return p, "ERR", "", "err"
+    val, u = fmt(r.value, r.units, imperial)
+    return p, val, u, ("old" if time.time() - r.ts > 5 else "")
+
+
+def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial, page_secs=5.0):
     import curses
 
     curses.curs_set(0)
     scr.nodelay(True)
     t0, c0 = time.monotonic(), 0
     rate = 0.0
+    src = "SIM" if s.sim else "LIVE"
     while True:
         ch = scr.getch()
         if ch in (ord("q"), ord("Q"), 27):
@@ -176,28 +191,35 @@ def _live_screen(scr, s: Session, poller: Poller, bus: Bus, keys, imperial):
         if now - t0 >= 1.0:
             rate, t0, c0 = (poller.cycles - c0) / (now - t0), now, poller.cycles
         scr.erase()
-        put = lambda y, x, txt, a=0: y < h and scr.addnstr(y, x, txt, max(0, w - x - 1), a)
-        src = "SIM" if s.sim else "LIVE"
-        put(0, 0, f"JpCAN {__version__}  {s.profile.name}", curses.A_BOLD)
-        put(1, 0, f"VIN {s.vin or '?'}  {src}  {rate:4.1f} Hz")
-        put(2, 0, "-" * (w - 1))
+        put = lambda y, x, txt, a=0: 0 <= y < h and scr.addnstr(y, x, txt, max(0, w - x - 1), a)
         latest = bus.latest()
-        for i, k in enumerate(keys):
-            p = s.profile.pids[k]
-            r = latest.get(k)
-            if poller.is_skipped(p):
-                val, u, st = "n/s", "", ""
-            elif r is None:
-                val, u, st = "...", p.units, ""
-            else:
-                val, u = fmt(r.value, r.units, imperial)
-                age = time.time() - r.ts
-                st = "ERR" if r.error else ("old" if age > 5 else "")
-            flag = "" if p.verified else "?"
-            put(3 + i, 0, f"{p.name[:24] + flag:25} {val:>10} {u:5} {st}")
-        y = 4 + len(keys)
-        put(y, 0, "-" * (w - 1))
-        put(y + 1, 0, f"req {s.guard.sent}  blocked {s.guard.blocked}  err {poller.errors}   q=quit")
+        wide = w >= 56 and h >= len(keys) + 5
+        if wide:
+            put(0, 0, f"JpCAN {__version__}  {s.profile.name}", curses.A_BOLD)
+            put(1, 0, f"VIN {s.vin or '?'}  {src}  {rate:4.1f} Hz")
+            put(2, 0, "-" * (w - 1))
+            for i, k in enumerate(keys):
+                p, val, u, st = _row_text(s, poller, latest, k, imperial)
+                flag = "" if p.verified else "?"
+                put(3 + i, 0, f"{p.name[:24] + flag:25} {val:>10} {u:5} {st}")
+            y = 4 + len(keys)
+            put(y, 0, "-" * (w - 1))
+            put(y + 1, 0, f"req {s.guard.sent}  blocked {s.guard.blocked}  err {poller.errors}   q=quit")
+        else:
+            rows = max(1, h - 1)
+            pages = (len(keys) + rows - 1) // rows
+            page = int(now // page_secs) % pages
+            alert = f" BLK{s.guard.blocked}" if s.guard.blocked else ""
+            pg = f" {page + 1}/{pages}" if pages > 1 else ""
+            put(0, 0, f"{src} {rate:3.0f}Hz{alert}{pg}".ljust(w - 1), curses.A_REVERSE)
+            unit_w = 4
+            val_w = max(4, w - 1 - 10 - 1 - unit_w)
+            for i, k in enumerate(keys[page * rows:(page + 1) * rows]):
+                p, val, u, st = _row_text(s, poller, latest, k, imperial)
+                label = p.label + ("" if p.verified else "?")
+                put(1 + i, 0, f"{label:<10}")
+                put(1 + i, 10, f"{val:>{val_w}}", curses.A_BOLD)
+                put(1 + i, 10 + val_w + 1, f"{u:<{unit_w}}"[:unit_w])
         scr.refresh()
         time.sleep(0.25)
 
