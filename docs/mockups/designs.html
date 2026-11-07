@@ -1,0 +1,264 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>GaugeWorks designs</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Saira+Condensed:wght@400;600;800&family=Orbitron:wght@500;700;900&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=block" rel="stylesheet">
+<style>html,body{margin:0;background:#000}svg{display:block}</style></head>
+<body>
+<svg id="s" width="1024" height="600" viewBox="0 0 1024 600" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+// ---- F-250 at 65 mph cruise (same numbers in every design) ----
+const V = { rpm: 1650, rpmMax: 5000, red: 4000, speed: 65, gear: 6, boost: 8.0, trans: 171, coolant: 190,
+            oil: 205, fuel: 70, volts: 14.2, mpg: 16.9, tank: 15.5, trip: 15.1, last10: 16.5, ambient: 90,
+            vgtDes: 45, vgtAct: 48, odo: 148197, time: "8:43" };
+const NS = "http://www.w3.org/2000/svg", S = document.getElementById("s");
+const el = (tag, a = {}, parent = S, text) => { const e = document.createElementNS(NS, tag);
+  for (const k in a) e.setAttribute(k, a[k]); if (text !== undefined) e.textContent = text; parent.appendChild(e); return e; };
+const defs = el("defs");
+const add = html => defs.insertAdjacentHTML("beforeend", html);
+const P = (cx, cy, r, deg) => [cx + r * Math.cos(deg * Math.PI / 180), cy + r * Math.sin(deg * Math.PI / 180)];
+function arc(cx, cy, r, a0, a1) {           // degrees, 0 = 3 o'clock, clockwise
+  const [x0, y0] = P(cx, cy, r, a0), [x1, y1] = P(cx, cy, r, a1);
+  return `M ${x0} ${y0} A ${r} ${r} 0 ${Math.abs(a1 - a0) > 180 ? 1 : 0} 1 ${x1} ${y1}`;
+}
+function txt(x, y, s, size, fill, opts = {}) {
+  return el("text", { x, y, "font-family": opts.font || "Rajdhani", "font-size": size, "font-weight": opts.weight || 600,
+    fill, "text-anchor": opts.anchor || "middle", "letter-spacing": opts.ls || 0, opacity: opts.op ?? 1,
+    ...(opts.filter ? { filter: opts.filter } : {}) }, opts.parent || S, s);
+}
+add(`<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" result="b"/>
+       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+     <filter id="glowBig" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9" result="b"/>
+       <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+     <filter id="soft"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#000" flood-opacity="0.7"/></filter>
+     <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="4"/>
+       <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/></filter>`);
+
+const designs = {};
+
+// =====================================================================
+// 1. PRESTIGE: factory-premium twin dials, chrome rings, center info
+// =====================================================================
+designs.prestige = () => {
+  add(`<radialGradient id="pbg" cx="50%" cy="40%" r="80%"><stop offset="0" stop-color="#1b2028"/><stop offset="1" stop-color="#05070a"/></radialGradient>
+       <linearGradient id="chrome" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f4f6f8"/><stop offset="0.45" stop-color="#7c858f"/>
+         <stop offset="0.55" stop-color="#3a4048"/><stop offset="1" stop-color="#c9cfd6"/></linearGradient>
+       <radialGradient id="pface" cx="50%" cy="35%" r="70%"><stop offset="0" stop-color="#1d232b"/><stop offset="1" stop-color="#090b0e"/></radialGradient>
+       <linearGradient id="trail" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ff3b1f" stop-opacity="0"/><stop offset="1" stop-color="#ff3b1f" stop-opacity="0.9"/></linearGradient>`);
+  el("rect", { width: 1024, height: 600, fill: "url(#pbg)" });
+  el("rect", { width: 1024, height: 600, filter: "url(#grain)" });
+  function dial(cx, cy, r, min, max, step, minor, val, label, fmt, red) {
+    el("circle", { cx, cy, r: r + 14, fill: "#000", filter: "url(#soft)" });
+    el("circle", { cx, cy, r: r + 12, fill: "url(#chrome)" });
+    el("circle", { cx, cy, r: r + 4, fill: "#0b0d10" });
+    el("circle", { cx, cy, r, fill: "url(#pface)" });
+    const a = v => 135 + 270 * (v - min) / (max - min);
+    if (red) el("path", { d: arc(cx, cy, r * 0.93, a(red), a(max)), stroke: "#c8102e", "stroke-width": 7, fill: "none" });
+    const nTicks = Math.round((max - min) / step * minor);
+    for (let i = 0; i <= nTicks; i++) {
+      const v = min + i * step / minor, major = i % minor === 0;
+      const [x1, y1] = P(cx, cy, r * 0.97, a(v)), [x2, y2] = P(cx, cy, r * (major ? 0.84 : 0.9), a(v));
+      el("line", { x1, y1, x2, y2, stroke: red && v >= red ? "#ff4040" : "#e9edf2", "stroke-width": major ? 3 : 1.2, opacity: major ? 1 : 0.6 });
+      if (major) { const [tx, ty] = P(cx, cy, r * 0.7, a(v)); txt(tx, ty + 9, fmt(v), r * 0.13, "#f2f5f8", { font: "Barlow", weight: 500 }); }
+    }
+    // lit trail behind the needle (modern OEM touch)
+    el("path", { d: arc(cx, cy, r * 0.93, a(min), a(val)), stroke: "#ff3b1f", "stroke-width": 8, fill: "none", opacity: 0.35 });
+    const [nx, ny] = P(cx, cy, r * 0.94, a(val)), [bx, by] = P(cx, cy, r * 0.16, a(val) + 180);
+    el("line", { x1: bx, y1: by, x2: nx, y2: ny, stroke: "#ff3b1f", "stroke-width": 5, "stroke-linecap": "round", filter: "url(#glow)" });
+    el("circle", { cx, cy, r: r * 0.12, fill: "#14181d", stroke: "url(#chrome)", "stroke-width": 3 });
+    txt(cx, cy - r * 0.3, label, r * 0.075, "#8d96a1", { font: "Barlow", weight: 500, ls: 3 });
+  }
+  dial(210, 330, 178, 0, 5, 1, 5, V.rpm / 1000, "RPM ×1000", v => v, 4);
+  dial(814, 330, 178, 0, 120, 20, 4, V.speed, "MPH", v => v);
+  // gear in the tach, digital speed + odometer in the speedo (below the hub)
+  txt(210, 430, "D" + V.gear, 40, "#ffffff", { font: "Barlow", weight: 600 });
+  txt(814, 432, V.speed, 44, "#ffffff", { font: "Barlow", weight: 600 });
+  txt(814, 462, V.odo.toLocaleString() + " mi", 14, "#8d96a1", { font: "Barlow", weight: 500 });
+  // center info card
+  el("rect", { x: 432, y: 150, width: 160, height: 330, rx: 18, fill: "#0b0e12", stroke: "#2a313a", "stroke-width": 1.5, filter: "url(#soft)" });
+  const rows = [["BOOST", V.boost.toFixed(1), "psi"], ["TRANS", V.trans, "°F"], ["COOLANT", V.coolant, "°F"], ["MPG", V.mpg.toFixed(1), "inst"], ["TANK", V.tank.toFixed(1), "mpg"]];
+  rows.forEach(([l, v, u], i) => {
+    const y = 190 + i * 62;
+    txt(450, y, l, 13, "#7d8792", { font: "Barlow", weight: 500, anchor: "start", ls: 2 });
+    txt(575, y + 26, v, 30, "#f2f5f8", { font: "Barlow", weight: 600, anchor: "end" });
+    txt(578, y + 26, u, 11, "#7d8792", { font: "Barlow", anchor: "start" });
+    if (i < rows.length - 1) el("line", { x1: 450, y1: y + 40, x2: 574, y2: y + 40, stroke: "#1f252c" });
+  });
+  // fuel + temp arcs at the bottom of each dial
+  const mini = (cx, frac, lbl) => { el("path", { d: arc(cx, 548, 70, 200, 340), stroke: "#1f252c", "stroke-width": 6, fill: "none" });
+    el("path", { d: arc(cx, 548, 70, 200, 200 + 140 * frac), stroke: "#e9edf2", "stroke-width": 6, fill: "none" }); txt(cx, 540, lbl, 12, "#8d96a1", { font: "Barlow", ls: 2 }); };
+  // top strip
+  txt(512, 40, V.time, 24, "#e9edf2", { font: "Barlow", weight: 500 });
+  txt(512, 64, V.ambient + "°F", 15, "#8d96a1", { font: "Barlow" });
+  txt(70, 40, "FUEL " + V.fuel + "%", 14, "#8d96a1", { font: "Barlow", ls: 2, anchor: "start" });
+  txt(954, 40, V.volts + " V", 14, "#8d96a1", { font: "Barlow", ls: 2, anchor: "end" });
+  txt(512, 585, "PRESTIGE  ·  original factory-style design", 11, "#3a434d", { font: "Barlow", ls: 3 });
+};
+
+// =====================================================================
+// 2. COCKPIT: wide digital cockpit, sweeping arcs around a huge speed
+// =====================================================================
+designs.cockpit = () => {
+  add(`<linearGradient id="cbg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#070b12"/><stop offset="1" stop-color="#0d1420"/></linearGradient>
+       <linearGradient id="rpmg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#00b4ff"/><stop offset="1" stop-color="#5ef0ff"/></linearGradient>
+       <linearGradient id="boostg" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stop-color="#ff8a00"/><stop offset="1" stop-color="#ffd166"/></linearGradient>`);
+  el("rect", { width: 1024, height: 600, fill: "url(#cbg)" });
+  // horizon line + perspective grid feel
+  for (let i = 0; i < 14; i++) el("line", { x1: 512, y1: 330, x2: -300 + i * 125, y2: 600, stroke: "#13203a", "stroke-width": 1 });
+  for (let i = 0; i < 5; i++) el("line", { x1: 0, y1: 360 + i * i * 14, x2: 1024, y2: 360 + i * i * 14, stroke: "#13203a" });
+  const cx = 512, cy = 300, r = 250;
+  // big arcs: rpm left half (bottom-left -> top), boost right half
+  el("path", { d: arc(cx, cy, r, 150, 268), stroke: "#132036", "stroke-width": 22, fill: "none", "stroke-linecap": "round" });
+  el("path", { d: arc(cx, cy, r, 272, 390), stroke: "#132036", "stroke-width": 22, fill: "none", "stroke-linecap": "round" });
+  const rf = V.rpm / V.rpmMax, bf = V.boost / 40;
+  el("path", { d: arc(cx, cy, r, 150, 150 + 118 * rf), stroke: "url(#rpmg)", "stroke-width": 22, fill: "none", "stroke-linecap": "round", filter: "url(#glow)" });
+  el("path", { d: arc(cx, cy, r, 390 - 118 * bf, 390), stroke: "url(#boostg)", "stroke-width": 22, fill: "none", "stroke-linecap": "round", filter: "url(#glow)" });
+  el("path", { d: arc(cx, cy, r + 16, 150 + 118 * 0.8, 268), stroke: "#ff3355", "stroke-width": 4, fill: "none" });
+  for (let k = 0; k <= 5; k++) { const [x, y] = P(cx, cy, r + 38, 150 + 116 * k / 5); txt(x, y + 6, k, 18, "#6f86a8", { font: "Saira Condensed", weight: 600 }); }
+  for (let k = 0; k <= 4; k++) { const [x, y] = P(cx, cy, r + 38, 390 - 116 * k / 4); txt(x, y + 6, k * 10, 18, "#a88a5a", { font: "Saira Condensed", weight: 600 }); }
+  // center
+  txt(cx, 278, V.speed, 150, "#f4f8ff", { font: "Saira Condensed", weight: 800 });
+  txt(cx, 312, "MPH", 18, "#6f86a8", { font: "Saira Condensed", weight: 600, ls: 5 });
+  el("rect", { x: cx - 34, y: 335, width: 68, height: 62, rx: 10, fill: "#0f1a2c", stroke: "#2b4570" });
+  txt(cx, 384, V.gear, 50, "#5ef0ff", { font: "Saira Condensed", weight: 800 });
+  txt(cx - 150, 380, (V.rpm).toLocaleString(), 44, "#5ef0ff", { font: "Saira Condensed", weight: 800 });
+  txt(cx - 150, 404, "RPM", 14, "#6f86a8", { font: "Saira Condensed", ls: 4 });
+  txt(cx + 150, 380, V.boost.toFixed(1), 44, "#ffd166", { font: "Saira Condensed", weight: 800 });
+  txt(cx + 150, 404, "BOOST PSI", 14, "#a88a5a", { font: "Saira Condensed", ls: 4 });
+  // bottom readout strip
+  const items = [["TRANS", V.trans + "°"], ["COOLANT", V.coolant + "°"], ["OIL", V.oil + "°"], ["FUEL", V.fuel + "%"], ["MPG", V.mpg.toFixed(1)], ["TANK", V.tank.toFixed(1)], ["VOLTS", V.volts.toFixed(1)]];
+  el("rect", { x: 40, y: 470, width: 944, height: 84, rx: 14, fill: "#0b1322", stroke: "#1b2c48" });
+  items.forEach(([l, v], i) => { const x = 40 + 944 * (i + 0.5) / items.length;
+    txt(x, 500, l, 13, "#6f86a8", { font: "Saira Condensed", ls: 3 }); txt(x, 538, v, 32, "#f4f8ff", { font: "Saira Condensed", weight: 600 });
+    if (i) el("line", { x1: 40 + 944 * i / items.length, y1: 484, x2: 40 + 944 * i / items.length, y2: 540, stroke: "#1b2c48" }); });
+  txt(60, 40, V.time, 20, "#c8d6ea", { font: "Saira Condensed", anchor: "start" });
+  txt(964, 40, V.ambient + "°F", 20, "#c8d6ea", { font: "Saira Condensed", anchor: "end" });
+  txt(512, 585, "COCKPIT  ·  original digital-cockpit design", 11, "#2b3d5a", { font: "Barlow", ls: 3 });
+};
+
+// =====================================================================
+// 3. TRACK: motorsport race dash (bar tach + shift lights + data fields)
+// =====================================================================
+designs.track = () => {
+  el("rect", { width: 1024, height: 600, fill: "#050505" });
+  // shift lights
+  for (let i = 0; i < 15; i++) {
+    const on = i < 5, c = i < 5 ? "#26ff4f" : i < 10 ? "#ffd000" : "#ff1a2d";
+    el("circle", { cx: 512 - 7 * 46 + i * 46, cy: 26, r: 12, fill: on ? c : "#171717", stroke: "#000", "stroke-width": 2, ...(on ? { filter: "url(#glow)" } : {}) });
+  }
+  // bar tach
+  const x0 = 40, w = 944, y = 56, h = 62, segs = 50;
+  el("rect", { x: x0 - 4, y: y - 4, width: w + 8, height: h + 8, rx: 6, fill: "#111", stroke: "#262626" });
+  for (let i = 0; i < segs; i++) {
+    const v = (i + 1) / segs * V.rpmMax, lit = v <= V.rpm, c = v > V.red ? "#ff1a2d" : v > 3000 ? "#ffd000" : "#ffffff";
+    el("rect", { x: x0 + i * w / segs + 1, y: y + (1 - (0.35 + 0.65 * i / segs)) * h, width: w / segs - 3, height: (0.35 + 0.65 * i / segs) * h,
+                 fill: lit ? c : "#1c1c1c" });
+  }
+  for (let k = 0; k <= 5; k++) txt(x0 + w * k / 5, 142, k, 18, "#9a9a9a", { font: "Rajdhani", weight: 700 });
+  // gear + speed + rpm
+  el("rect", { x: 392, y: 160, width: 240, height: 250, rx: 12, fill: "#0d0d0d", stroke: "#2a2a2a" });
+  txt(512, 360, V.gear, 230, "#ffffff", { font: "Rajdhani", weight: 700 });
+  txt(512, 192, "GEAR", 16, "#777", { font: "Rajdhani", weight: 700, ls: 5 });
+  txt(512, 470, V.speed, 72, "#ffffff", { font: "Rajdhani", weight: 700 });
+  txt(512, 494, "MPH", 15, "#777", { font: "Rajdhani", ls: 5 });
+  txt(512, 548, V.rpm + " RPM", 26, "#bdbdbd", { font: "Rajdhani", weight: 600 });
+  // data fields, one in warning to show alert styling
+  function field(x, yy, label, val, unit, state) {
+    const head = state === "warn" ? "#ffd000" : state === "alarm" ? "#ff1a2d" : "#2a2a2a";
+    el("rect", { x, y: yy, width: 330, height: 98, rx: 8, fill: state ? (state === "warn" ? "#2a2200" : "#300008") : "#0f0f0f", stroke: head, "stroke-width": state ? 3 : 1.5 });
+    el("rect", { x, y: yy, width: 330, height: 26, rx: 8, fill: head });
+    txt(x + 14, yy + 19, label, 16, state ? "#000" : "#bdbdbd", { font: "Rajdhani", weight: 700, anchor: "start", ls: 2 });
+    txt(x + 290, yy + 84, val, 54, "#ffffff", { font: "Rajdhani", weight: 700, anchor: "end" });
+    txt(x + 296, yy + 84, unit, 16, "#888", { font: "Rajdhani", weight: 600, anchor: "start" });
+  }
+  field(40, 160, "BOOST", V.boost.toFixed(1), "psi"); field(40, 274, "OIL TEMP", V.oil, "°F"); field(40, 388, "COOLANT", V.coolant, "°F");
+  field(654, 160, "TRANS TEMP", 228, "°F", "warn"); field(654, 274, "FUEL", V.fuel, "%"); field(654, 388, "VOLTS", V.volts.toFixed(1), "V");
+  txt(40, 530, "MPG " + V.mpg.toFixed(1) + "   TANK " + V.tank.toFixed(1), 22, "#bdbdbd", { font: "Rajdhani", weight: 600, anchor: "start" });
+  txt(984, 530, "VGT " + V.vgtDes + " / " + V.vgtAct + "%", 22, "#bdbdbd", { font: "Rajdhani", weight: 600, anchor: "end" });
+  txt(512, 590, "TRACK  ·  original motorsport race-dash design (trans field shown in warning)", 11, "#333", { font: "Barlow", ls: 2 });
+};
+
+// =====================================================================
+// 4. STREET EFI: big segmented tach + side gauges + data cells w/ graphs
+// =====================================================================
+designs.street = () => {
+  add(`<radialGradient id="sbg" cx="35%" cy="50%" r="80%"><stop offset="0" stop-color="#1a1d22"/><stop offset="1" stop-color="#08090b"/></radialGradient>`);
+  el("rect", { width: 1024, height: 600, fill: "url(#sbg)" });
+  const cx = 300, cy = 300, r = 230;
+  el("circle", { cx, cy, r: r + 16, fill: "#0b0c0e", stroke: "#2c3036", "stroke-width": 3, filter: "url(#soft)" });
+  const segs = 40;
+  for (let i = 0; i < segs; i++) {
+    const a0 = 135 + 270 * i / segs + 0.9, a1 = 135 + 270 * (i + 1) / segs - 0.9, v = (i + 1) / segs * V.rpmMax;
+    const lit = v <= V.rpm, c = v > V.red ? "#ff2d2d" : v > 3200 ? "#ffb400" : "#18a8ff";
+    el("path", { d: arc(cx, cy, r - 18, a0, a1), stroke: lit ? c : "#1e2228", "stroke-width": 30, fill: "none", ...(lit ? { filter: "url(#glow)" } : {}) });
+  }
+  for (let k = 0; k <= 5; k++) { const [x, y] = P(cx, cy, r - 66, 135 + 270 * k / 5); txt(x, y + 8, k, 26, "#d7dde5", { font: "Orbitron", weight: 700 }); }
+  txt(cx, cy - 40, "RPM", 16, "#6b7480", { font: "Orbitron", weight: 500, ls: 4 });
+  txt(cx, cy + 34, V.rpm, 74, "#ffffff", { font: "Orbitron", weight: 900 });
+  el("rect", { x: cx - 52, y: cy + 62, width: 104, height: 74, rx: 10, fill: "#101318", stroke: "#18a8ff", "stroke-width": 2 });
+  txt(cx, cy + 122, V.gear, 60, "#18a8ff", { font: "Orbitron", weight: 900 });
+  // two side gauges
+  function side(gx, gy, gr, label, val, max, unit, warn) {
+    el("circle", { cx: gx, cy: gy, r: gr + 8, fill: "#0b0c0e", stroke: "#2c3036", "stroke-width": 2 });
+    el("path", { d: arc(gx, gy, gr - 8, 135, 405), stroke: "#1e2228", "stroke-width": 12, fill: "none" });
+    el("path", { d: arc(gx, gy, gr - 8, 135, 135 + 270 * Math.min(1, val / max)), stroke: val >= warn ? "#ffb400" : "#18a8ff", "stroke-width": 12, fill: "none", filter: "url(#glow)" });
+    txt(gx, gy + 12, unit === "PSI" ? val.toFixed(1) : val, 38, "#fff", { font: "Orbitron", weight: 700 });
+    txt(gx, gy + 38, unit, 13, "#6b7480", { font: "Orbitron" });
+    txt(gx, gy - 30, label, 13, "#6b7480", { font: "Orbitron", ls: 3 });
+  }
+  side(650, 150, 100, "BOOST", V.boost, 40, "PSI", 33);
+  side(870, 150, 100, "TRANS", V.trans, 260, "°F", 220);
+  // data cells with mini graphs
+  function cell(x, y, label, val, unit, series) {
+    el("rect", { x, y, width: 205, height: 112, rx: 10, fill: "#101318", stroke: "#262b33" });
+    txt(x + 12, y + 24, label, 13, "#6b7480", { font: "Orbitron", ls: 2, anchor: "start" });
+    txt(x + 160, y + 66, val, 34, "#ffffff", { font: "Orbitron", weight: 700, anchor: "end" });
+    txt(x + 164, y + 66, unit, 12, "#6b7480", { font: "Orbitron", anchor: "start" });
+    const pts = series.map((v, i) => `${x + 12 + i * (181 / (series.length - 1))},${y + 102 - v * 26}`).join(" ");
+    el("polyline", { points: pts, fill: "none", stroke: "#18a8ff", "stroke-width": 2, opacity: 0.8 });
+  }
+  const wave = (n, f, ph, base) => [...Array(n)].map((_, i) => base + 0.35 * Math.sin(i * f + ph) * Math.cos(i * f * 0.37));
+  cell(560, 290, "COOLANT", V.coolant, "°F", wave(30, 0.2, 1, 0.5));
+  cell(780, 290, "OIL", V.oil, "°F", wave(30, 0.15, 2, 0.55));
+  cell(560, 418, "SPEED", V.speed, "MPH", wave(30, 0.3, 0, 0.5));
+  cell(780, 418, "MPG", V.mpg.toFixed(1), "", wave(30, 0.5, 3, 0.45));
+  txt(40, 40, "FUEL " + V.fuel + "%   " + V.volts + " V", 15, "#9aa3ad", { font: "Orbitron", anchor: "start" });
+  txt(512, 590, "STREET EFI  ·  original aftermarket-EFI-style design", 11, "#3a3f46", { font: "Barlow", ls: 3 });
+};
+
+// =====================================================================
+// 5. SWEEP: one big curved tach across the top, minimal readouts
+// =====================================================================
+designs.sweep = () => {
+  add(`<linearGradient id="sw" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#00e676"/><stop offset="0.6" stop-color="#ffea00"/>
+         <stop offset="0.8" stop-color="#ff9100"/><stop offset="1" stop-color="#ff1744"/></linearGradient>
+       <clipPath id="swclip"><rect x="0" y="0" width="${80 + 864 * V.rpm / V.rpmMax}" height="600"/></clipPath>`);
+  el("rect", { width: 1024, height: 600, fill: "#000" });
+  const d = "M 80 280 Q 512 -60 944 280";
+  el("path", { d, stroke: "#141414", "stroke-width": 46, fill: "none" });
+  el("path", { d, stroke: "url(#sw)", "stroke-width": 46, fill: "none", "clip-path": "url(#swclip)", filter: "url(#glow)" });
+  // tick numbers along the curve
+  for (let k = 0; k <= 5; k++) {
+    const t = k / 5, x = (1 - t) ** 2 * 80 + 2 * (1 - t) * t * 512 + t * t * 944, y = (1 - t) ** 2 * 280 + 2 * (1 - t) * t * -60 + t * t * 280;
+    txt(x, y - 34, k, 22, "#8a8a8a", { font: "Barlow Condensed", weight: 600 });
+  }
+  txt(512, 300, V.speed, 160, "#ffffff", { font: "Barlow Condensed", weight: 700 });
+  txt(512, 330, "MPH", 18, "#8a8a8a", { font: "Barlow Condensed", ls: 6 });
+  txt(270, 320, V.gear, 96, "#ffffff", { font: "Barlow Condensed", weight: 700 });
+  txt(270, 345, "GEAR", 16, "#8a8a8a", { font: "Barlow Condensed", ls: 5 });
+  txt(754, 300, V.rpm, 64, "#ffffff", { font: "Barlow Condensed", weight: 700 });
+  txt(754, 330, "RPM", 16, "#8a8a8a", { font: "Barlow Condensed", ls: 5 });
+  const items = [["BOOST", V.boost.toFixed(1), "PSI"], ["TRANS", V.trans, "°F"], ["COOLANT", V.coolant, "°F"], ["OIL", V.oil, "°F"],
+                 ["MPG", V.mpg.toFixed(1), ""], ["TANK", V.tank.toFixed(1), "MPG"], ["FUEL", V.fuel, "%"], ["VOLTS", V.volts.toFixed(1), "V"]];
+  items.forEach(([l, v, u], i) => {
+    const col = i % 4, row = Math.floor(i / 4), x = 140 + col * 248, y = 398 + row * 100;
+    txt(x, y, l, 15, "#8a8a8a", { font: "Barlow Condensed", ls: 4 });
+    txt(x, y + 52, v, 52, "#ffffff", { font: "Barlow Condensed", weight: 600 });
+    txt(x, y + 74, u, 13, "#5a5a5a", { font: "Barlow Condensed", ls: 3 });
+  });
+  el("line", { x1: 60, y1: 365, x2: 964, y2: 365, stroke: "#1c1c1c" });
+  txt(512, 590, "SWEEP  ·  original minimal sweep-tach design", 11, "#2a2a2a", { font: "Barlow", ls: 3 });
+};
+
+const d = new URLSearchParams(location.search).get("d") || "prestige";
+document.fonts.ready.then(() => { designs[d](); document.title = "ready"; });
+</script>
+</body></html>

@@ -1,0 +1,264 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Steampunk mockup</title>
+<style>html,body{margin:0;background:#000}svg{display:block}</style></head>
+<body>
+<svg id="s" width="1024" height="600" viewBox="0 0 1024 600" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const NS = "http://www.w3.org/2000/svg";
+const S = document.getElementById("s");
+const el = (tag, attrs = {}, parent = S, text) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text !== undefined) e.textContent = text;
+  parent.appendChild(e); return e;
+};
+const D = el("defs");
+D.innerHTML = `
+ <radialGradient id="iron" cx="50%" cy="45%" r="75%">
+   <stop offset="0" stop-color="#2b231d"/><stop offset="0.7" stop-color="#1c1815"/><stop offset="1" stop-color="#0b0907"/></radialGradient>
+ <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3"/>
+   <feColorMatrix values="0 0 0 0 0.6  0 0 0 0 0.45  0 0 0 0 0.3  0 0 0 0.18 0"/></filter>
+ <filter id="grime"><feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed="8"/>
+   <feColorMatrix values="0 0 0 0 0.05  0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0.35 0"/></filter>
+ <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0" stop-color="#e2c36b"/><stop offset="0.35" stop-color="#9c7a2c"/>
+   <stop offset="0.6" stop-color="#d9b65a"/><stop offset="1" stop-color="#5e4614"/></linearGradient>
+ <linearGradient id="brassDark" x1="0" y1="0" x2="1" y2="1">
+   <stop offset="0" stop-color="#8a6a28"/><stop offset="0.5" stop-color="#4e3b14"/><stop offset="1" stop-color="#2c210b"/></linearGradient>
+ <linearGradient id="copperH" x1="0" y1="0" x2="0" y2="1">
+   <stop offset="0" stop-color="#6b3410"/><stop offset="0.3" stop-color="#d48a52"/><stop offset="0.5" stop-color="#b87333"/>
+   <stop offset="0.8" stop-color="#8b4513"/><stop offset="1" stop-color="#4a230a"/></linearGradient>
+ <linearGradient id="copperV" x1="0" y1="0" x2="1" y2="0">
+   <stop offset="0" stop-color="#6b3410"/><stop offset="0.3" stop-color="#d48a52"/><stop offset="0.5" stop-color="#b87333"/>
+   <stop offset="0.8" stop-color="#8b4513"/><stop offset="1" stop-color="#4a230a"/></linearGradient>
+ <radialGradient id="vellum" cx="50%" cy="45%" r="55%">
+   <stop offset="0" stop-color="#efe3c6"/><stop offset="0.6" stop-color="#e4d5b7"/><stop offset="0.9" stop-color="#c3a978"/>
+   <stop offset="1" stop-color="#a6895b"/></radialGradient>
+ <radialGradient id="glassGlint" cx="35%" cy="25%" r="60%">
+   <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.05"/>
+   <stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient>
+ <radialGradient id="nixieGlow" cx="50%" cy="50%" r="50%">
+   <stop offset="0" stop-color="#ff9f43" stop-opacity="0.55"/><stop offset="0.6" stop-color="#ff6b08" stop-opacity="0.18"/>
+   <stop offset="1" stop-color="#ff6b08" stop-opacity="0"/></radialGradient>
+ <linearGradient id="tube" x1="0" y1="0" x2="1" y2="0">
+   <stop offset="0" stop-color="#0d0805" stop-opacity="0.95"/><stop offset="0.2" stop-color="#3a2a1a" stop-opacity="0.6"/>
+   <stop offset="0.5" stop-color="#1a110a" stop-opacity="0.5"/><stop offset="0.85" stop-color="#3a2a1a" stop-opacity="0.6"/>
+   <stop offset="1" stop-color="#0d0805" stop-opacity="0.95"/></linearGradient>
+ <linearGradient id="fuel" x1="0" y1="0" x2="1" y2="0">
+   <stop offset="0" stop-color="#7a4a06"/><stop offset="0.5" stop-color="#ffb02e"/><stop offset="1" stop-color="#7a4a06"/></linearGradient>
+ <linearGradient id="coolant" x1="0" y1="0" x2="1" y2="0">
+   <stop offset="0" stop-color="#0d4a3e"/><stop offset="0.5" stop-color="#3fe0b0"/><stop offset="1" stop-color="#0d4a3e"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="4" dy="6" stdDeviation="4" flood-color="#000" flood-opacity="0.65"/></filter>
+ <filter id="glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.6" result="b"/>
+   <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+`;
+
+// ---------- helpers ----------
+function gearPath(cx, cy, rOut, rIn, teeth, rHole) {
+  let d = ""; const step = Math.PI * 2 / teeth;
+  for (let i = 0; i < teeth; i++) {
+    const a = i * step, pts = [[rIn, a], [rOut, a + step * 0.12], [rOut, a + step * 0.38], [rIn, a + step * 0.5]];
+    pts.forEach(([r, t], j) => { const x = cx + r * Math.cos(t), y = cy + r * Math.sin(t); d += (i === 0 && j === 0 ? "M" : "L") + x.toFixed(1) + " " + y.toFixed(1) + " "; });
+    const t2 = a + step; d += `A ${rIn} ${rIn} 0 0 1 ${(cx + rIn * Math.cos(t2)).toFixed(1)} ${(cy + rIn * Math.sin(t2)).toFixed(1)} `;
+  }
+  d += "Z"; if (rHole) d += ` M ${cx + rHole} ${cy} A ${rHole} ${rHole} 0 1 0 ${cx - rHole} ${cy} A ${rHole} ${rHole} 0 1 0 ${cx + rHole} ${cy} Z`;
+  return d;
+}
+function gear(cx, cy, r, teeth, fill, rot = 0, spokes = 5) {
+  const g = el("g", { transform: `rotate(${rot} ${cx} ${cy})`, filter: "url(#shadow)" });
+  el("path", { d: gearPath(cx, cy, r, r * 0.86, teeth, 0), fill, stroke: "#1b1407", "stroke-width": 1.5, "fill-rule": "evenodd" }, g);
+  el("circle", { cx, cy, r: r * 0.66, fill: "#120e09", opacity: 0.85 }, g);
+  for (let i = 0; i < spokes; i++) {
+    const a = i * 2 * Math.PI / spokes;
+    el("line", { x1: cx, y1: cy, x2: cx + r * 0.7 * Math.cos(a), y2: cy + r * 0.7 * Math.sin(a), stroke: fill, "stroke-width": r * 0.13, "stroke-linecap": "round" }, g);
+  }
+  el("circle", { cx, cy, r: r * 0.68, fill: "none", stroke: fill, "stroke-width": r * 0.08 }, g);
+  el("circle", { cx, cy, r: r * 0.17, fill: "url(#brass)", stroke: "#1b1407" }, g);
+  el("circle", { cx, cy, r: r * 0.06, fill: "#1b1407" }, g);
+}
+function rivet(x, y, r = 5) {
+  el("circle", { cx: x + 1, cy: y + 1.5, r: r + 1, fill: "#000", opacity: 0.6 });
+  el("polygon", { points: [...Array(6)].map((_, i) => `${x + r * Math.cos(i * Math.PI / 3)},${y + r * Math.sin(i * Math.PI / 3)}`).join(" "), fill: "url(#brass)", stroke: "#2c210b" });
+  el("circle", { cx: x - r * 0.25, cy: y - r * 0.25, r: r * 0.3, fill: "#fff3c8", opacity: 0.5 });
+}
+function pipe(d, w = 14, vertical = false) {
+  el("path", { d, fill: "none", stroke: "#1a0d04", "stroke-width": w + 4, "stroke-linecap": "round", "stroke-linejoin": "round", opacity: 0.8 });
+  el("path", { d, fill: "none", stroke: vertical ? "url(#copperV)" : "url(#copperH)", "stroke-width": w, "stroke-linecap": "round", "stroke-linejoin": "round" });
+  el("path", { d, fill: "none", stroke: "#ffd2a8", "stroke-width": 2, opacity: 0.35, "stroke-linecap": "round", transform: "translate(0,-3)" });
+}
+function flange(x, y, w, h) {
+  el("rect", { x: x - w / 2, y: y - h / 2, width: w, height: h, rx: 3, fill: "url(#brass)", stroke: "#2c210b", "stroke-width": 1.5 });
+}
+function placard(cx, cy, text, w = 190) {
+  const g = el("g", { filter: "url(#shadow)" });
+  el("path", { d: `M ${cx - w / 2} ${cy - 14} Q ${cx} ${cy - 26} ${cx + w / 2} ${cy - 14} L ${cx + w / 2 - 6} ${cy + 16} Q ${cx} ${cy + 4} ${cx - w / 2 + 6} ${cy + 16} Z`,
+       fill: "url(#brass)", stroke: "#3b2a0b", "stroke-width": 2 }, g);
+  el("text", { x: cx, y: cy + 4, "text-anchor": "middle", "font-family": "Georgia, 'Times New Roman', serif", "font-size": 15,
+               "font-weight": "bold", "letter-spacing": 4, fill: "#1a1206" }, g, text);
+  [[-w / 2 + 12, -6], [w / 2 - 12, -6]].forEach(([dx, dy]) => { el("circle", { cx: cx + dx, cy: cy + dy, r: 3.2, fill: "#4a3510", stroke: "#e2c36b" }, g); });
+}
+function dial(cx, cy, r, opts) {
+  // bezel
+  el("circle", { cx: cx + 6, cy: cy + 9, r: r + 18, fill: "#000", opacity: 0.6 });
+  el("circle", { cx, cy, r: r + 18, fill: "url(#brass)", stroke: "#2c210b", "stroke-width": 3 });
+  el("circle", { cx, cy, r: r + 9, fill: "url(#brassDark)" });
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6 + Math.PI / 12; rivet(cx + (r + 13.5) * Math.cos(a), cy + (r + 13.5) * Math.sin(a), 3.6); }
+  el("circle", { cx, cy, r, fill: "url(#vellum)", stroke: "#3b2a0b", "stroke-width": 2 });
+  el("circle", { cx, cy, r, fill: "#5a3d12", opacity: 0.06, filter: "url(#grain)" });
+  el("circle", { cx, cy, r: r * 0.92, fill: "none", stroke: "#6b4f22", "stroke-width": 1, opacity: 0.6 });
+  el("circle", { cx, cy, r: r * 0.58, fill: "none", stroke: "#6b4f22", "stroke-width": 1, opacity: 0.5 });
+  if (opts.innerRing) el("circle", { cx, cy, r: r * 0.5, fill: "none", stroke: "#8a6a38", "stroke-width": 0.8, "stroke-dasharray": "2 3", opacity: 0.6 });
+  const start = 135, sweep = 270, { min, max, major, minorPer, label } = opts;
+  const ang = v => (start + sweep * (v - min) / (max - min)) * Math.PI / 180;
+  // red zone
+  if (opts.red) {
+    const a0 = ang(opts.red), a1 = ang(max), rr = r * 0.87;
+    el("path", { d: `M ${cx + rr * Math.cos(a0)} ${cy + rr * Math.sin(a0)} A ${rr} ${rr} 0 0 1 ${cx + rr * Math.cos(a1)} ${cy + rr * Math.sin(a1)}`,
+                 fill: "none", stroke: "#8b1a10", "stroke-width": 9, opacity: 0.85 });
+  }
+  const n = (max - min) / major;
+  for (let i = 0; i <= n * minorPer; i++) {
+    const v = min + i * major / minorPer, a = ang(v), isMajor = i % minorPer === 0, isHalf = !isMajor && (i % (minorPer / 2) === 0);
+    const r1 = r * 0.92, r2 = r * (isMajor ? 0.78 : isHalf ? 0.83 : 0.87);
+    el("line", { x1: cx + r1 * Math.cos(a), y1: cy + r1 * Math.sin(a), x2: cx + r2 * Math.cos(a), y2: cy + r2 * Math.sin(a),
+                 stroke: "#1a1206", "stroke-width": isMajor ? 3.2 : isHalf ? 1.8 : 1, "stroke-linecap": "round" });
+    if (isMajor) {
+      const rt = r * 0.66;
+      el("text", { x: cx + rt * Math.cos(a), y: cy + rt * Math.sin(a) + 9, "text-anchor": "middle", "font-family": "Georgia, 'Times New Roman', serif",
+                   "font-size": r * 0.17, "font-weight": "bold", fill: "#120c04" }, S, opts.fmt ? opts.fmt(v) : v);
+    }
+  }
+  el("text", { x: cx, y: cy - r * 0.3, "text-anchor": "middle", "font-family": "Georgia, serif", "font-style": "italic", "font-size": r * 0.085, fill: "#4a3416" }, S, label);
+  return ang;
+}
+function needle(cx, cy, r, a) {
+  const deg = a * 180 / Math.PI;
+  const g = el("g", { transform: `rotate(${deg} ${cx} ${cy})`, filter: "url(#shadow)" });
+  // pointer: long tapered blade with pierced filigree loop, teardrop counterweight
+  el("path", { d: `M ${cx - r * 0.3} ${cy} C ${cx - r * 0.24} ${cy - 13} ${cx - r * 0.1} ${cy - 11} ${cx - r * 0.06} ${cy - 4}
+                    L ${cx + r * 0.5} ${cy - 3.2} L ${cx + r * 0.86} ${cy} L ${cx + r * 0.5} ${cy + 3.2}
+                    L ${cx - r * 0.06} ${cy + 4} C ${cx - r * 0.1} ${cy + 11} ${cx - r * 0.24} ${cy + 13} ${cx - r * 0.3} ${cy} Z`,
+       fill: "#0d0b09", stroke: "#2a231b", "stroke-width": 1 }, g);
+  el("ellipse", { cx: cx - r * 0.19, cy, rx: r * 0.06, ry: 4.2, fill: "#e4d5b7" }, g);       // pierced teardrop
+  el("ellipse", { cx: cx + r * 0.36, cy, rx: r * 0.07, ry: 6, fill: "none", stroke: "#0d0b09", "stroke-width": 3 }, g);
+  el("circle", { cx: cx + r * 0.36, cy, r: 2.2, fill: "#0d0b09" }, g);
+  el("circle", { cx, cy, r: 15, fill: "url(#brass)", stroke: "#2c210b", "stroke-width": 2 });
+  el("circle", { cx: cx - 4, cy: cy - 4, r: 5, fill: "#fff3c8", opacity: 0.45 });
+  el("circle", { cx, cy, r: 3, fill: "#2c210b" });
+}
+function glass(cx, cy, r) { el("circle", { cx, cy, r, fill: "url(#glassGlint)" }); }
+
+// ---------- backplate ----------
+el("rect", { x: 0, y: 0, width: 1024, height: 600, fill: "url(#iron)" });
+el("rect", { x: 0, y: 0, width: 1024, height: 600, filter: "url(#grain)", opacity: 0.9 });
+el("rect", { x: 0, y: 0, width: 1024, height: 600, filter: "url(#grime)", opacity: 0.8 });
+
+// background clockwork (behind everything)
+gear(118, 92, 70, 22, "#6b531e", 8);  gear(212, 54, 42, 14, "#c59b27", 3);
+gear(905, 512, 78, 24, "#6b531e", 4); gear(1002, 430, 46, 15, "#c59b27", 11);
+gear(512, 560, 64, 20, "#5a4518", 6); gear(420, 600, 40, 13, "#c59b27", 0);
+gear(610, 596, 40, 13, "#c59b27", 14);
+
+// plumbing
+pipe("M 205 330 L 205 300 L 380 300 L 380 230", 14);
+pipe("M 819 330 L 819 300 L 644 300 L 644 230", 14);
+pipe("M 380 230 L 380 150", 14, true); pipe("M 644 230 L 644 150", 14, true);
+pipe("M 360 440 C 400 440 400 400 440 400", 12); pipe("M 664 440 C 624 440 624 400 584 400", 12);
+pipe("M 20 560 L 120 560 L 120 470", 18); pipe("M 1004 40 L 930 40 L 930 120", 18, true);
+flange(380, 230, 26, 12); flange(644, 230, 26, 12); flange(205, 300, 12, 26); flange(819, 300, 12, 26);
+flange(120, 470, 28, 12); flange(930, 120, 28, 12);
+
+// frame
+el("rect", { x: 3, y: 3, width: 1018, height: 594, rx: 14, fill: "none", stroke: "url(#brass)", "stroke-width": 8 });
+el("rect", { x: 9, y: 9, width: 1006, height: 582, rx: 10, fill: "none", stroke: "#000", "stroke-width": 2, opacity: 0.7 });
+for (let x = 30; x <= 1000; x += 54) { rivet(x, 9.5, 3.4); rivet(x, 590.5, 3.4); }
+for (let y = 64; y <= 540; y += 54) { rivet(9.5, y, 3.4); rivet(1014.5, y, 3.4); }
+
+// ---------- tachometer (left) ----------
+const TX = 205, TY = 330, TR = 168;
+const tAng = dial(TX, TY, TR, { min: 0, max: 50, major: 5, minorPer: 5, red: 40, label: "× 100 r.p.m.", fmt: v => v });
+needle(TX, TY, TR, tAng(16.5)); glass(TX, TY, TR);
+placard(TX, TY + TR + 4, "REVOLUTIONS", 200);
+// gear indicator window in the tach (from the estimate / TCM)
+el("rect", { x: TX - 22, y: TY + 44, width: 44, height: 44, rx: 5, fill: "#120c04", stroke: "url(#brass)", "stroke-width": 4 });
+el("text", { x: TX, y: TY + 79, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 36, "font-weight": "bold", fill: "#f0e2c0" }, S, "6");
+
+// ---------- speedometer (right) ----------
+const SX = 819, SY = 330, SR = 168;
+const sAng = dial(SX, SY, SR, { min: 0, max: 120, major: 20, minorPer: 4, label: "miles per hour", innerRing: true });
+// odometer drum
+const ox = SX - 66, oy = SY + 26;
+el("rect", { x: ox - 6, y: oy - 6, width: 144, height: 38, rx: 4, fill: "url(#brass)", stroke: "#2c210b" });
+"148197".split("").forEach((d, i) => {
+  el("rect", { x: ox + i * 22, y: oy, width: 20, height: 26, fill: "#1a130c", stroke: "#000" });
+  el("rect", { x: ox + i * 22, y: oy, width: 20, height: 8, fill: "#000", opacity: 0.45 });
+  el("rect", { x: ox + i * 22, y: oy + 18, width: 20, height: 8, fill: "#000", opacity: 0.45 });
+  el("text", { x: ox + i * 22 + 10, y: oy + 20, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 19, fill: "#efe3c6" }, S, d);
+});
+needle(SX, SY, SR, sAng(65)); glass(SX, SY, SR);
+placard(SX, SY + SR + 4, "VELOCITY", 170);
+
+// ---------- nixie array (center top) ----------
+const nx = 340, ny = 28, nw = 344, nh = 122;
+el("rect", { x: nx, y: ny, width: nw, height: nh, rx: 10, fill: "url(#brassDark)", stroke: "url(#brass)", "stroke-width": 5, filter: "url(#shadow)" });
+[[nx + 10, ny + 10], [nx + nw - 10, ny + 10], [nx + 10, ny + nh - 10], [nx + nw - 10, ny + nh - 10]].forEach(([x, y]) => rivet(x, y, 4));
+const groups = [{ label: "BOOST", digits: "32" }, { label: "TRANS °F", digits: "185" }, { label: "GEAR", digits: "6" }];
+let tx = nx + 22;
+groups.forEach((gp, gi) => {
+  const startX = tx;
+  gp.digits.split("").forEach(d => {
+    const cx = tx + 20, cy = ny + 52;
+    el("ellipse", { cx, cy, rx: 30, ry: 38, fill: "url(#nixieGlow)" });
+    el("rect", { x: tx + 2, y: ny + 12, width: 36, height: 76, rx: 18, fill: "url(#tube)", stroke: "#8a6a38", "stroke-width": 1.2 });
+    for (let k = 0; k < 6; k++) el("line", { x1: tx + 6 + k * 6, y1: ny + 22, x2: tx + 6 + k * 6, y2: ny + 82, stroke: "#5a4430", "stroke-width": 0.6, opacity: 0.6 });
+    el("text", { x: cx, y: cy + 17, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 46, fill: "#ffb36b", filter: "url(#glow)" }, S, d);
+    el("rect", { x: tx + 8, y: ny + 16, width: 6, height: 66, rx: 3, fill: "#fff", opacity: 0.12 });
+    el("rect", { x: tx + 4, y: ny + 86, width: 32, height: 8, rx: 2, fill: "url(#brass)" });
+    tx += 40;
+  });
+  const endX = tx;
+  el("text", { x: (startX + endX) / 2, y: ny + 112, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 11, "font-weight": "bold",
+               "letter-spacing": 2, fill: "#e2c36b" }, S, gp.label);
+  tx += 18;
+});
+
+// ---------- center lower: compass + sight glasses ----------
+const CX = 512, CY = 372, CR = 78;
+el("circle", { cx: CX + 4, cy: CY + 6, r: CR + 14, fill: "#000", opacity: 0.6 });
+el("circle", { cx: CX, cy: CY, r: CR + 14, fill: "url(#brass)", stroke: "#2c210b", "stroke-width": 3 });
+el("circle", { cx: CX, cy: CY, r: CR, fill: "#16120d" });
+el("circle", { cx: CX, cy: CY, r: CR, fill: "url(#vellum)", opacity: 0.18 });
+const star = (r1, r2, n, rot, fill) => el("polygon", { points: [...Array(n * 2)].map((_, i) => { const r = i % 2 ? r2 : r1, a = (i * Math.PI / n) + rot; return `${CX + r * Math.sin(a)},${CY - r * Math.cos(a)}`; }).join(" "), fill, stroke: "#2c210b", "stroke-width": 0.8 });
+star(CR * 0.86, CR * 0.2, 4, Math.PI / 4, "#8a6a28"); star(CR * 0.95, CR * 0.2, 4, 0, "url(#brass)");
+["N", "NE", "E", "SE", "S", "SW", "W", "NW"].forEach((h, i) => {
+  const a = i * Math.PI / 4, r = CR * (i % 2 ? 0.74 : 0.72);
+  if (i % 2) el("text", { x: CX + r * Math.sin(a), y: CY - r * Math.cos(a) + 4, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 10, fill: "#c9b48a" }, S, h);
+});
+["N", "E", "S", "W"].forEach((h, i) => { const a = i * Math.PI / 2; el("text", { x: CX + CR * 0.42 * Math.sin(a), y: CY - CR * 0.42 * Math.cos(a) + 6, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 16, "font-weight": "bold", fill: "#120c04" }, S, h); });
+const hdg = 72 * Math.PI / 180;  // heading needle
+el("polygon", { points: `${CX + CR * 0.8 * Math.sin(hdg)},${CY - CR * 0.8 * Math.cos(hdg)} ${CX + 6 * Math.cos(hdg)},${CY + 6 * Math.sin(hdg)} ${CX - 6 * Math.cos(hdg)},${CY - 6 * Math.sin(hdg)}`, fill: "#b2241a", filter: "url(#shadow)" });
+el("polygon", { points: `${CX - CR * 0.6 * Math.sin(hdg)},${CY + CR * 0.6 * Math.cos(hdg)} ${CX + 6 * Math.cos(hdg)},${CY + 6 * Math.sin(hdg)} ${CX - 6 * Math.cos(hdg)},${CY - 6 * Math.sin(hdg)}`, fill: "#e8e0cc" });
+el("circle", { cx: CX, cy: CY, r: 7, fill: "url(#brass)", stroke: "#2c210b" }); glass(CX, CY, CR);
+el("text", { x: CX, y: CY + CR + 32, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 13, "font-weight": "bold", "letter-spacing": 3, fill: "#e2c36b" }, S, "ENE  72°");
+
+function sightGlass(x, label, frac, grad, unit) {
+  const top = 262, h = 196, w = 34;
+  el("rect", { x: x - w / 2 - 9, y: top - 16, width: w + 18, height: h + 32, rx: 8, fill: "url(#brass)", stroke: "#2c210b", "stroke-width": 2, filter: "url(#shadow)" });
+  el("rect", { x: x - w / 2, y: top, width: w, height: h, rx: 14, fill: "#120d08", stroke: "#000" });
+  const lvl = top + h * (1 - frac);
+  el("rect", { x: x - w / 2 + 3, y: lvl, width: w - 6, height: top + h - lvl - 3, rx: 10, fill: grad, opacity: 0.92 });
+  el("ellipse", { cx: x, cy: lvl, rx: w / 2 - 3, ry: 3, fill: "#fff", opacity: 0.35 });
+  el("circle", { cx: x, cy: lvl + 9, r: 7, fill: "#d9c9a3", stroke: "#2c210b" });          // float
+  for (let k = 0; k <= 4; k++) { const yy = top + 10 + k * (h - 20) / 4; el("line", { x1: x - w / 2 - 9, y1: yy, x2: x - w / 2 + 4, y2: yy, stroke: "#2c210b", "stroke-width": 2 }); }
+  el("rect", { x: x - w / 2 + 5, y: top + 6, width: 6, height: h - 12, rx: 3, fill: "#fff", opacity: 0.18 });
+  [0.25, 0.5, 0.75].forEach(f => el("rect", { x: x - w / 2 - 9, y: top + h * f - 3, width: w + 18, height: 6, fill: "url(#brass)", opacity: 0.9 }));
+  el("text", { x, y: top + h + 34, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 11, "font-weight": "bold", "letter-spacing": 2, fill: "#e2c36b" }, S, label);
+  el("text", { x, y: top - 22, "text-anchor": "middle", "font-family": "Georgia, serif", "font-size": 14, "font-weight": "bold", fill: "#f0e2c0" }, S, unit);
+}
+sightGlass(410, "FUEL", 0.70, "url(#fuel)", "70%");
+sightGlass(614, "COOLANT", 0.56, "url(#coolant)", "190°");
+
+// title cartouche
+
+</script>
+</body></html>
