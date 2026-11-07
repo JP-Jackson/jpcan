@@ -110,3 +110,17 @@ def test_rejected_header_raises_and_forgets_state():
     with pytest.raises(ElmError):
         elm.set_header("7E0")
     assert elm.header is None
+
+
+def test_init_detects_protocol_before_any_header_or_filter():
+    elm, t = make({"0100": "7E8064100BE3EA813"})
+    elm.init()
+    first_obd = next(i for i, c in enumerate(t.sent) if c == "0100")
+    assert not any(c.startswith(("ATSH", "ATCRA")) for c in t.sent[:first_obd])
+    assert elm.header == "7DF"
+
+
+def test_init_no_vehicle():
+    elm, _ = make({"0100": "NO DATA"})
+    with pytest.raises(NoData):
+        elm.init()

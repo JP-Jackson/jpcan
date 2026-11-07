@@ -138,6 +138,7 @@ class SimTransport:
         self.echo, self.spaces, self.headers = True, True, False
         self.header = "7DF"
         self.cra: str | None = None
+        self.protocol_known = False
         self._reply = ""
         supported = set(MODE01) | {0x20, 0x40, 0x60, 0x80}
         self.mode01 = dict(MODE01)
@@ -169,6 +170,7 @@ class SimTransport:
         if a in ("Z", "WS"):
             self.echo, self.spaces, self.headers, self.header = True, True, False, "7DF"
             self.cra = None
+            self.protocol_known = False
             return "\rELM327 v1.4b"
         if a == "I":
             return "ELM327 v1.4b"
@@ -186,6 +188,8 @@ class SimTransport:
             return "OK"
         if a == "CRA":
             return "?"  # like JP's STN2232 v5.9.5: bare CRA unsupported, filter unchanged
+        if a.startswith("CRA") and not self.protocol_known:
+            return "?"  # CAN-only command before protocol auto-detect
         if a.startswith("CRA"):
             self.cra = a[3:]
             return "OK"
@@ -195,6 +199,7 @@ class SimTransport:
         if not req:
             return "?"
         svc, s = req[0], self.v.state()
+        self.protocol_known = True
         resp_id = RESPONDER.get(self.header)
         if resp_id is None or (self.cra and resp_id != self.cra):
             return "NO DATA"  # no responder, or receive filter blocks it

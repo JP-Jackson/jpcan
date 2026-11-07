@@ -87,8 +87,13 @@ class Elm:
         self.at("ATZ", timeout=3.0)
         for cmd in ("ATE0", "ATL0", "ATS0", "ATH1", "ATAT1", "ATSP0"):
             self.at(cmd)
+        # Detect the protocol with the power-on defaults (header 7DF, automatic
+        # receive filter). CAN-only commands like ATCRA are rejected ('?')
+        # until the protocol is known, so no ATSH/ATCRA before this.
         self.header = None
-        self.request("0100", timeout=6.0)  # triggers protocol auto-detect
+        if not parse_frames(self.port.query("0100", 6.0)):
+            raise NoData("0100 (protocol detect): no vehicle response")
+        self.header = "7DF"  # default header; filter still automatic
         return self.info()
 
     def info(self) -> AdapterInfo:
