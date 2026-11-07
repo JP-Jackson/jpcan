@@ -8,6 +8,7 @@ IMPERIAL = {
     "kPaa": ("psia", lambda v: v * 0.145038),   # absolute
     "kPag": ("psig", lambda v: v * 0.145038),   # gauge (above atmosphere)
     "bar": ("psi", lambda v: v * 14.5038),
+    "barg": ("psig", lambda v: v * 14.5038),   # gauge
     "L/h": ("gal/h", lambda v: v * 0.264172),
     "L": ("gal", lambda v: v * 0.264172),
 }

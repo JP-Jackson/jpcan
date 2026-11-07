@@ -106,7 +106,7 @@ pids:
     poll_rate: once
     verified: false
     source: SAE J1979 PID 7F layout; no 6.7 source found
-    notes: Low confidence it's supported on 2014. Compare to cluster engine hours.
+    notes: "Reads ~309 h on JP's truck (148k mi), counting up. Likely reset by PCM flash/tune; compare FORScan."
 
   # ---- Phase 1 candidates ----------------------------------------------
   # ---- Standard SAE extended PIDs this truck advertises -----------------
@@ -277,7 +277,7 @@ pids:
     pid: "6D"
     header: "7DF"
     formula: "((B*256)+C)/10"
-    units: bar
+    units: barg
     min: 0
     max: 2200
     poll_rate: fast
@@ -291,7 +291,7 @@ pids:
     pid: "6D"
     header: "7DF"
     formula: "((D*256)+E)/10"
-    units: bar
+    units: barg
     min: 0
     max: 2200
     poll_rate: fast
