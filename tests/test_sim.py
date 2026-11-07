@@ -1,0 +1,59 @@
+"""Full stack against the simulator: guard -> port -> driver -> profile formulas."""
+
+import pytest
+
+from core.elm import Elm, NegativeResponse, NoData
+from core.guard import RequestGuard
+from core.profile import load_profile
+from core.sim import SIM_VIN, SimTransport, SimVehicle
+from core.transport import GuardedPort
+
+
+@pytest.fixture
+def stack():
+    now = [100.0]
+    prof = load_profile("ford_f250_67_2014")
+    sim = SimTransport(SimVehicle(clock=lambda: now[0]))
+    elm = Elm(GuardedPort(sim, RequestGuard(extra_headers=prof.extra_headers), min_gap=0))
+    elm.init()
+    return elm, prof, now
+
+
+def read(elm, prof, key):
+    p = prof.pids[key]
+    return p.formula(elm.read(p.service, p.pid, p.header))
+
+
+def test_init_and_identity(stack):
+    elm, _, _ = stack
+    info = elm.info()
+    assert "ELM327" in info.elm and "STN" in info.stn and "CAN 11/500" in info.protocol
+    assert elm.voltage() == pytest.approx(14.1)
+    assert elm.vin() == SIM_VIN
+
+
+def test_supported_pids(stack):
+    s = stack[0].supported_pids()
+    assert {0x0C, 0x0D, 0x46, 0x87} <= s
+    assert 0x5E not in s and 0x7F not in s
+
+
+def test_values_scale_through_profile(stack):
+    elm, prof, now = stack
+    now[0] = 100.0 + 60  # cruise phase of cycle
+    assert 95 <= read(elm, prof, "speed") <= 110
+    assert 900 < read(elm, prof, "rpm") < 2600
+    assert read(elm, prof, "ambient") == 24
+    assert read(elm, prof, "odometer") == pytest.approx(182345.6, abs=5)
+    assert 20 <= read(elm, prof, "trans_temp") <= 90
+    egts = [read(elm, prof, k) for k in ("egt11", "egt12", "egt13", "egt14")]
+    assert egts == sorted(egts, reverse=True)
+    assert 0 < read(elm, prof, "vgt_actual") <= 100
+
+
+def test_unsupported_paths(stack):
+    elm, prof, _ = stack
+    with pytest.raises(NoData):
+        read(elm, prof, "engine_hours")      # 017F unsupported in sim
+    with pytest.raises(NegativeResponse):
+        read(elm, prof, "odometer_dd01")     # unknown DID -> NRC 31
