@@ -24,6 +24,8 @@ Item {
         shiftActive: sv.isRpm && backend.shift.enabled && valid && value >= backend.shift.rpm
         bigText: sv.hasGear ? (sv.ok(sv.gearKey) ? sv.val(sv.gearKey).toFixed(0) : "–") : ""
         bigDim: sv.hasGear && !sv.ok(sv.gearKey)
+        fx: !(sv.theme && sv.theme.style && sv.theme.style.fx) ? ""
+            : (["boost", "map", "map_wide"].indexOf(sv.cfg.key) >= 0 ? "turbo" : sv.cfg.key === "rpm" ? "flame" : "")
     }
     DualBar {
         anchors.fill: parent

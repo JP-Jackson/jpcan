@@ -1,0 +1,31 @@
+{
+  "name": "Race",
+  "face": "face.svg",
+  "needle": "../classic/needle.svg",
+  "style": {
+    "gauge": "arc",
+    "glow": true,
+    "shiftBar": true
+  },
+  "colors": {
+    "background": "#000000",
+    "panel": "#111111",
+    "panelBorder": "#2a2a2a",
+    "text": "#ffffff",
+    "dim": "#9a9a9a",
+    "tick": "#ffffff",
+    "minorTick": "#555555",
+    "ring": "#1d1d1d",
+    "hub": "#111111",
+    "accent": "#ff2a2a",
+    "ok": "#39ff6a",
+    "warn": "#ffd000",
+    "alarm": "#ff1744",
+    "shift": "#2979ff",
+    "shiftText": "#ffffff"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}

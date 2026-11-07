@@ -1,0 +1,29 @@
+{
+  "name": "Classic refined",
+  "face": "face.svg",
+  "needle": "needle.svg",
+  "style": {
+    "gauge": "needle"
+  },
+  "colors": {
+    "background": "#050608",
+    "panel": "#0f1318",
+    "panelBorder": "#2b333d",
+    "text": "#f4f1ea",
+    "dim": "#9aa3ad",
+    "tick": "#f4f1ea",
+    "minorTick": "#7b848e",
+    "ring": "#3a434d",
+    "hub": "#c8ccd2",
+    "accent": "#e8a33d",
+    "ok": "#5bd38a",
+    "warn": "#ffb000",
+    "alarm": "#ff3b30",
+    "shift": "#ffd400",
+    "shiftText": "#111111"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}

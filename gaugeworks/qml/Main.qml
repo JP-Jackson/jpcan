@@ -90,6 +90,35 @@ Rectangle {
             }
         }
 
+        // ---- shift-light bar (themes with style.shiftBar): fills toward redline
+        Row {
+            id: shiftBar
+            readonly property var rc: root.cfg.rpm || ({})
+            readonly property bool enabled_: !!(root.theme.style && root.theme.style.shiftBar) && rc.max !== undefined
+            readonly property real rpm: backend.values["rpm"] === undefined ? 0 : backend.values["rpm"]
+            readonly property bool rpmOk: backend.fresh["rpm"] === true
+            readonly property real rpmTop: backend.shift.enabled ? backend.shift.rpm
+                                       : (!isNaN(rc.alarm) ? rc.alarm : rc.max * 0.85)
+            readonly property real rpmBottom: rpmTop * 0.55
+            readonly property int lit: rpmOk ? Math.max(0, Math.min(15, Math.round(15 * (rpm - rpmBottom) / (rpmTop - rpmBottom)))) : 0
+            property bool blink: false
+            Timer { running: shiftBar.lit >= 15; interval: 110; repeat: true; onTriggered: shiftBar.blink = !shiftBar.blink }
+            visible: enabled_
+            z: 5
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 46; spacing: 6
+            Repeater {
+                model: 15
+                Rectangle {
+                    width: 26; height: 14; radius: 7
+                    readonly property color on: index < 5 ? colors.ok : index < 10 ? colors.warn : colors.alarm
+                    color: shiftBar.lit >= 15 ? (shiftBar.blink ? colors.shift : "#111111")
+                         : index < shiftBar.lit ? on : "#161616"
+                    border.color: "#000000"
+                }
+            }
+        }
+
         // ---- top bar
         Item {
             id: topBar
@@ -114,8 +143,39 @@ Rectangle {
                     }
                 }
             }
+            Text {  // Turbo Snail quips replace the status for a few seconds
+                id: quip
+                anchors.centerIn: parent
+                visible: text !== ""
+                color: colors.accent; font.pixelSize: 20; font.bold: true
+                property real lastAt: 0
+                property real idleSince: 0
+                function v(k) { return backend.fresh[k] === true ? backend.values[k] : NaN }
+                function say(list) {
+                    var now = Date.now()
+                    if (now - lastAt < 25000) return
+                    lastAt = now
+                    text = list[Math.floor(Math.random() * list.length)]
+                    quipHide.restart()
+                }
+                Timer { id: quipHide; interval: 5000; onTriggered: quip.text = "" }
+                Timer {
+                    running: !!(root.theme.style && root.theme.style.quips); interval: 1000; repeat: true
+                    onTriggered: {
+                        var boost = quip.v("boost"), rpm = quip.v("rpm"), mpg = quip.v("econ_inst"), spd = quip.v("speed")
+                        var rc = root.cfg.rpm || ({})
+                        if (spd === 0 && rpm > 0) { if (!quip.idleSince) quip.idleSince = Date.now() } else quip.idleSince = 0
+                        if (boost >= 25) quip.say(["SPOOL GOES BRRRR", "Snail is AWAKE", "Turbo snail at full gallop"])
+                        else if (!isNaN(rc.warn) && rpm >= rc.warn) quip.say(["Easy, cowboy", "Those are a lot of RPMs", "Shift happens"])
+                        else if (mpg >= 25) quip.say(["Hypermiler mode", "Leaf is thriving", "Sipping, not gulping"])
+                        else if (spd >= 80) quip.say(["Warp speed engaged", "Speedy snail"])
+                        else if (quip.idleSince && Date.now() - quip.idleSince > 120000) quip.say(["Zzz... still idling", "The snail is napping"])
+                    }
+                }
+            }
             Row {
                 anchors.centerIn: parent; spacing: 10
+                visible: quip.text === ""
                 Rectangle {
                     width: 12; height: 12; radius: 6; anchors.verticalCenter: parent.verticalCenter
                     color: backend.status.state === "running" ? colors.ok
@@ -155,7 +215,7 @@ Rectangle {
             readonly property bool hasCount: backend.fresh["dtc_count"] === true
             visible: active && !onDiag
             anchors.horizontalCenter: parent.horizontalCenter
-            y: 48; width: 520; height: 56; radius: 12
+            y: shiftBar.visible ? 68 : 48; width: 520; height: 56; radius: 12
             color: colors.warn
             border.color: "#000000"; border.width: 2
             Row {

@@ -33,6 +33,16 @@ Rectangle {
         font.pixelSize: Math.max(30, Math.min(t.height * 0.42, t.width * 0.24))
         font.bold: true
     }
+    Image {  // Turbo Snail: leaf grows with economy, wilts when it's bad
+        visible: t.cfg.econ === true && t.valid && !!(t.theme && t.theme.assets && t.theme.assets.leaf)
+        source: visible ? t.theme.assets.leaf : ""
+        anchors.left: parent.left; anchors.leftMargin: 6; anchors.bottom: parent.bottom; anchors.bottomMargin: 4
+        readonly property real k: Math.max(0.35, Math.min(1, t.value / 25))
+        width: t.height * 0.42 * k; height: width
+        sourceSize: Qt.size(64, 64)
+        rotation: t.value < 8 ? 55 : 0
+        opacity: t.value < 8 ? 0.45 : 0.9
+    }
     Text {  // fill-up corrected economy tag
         anchors.right: parent.right; anchors.rightMargin: 8; y: 7
         visible: t.cfg.econ === true && backend.econCorrected && backend.econFactor > 0

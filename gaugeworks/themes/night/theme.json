@@ -1,0 +1,29 @@
+{
+  "name": "Night",
+  "face": "face.svg",
+  "needle": "needle.svg",
+  "style": {
+    "gauge": "needle"
+  },
+  "colors": {
+    "background": "#000000",
+    "panel": "#0a0303",
+    "panelBorder": "#2a0a0a",
+    "text": "#d23c2a",
+    "dim": "#7a2219",
+    "tick": "#b8331f",
+    "minorTick": "#5a1a12",
+    "ring": "#2a0d0a",
+    "hub": "#1a0605",
+    "accent": "#c8361f",
+    "ok": "#7a8a2a",
+    "warn": "#e08a10",
+    "alarm": "#ff3a1f",
+    "shift": "#b8331f",
+    "shiftText": "#000000"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}

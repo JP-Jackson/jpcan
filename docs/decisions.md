@@ -137,3 +137,13 @@ wipe history. It recomputes miles/MPG for the vehicle's whole chain (ordered
 by date) and rejects an odometer or date that would break the order. Before
 a delete-all it saves a backup to fuel_backups/ (10 kept), which the USB
 export includes.
+
+## D22. Themes choose a gauge style, not just colors
+theme.json `style`: `gauge` is "needle" (face/ticks/needle image) or "arc"
+(GPU QtQuick.Shapes arcs, smooth via an animated value, big digital
+readout); `glow`, `shiftBar` (a 15-LED bar that fills from 55% of the shift
+point or redline and flashes at the top), `fx` (hub effects: turbo-snail
+spinner on boost, rev flame on rpm, leaf on MPG tiles) and `quips`
+(occasional status-line jokes, rate limited). Themes: Classic, Classic
+refined, Modern, Race, Night, Turbo Snail. Assets are SVG in the theme
+folder.

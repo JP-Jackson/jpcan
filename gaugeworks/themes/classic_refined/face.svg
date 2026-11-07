@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400">
+  <defs>
+    <linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2f4f7"/><stop offset="0.25" stop-color="#8d96a1"/>
+      <stop offset="0.5" stop-color="#e3e7ec"/><stop offset="0.75" stop-color="#5d6672"/>
+      <stop offset="1" stop-color="#cfd5dc"/>
+    </linearGradient>
+    <radialGradient id="dial" cx="50%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#262b31"/><stop offset="0.6" stop-color="#121519"/>
+      <stop offset="1" stop-color="#070809"/>
+    </radialGradient>
+    <radialGradient id="gloss" cx="50%" cy="10%" r="60%">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <circle cx="200" cy="200" r="199" fill="url(#chrome)"/>
+  <circle cx="200" cy="200" r="188" fill="#0a0b0d"/>
+  <circle cx="200" cy="200" r="183" fill="url(#dial)"/>
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.04" stroke-width="40"/>
+  <ellipse cx="200" cy="120" rx="150" ry="95" fill="url(#gloss)"/>
+</svg>

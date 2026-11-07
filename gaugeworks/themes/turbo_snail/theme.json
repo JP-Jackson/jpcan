@@ -1,0 +1,36 @@
+{
+  "name": "Turbo Snail",
+  "face": "face.svg",
+  "needle": "needle.svg",
+  "style": {
+    "gauge": "needle",
+    "fx": true,
+    "quips": true
+  },
+  "assets": {
+    "snail": "snail.svg",
+    "flame": "flame.svg",
+    "leaf": "leaf.svg"
+  },
+  "colors": {
+    "background": "#14071f",
+    "panel": "#21102f",
+    "panelBorder": "#45246a",
+    "text": "#f8f4ff",
+    "dim": "#b49ad6",
+    "tick": "#e8ffb0",
+    "minorTick": "#7a5aa3",
+    "ring": "#5b2d8a",
+    "hub": "#2a1440",
+    "accent": "#b6ff3b",
+    "ok": "#7dff6a",
+    "warn": "#ffcf3b",
+    "alarm": "#ff4f8b",
+    "shift": "#b6ff3b",
+    "shiftText": "#14071f"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}

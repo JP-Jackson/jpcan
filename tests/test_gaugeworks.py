@@ -42,7 +42,7 @@ def test_tile_labels_follow_units():
 
 
 def test_theme_loads():
-    assert "classic" in list_themes()
+    assert "classic" in [t["id"] for t in list_themes()]
     t = load_theme("does-not-exist")
     assert t["id"] == "classic" and t["face"].startswith("file://")
 
@@ -100,6 +100,36 @@ def test_render_every_page(tmp_path, page):
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "QT_QUICK_BACKEND": "software",
            "JPCAN_CONFIG": str(tmp_path)}
     r = subprocess.run([sys.executable, "-m", "gaugeworks.app", "--demo", "cruise", "--page", str(page),
+                        "--screenshot", str(out)], env=env, capture_output=True, text=True, timeout=60)
+    if r.returncode != 0 and "libEGL" in r.stderr:
+        pytest.skip("no GL libs in this environment")
+    assert r.returncode == 0, r.stderr[-2000:]
+
+
+def test_all_themes_load():
+    from gaugeworks.backend import list_themes, load_theme
+
+    themes = list_themes()
+    ids = [t["id"] for t in themes]
+    assert ids[:6] == ["classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
+    for t in themes:
+        th = load_theme(t["id"])
+        assert th["style"]["gauge"] in ("needle", "arc")
+        for k in ("background", "text", "accent", "warn", "alarm", "panel"):
+            assert k in th["colors"], (t["id"], k)
+        from pathlib import Path
+        from urllib.parse import urlparse
+        for url in [th["face"], *th.get("assets", {}).values()]:
+            assert Path(urlparse(url).path).exists(), (t["id"], url)
+    assert load_theme("turbo_snail")["assets"].keys() >= {"snail", "flame", "leaf"}
+
+
+@pytest.mark.parametrize("theme", ["classic_refined", "modern", "race", "night", "turbo_snail"])
+def test_render_every_theme(tmp_path, theme):
+    out = tmp_path / f"{theme}.png"
+    env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "QT_QUICK_BACKEND": "software",
+           "JPCAN_CONFIG": str(tmp_path)}
+    r = subprocess.run([sys.executable, "-m", "gaugeworks.app", "--demo", "alarm", "--theme", theme,
                         "--screenshot", str(out)], env=env, capture_output=True, text=True, timeout=60)
     if r.returncode != 0 and "libEGL" in r.stderr:
         pytest.skip("no GL libs in this environment")

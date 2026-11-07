@@ -31,7 +31,7 @@ Rectangle {
         Btn { theme: s.theme; text: "Close"; x: panel.width - width - 24; y: 18; onClicked: s.close() }
 
         Column {
-            x: 28; y: 90; spacing: 14
+            x: 28; y: 84; spacing: 10
 
             Row {
                 spacing: 12
@@ -41,10 +41,14 @@ Rectangle {
             }
             Row {
                 spacing: 12
-                Text { width: 150; text: "Theme"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
-                Repeater {
-                    model: s.gw.themes
-                    Btn { theme: s.theme; text: modelData; active: s.theme.id === modelData; onClicked: s.gw.setTheme(modelData) }
+                Text { width: 150; text: "Theme"; color: s.theme.colors.dim; font.pixelSize: 22 }
+                Flow {
+                    width: 540; spacing: 8
+                    Repeater {
+                        model: s.gw.themes
+                        Btn { theme: s.theme; width: 172; height: 48; text: modelData.name
+                              active: s.theme.id === modelData.id; onClicked: s.gw.setTheme(modelData.id) }
+                    }
                 }
             }
             Row {

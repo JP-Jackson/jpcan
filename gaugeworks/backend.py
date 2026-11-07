@@ -144,15 +144,30 @@ def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
     if not (d / "theme.json").exists():
         d = themes_dir / "classic"
     t = json.loads((d / "theme.json").read_text(encoding="utf-8"))
+    url = lambda rel: QUrl.fromLocalFile(str((d / rel).resolve())).toString()  # noqa: E731
     for k in ("face", "needle"):
         if k in t:
-            t[k] = QUrl.fromLocalFile(str(d / t[k])).toString()
+            t[k] = url(t[k])
+    t["assets"] = {k: url(v) for k, v in (t.get("assets") or {}).items()}
+    t.setdefault("style", {"gauge": "needle"})
     t["id"] = d.name
     return t
 
 
-def list_themes(themes_dir: Path = THEMES_DIR) -> list[str]:
-    return sorted(p.parent.name for p in themes_dir.glob("*/theme.json"))
+THEME_ORDER = ["classic", "classic_refined", "modern", "race", "night", "turbo_snail"]
+
+
+def list_themes(themes_dir: Path = THEMES_DIR) -> list[dict]:
+    ids = [p.parent.name for p in themes_dir.glob("*/theme.json")]
+    ids.sort(key=lambda i: (THEME_ORDER.index(i) if i in THEME_ORDER else 99, i))
+    out = []
+    for i in ids:
+        try:
+            name = json.loads((themes_dir / i / "theme.json").read_text()).get("name", i)
+        except (OSError, ValueError):
+            name = i
+        out.append({"id": i, "name": name})
+    return out
 
 
 def fillup_message(res: dict) -> str:
@@ -273,7 +288,10 @@ class Backend(QObject):
         pages = build_pages(meta, imp, win, overrides)
         status_keys = (meta.get("layouts") or {}).get("status") or []
         diag = status_keys + sorted(k for k in ch if k not in status_keys)
+        rpm_cfg = (gauge_config({**(gw.get("display") or {}).get("rpm", auto_display("rpm", ch["rpm"])),
+                                 "key": "rpm"}, ch["rpm"].get("units", ""), imp) if "rpm" in ch else {})
         self._config = {"pages": pages, "profile": meta.get("name", ""), "gear": gw.get("gear", ""),
+                        "rpm": rpm_cfg,
                         "channels": picker_channels(meta), "diag": [
                             {"key": k, "name": ch[k].get("name", k),
                              "units": display(0.0, ch[k].get("units", ""), imp)[1],

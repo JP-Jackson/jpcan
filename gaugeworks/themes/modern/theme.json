@@ -1,0 +1,30 @@
+{
+  "name": "Modern",
+  "face": "face.svg",
+  "needle": "../classic/needle.svg",
+  "style": {
+    "gauge": "arc",
+    "glow": true
+  },
+  "colors": {
+    "background": "#04070d",
+    "panel": "#0b1220",
+    "panelBorder": "#1c2a40",
+    "text": "#eaf4ff",
+    "dim": "#7f93ab",
+    "tick": "#eaf4ff",
+    "minorTick": "#4c5d73",
+    "ring": "#152238",
+    "hub": "#0b1220",
+    "accent": "#21d4fd",
+    "ok": "#2ee59d",
+    "warn": "#ffc53d",
+    "alarm": "#ff4d6d",
+    "shift": "#ffd400",
+    "shiftText": "#111111"
+  },
+  "fonts": {
+    "label": "DejaVu Sans",
+    "digits": "DejaVu Sans Mono"
+  }
+}

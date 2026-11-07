@@ -22,5 +22,8 @@
   "fonts": {
     "label": "DejaVu Sans",
     "digits": "DejaVu Sans Mono"
+  },
+  "style": {
+    "gauge": "needle"
   }
 }
