@@ -108,9 +108,9 @@ against FORScan or the dash.
 - Touch lockups: root cause found and fixed (D27). The launcher pointed Qt's
   mouse handler at /dev/null, which spun at 100% CPU. Confirm on the Pi. The
   D25 watchdog and persistent journal stay as backstops.
-- After a GaugeWorks restart on the bench, the picture showed shifted down
-  about an inch with the bottom cut off. Being checked (framebuffer pan or the
-  linuxfb fallback).
+- Picture shifted down with the bottom cut off: the HDMI framebuffer was
+  1024x768 because the screen was plugged in after boot. Fixed by locking the
+  mode on the kernel command line (D28). Needs a reboot to confirm.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
   there was the old poller.
 - Retest RPM smoothness on the truck with the D23 polling tiers. If it's still

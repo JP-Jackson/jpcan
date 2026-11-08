@@ -209,3 +209,11 @@ input. Now, when the USB touch is found, the launcher turns off Qt's built-in
 input (`QT_QPA_EGLFS_DISABLE_INPUT`, `QT_QPA_FB_DISABLE_INPUT`) and loads one
 `evdevtouch:<device>` generic plugin. With no touch found, Qt auto-detects.
 `tests/test_launcher.py` guards it. The D25 watchdog stays as a backstop.
+
+## D28. Lock HDMI0 to the panel mode on the kernel command line
+The 7" advertises 1024x600 as preferred, but if it isn't connected at boot,
+the Pi sizes the HDMI framebuffer at 1024x768 and keeps it until reboot.
+GaugeWorks then centres its 600-tall layout, 84 px low, and the panel shows
+only the top 600 lines, so the bottom gets cut. `install-services.sh` adds
+`video=HDMI-A-1:1024x600@60D` to `cmdline.txt` (`GW_MODE` overrides it for
+another screen, such as the 10.1" 1280x800).

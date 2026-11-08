@@ -65,6 +65,19 @@ echo "== 3.5in screen + console"
 grep -q '^dtoverlay=piscreen' "$CONFIG" || echo "dtoverlay=piscreen,speed=24000000,rotate=270" >> "$CONFIG"
 grep -q 'consoleblank=0' "$CMDLINE" || sed -i '1 s/$/ consoleblank=0/' "$CMDLINE"
 
+echo "== HDMI mode for the GaugeWorks screen (D28)"
+# Lock HDMI0 to the panel's native mode, even if the screen is plugged in after
+# boot. Otherwise the Pi falls back to 1024x768 and the 600-tall layout lands
+# 84 px low with the bottom cut off. Change GW_MODE for a different screen.
+GW_MODE="${GW_MODE:-1024x600@60}"
+if grep -q 'video=HDMI-A-1:' "$CMDLINE"; then
+    sed -i "1 s/video=HDMI-A-1:[^ ]*/video=HDMI-A-1:${GW_MODE}D/" "$CMDLINE"
+else
+    sed -i "1 s/\$/ video=HDMI-A-1:${GW_MODE}D/" "$CMDLINE"
+fi
+grep -o 'video=HDMI-A-1:[^ ]*' "$CMDLINE" | sed 's/^/   /'
+echo "   (takes effect after a reboot)"
+
 [ -f /etc/default/jpcan ] || cat > /etc/default/jpcan <<'EOF'
 # Extra arguments for the core service ('jpcan run').
 # Truck vs simulator is the Settings switch now (/etc/default/jpcan-mode).
