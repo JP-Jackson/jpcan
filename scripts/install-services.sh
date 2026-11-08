@@ -31,7 +31,8 @@ if [ "$GW_QT" = "system" ]; then
     for p in python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtqml python3-pyside6.qtquick \
              qml6-module-qtquick qml6-module-qtquick-shapes qml6-module-qtquick-window \
              qml6-module-qtqml-workerscript qml6-module-qtqml-models qt6-qpa-plugins libqt6gui6; do
-        apt-get install -y -q "$p" >/dev/null 2>&1 || echo "WARNING: apt couldn't install $p"
+        echo "   apt: $p"
+        apt-get install -y -q --no-install-recommends "$p" >/dev/null 2>&1 || echo "WARNING: apt couldn't install $p"
     done
     sed -i 's/^include-system-site-packages = .*/include-system-site-packages = true/' "$CFG"
     sudo -u "$USER_NAME" "$VENV/bin/pip" uninstall -y -q PySide6 PySide6-Essentials PySide6-Addons shiboken6 \
