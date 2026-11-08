@@ -136,9 +136,9 @@ against FORScan or the dash.
   it, the 2026-11-08 drive booted on the 11-07 clock and jumped +6.3 h mid-log
   (`jpcan logstats` flags and skips such jumps).
 - Phone page (Phase 1.5) comes later.
-- GPU: switched to Raspberry Pi OS PySide6 6.8.2 (D29). Confirm on the Pi
-  that the journal no longer says "EGLFS failed", and check GaugeWorks CPU.
-  cage (Wayland kiosk) is the backup if EGLFS still won't start.
+- GPU: switched to Raspberry Pi OS PySide6 6.8.2 (D29), confirmed on the Pi
+  2026-11-08. EGLFS starts, and GaugeWorks uses 10-20% CPU in sim. Needs
+  `qt6-svg-plugins` (theme SVGs); Qt packages install without recommends.
 - Truck/Simulator switch is in Settings (D26).
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 

@@ -244,3 +244,7 @@ drawing a busy GUI thread can handle them late. When the watchdog fires, it
 logs the Qt touch events it saw (begin/update/end/cancel). A burst of `update`
 with no `begin` means Qt has a stuck contact. No events at all means touch
 isn't reaching Qt.
+Confirmed on the Pi on 2026-11-08: EGLFS starts and GaugeWorks uses 10-20% CPU.
+The Qt packages install with `--no-install-recommends`, which skips GTK and
+friends. That makes `qt6-svg-plugins` an explicit package, because the themes
+draw their faces and needles from SVGs.
