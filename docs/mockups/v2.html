@@ -1,0 +1,324 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- GaugeWorks v2 mockups (2026-11-08). Open v2.html?t=premium|classic&p=daily|towing|economy|trend
+     Original designs: references were used for feel only, no logos, names or copied artwork. -->
+<style>
+@font-face{font-family:B4;src:url(../../gaugeworks/themes/oem/fonts/Barlow-Regular.ttf)}
+@font-face{font-family:B5;src:url(../../gaugeworks/themes/oem/fonts/Barlow-Medium.ttf)}
+@font-face{font-family:B6;src:url(../../gaugeworks/themes/oem/fonts/Barlow-SemiBold.ttf)}
+@font-face{font-family:C5;src:url(../../gaugeworks/themes/oem/fonts/BarlowSemiCondensed-Medium.ttf)}
+@font-face{font-family:C6;src:url(../../gaugeworks/themes/oem/fonts/BarlowSemiCondensed-SemiBold.ttf)}
+html,body{margin:0;background:#000}svg{display:block}
+</style></head><body>
+<svg id="s" width="1024" height="600" viewBox="0 0 1024 600" xmlns="http://www.w3.org/2000/svg"></svg>
+<script>
+const q=new URLSearchParams(location.search),TH=q.get('t')||'premium',PG=q.get('p')||'daily';
+const V={rpm:1650,mph:65,gear:'6',boost:8.0,cool:190,trans:171,oil:205,egt:842,fuel:.70,volt:14.2,out:90,
+  inst:16.9,iat:92,tank:15.5,trip:15.1,last10:16.5,tripmi:32.5,odo:113304,range:282,vgt:48};
+const PAL={premium:{bg0:'#0c1624',bg1:'#03060b',text:'#eef3f8',dim:'#8796a8',faint:'#2a3a4f',acc:'#4fb0ff',acc2:'#1c5ea8',red:'#ff3b30',amber:'#ffb340',green:'#38d97a'},
+           classic:{bg0:'#17181b',bg1:'#060607',text:'#f4f1e6',dim:'#9fae9f',faint:'#2f3a31',acc:'#ff7a1a',acc2:'#b8460a',red:'#ff3324',amber:'#ffb000',green:'#4dff7a',tick:'#4dff7a'}};
+const C=PAL[TH];
+const rad=d=>d*Math.PI/180,P=(cx,cy,r,a)=>[cx+r*Math.cos(rad(a)),cy+r*Math.sin(rad(a))],n1=v=>(+v).toFixed(1);
+const arc=(cx,cy,r,a,b)=>{const[x0,y0]=P(cx,cy,r,a),[x1,y1]=P(cx,cy,r,b);return `M${n1(x0)},${n1(y0)} A${r},${r} 0 ${Math.abs(b-a)>180?1:0} ${b>a?1:0} ${n1(x1)},${n1(y1)}`};
+const T=(x,y,s,t,o={})=>`<text x="${n1(x)}" y="${n1(y)}" font-family="${o.f||'B6'}" font-size="${s}" fill="${o.c||C.text}" text-anchor="${o.a||'middle'}"${o.ls?` letter-spacing="${o.ls}"`:''}${o.op?` opacity="${o.op}"`:''}${o.db?` dominant-baseline="${o.db}"`:''}>${t}</text>`;
+const fmt=n=>n.toLocaleString('en-US');
+let s='';
+// ---------- shared defs
+s+=`<defs>
+<radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0" stop-color="${C.bg0}"/><stop offset="1" stop-color="${C.bg1}"/></radialGradient>
+<radialGradient id="face" cx="50%" cy="38%" r="65%"><stop offset="0" stop-color="${TH=='premium'?'#101c2c':'#16161a'}"/><stop offset="1" stop-color="${TH=='premium'?'#04070c':'#030304'}"/></radialGradient>
+<linearGradient id="chrome" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f7f9fb"/><stop offset=".22" stop-color="#7d8692"/><stop offset=".45" stop-color="#e3e7ec"/><stop offset=".7" stop-color="#3c434c"/><stop offset="1" stop-color="#c9ced6"/></linearGradient>
+<linearGradient id="chromeV" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eef1f4"/><stop offset=".5" stop-color="#5b636e"/><stop offset="1" stop-color="#c4c9d0"/></linearGradient>
+<linearGradient id="blue" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="${C.acc2}"/><stop offset="1" stop-color="${C.acc}"/></linearGradient>
+<linearGradient id="blueV" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${C.acc2}"/><stop offset="1" stop-color="${C.acc}"/></linearGradient>
+<linearGradient id="card" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16263a" stop-opacity=".9"/><stop offset="1" stop-color="#070c14" stop-opacity=".95"/></linearGradient>
+<radialGradient id="redglow" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="${C.red}" stop-opacity="0"/><stop offset="1" stop-color="${C.red}" stop-opacity=".75"/></radialGradient>
+<filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
+<filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
+<radialGradient id="hub" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9aa2ad"/><stop offset=".5" stop-color="#2b2f35"/><stop offset="1" stop-color="#08090a"/></radialGradient>
+<pattern id="carbon" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#0b0d10"/><rect width="4" height="4" fill="#15181d"/><rect x="4" y="4" width="4" height="4" fill="#15181d"/></pattern>
+<pattern id="paper" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#efe6cf"/><path d="M20,0 V20 M0,20 H20" stroke="#d9a49a" stroke-width=".8"/></pattern>
+</defs><rect width="1024" height="600" fill="url(#bg)"/>`;
+
+// ---------- helpers
+function scale(cx,cy,r,a0,sw,min,max,step,minor,o={}){let out='';const n=Math.round((max-min)/minor);
+  for(let i=0;i<=n;i++){const v=min+i*minor,a=a0+sw*(v-min)/(max-min),k=(v-min)/step,maj=Math.abs(k-Math.round(k))<1e-6,red=o.red!=null&&v>=o.red-1e-9;
+    const[x1,y1]=P(cx,cy,r,a),[x2,y2]=P(cx,cy,r-(maj?(o.ml||20):(o.nl||10)),a);
+    out+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${red?C.red:(maj?(o.mc||C.tick||C.text):(o.nc||(C.tick?C.tick+'99':C.dim)))}" stroke-width="${maj?(o.mw||4):(o.nw||2)}" stroke-linecap="round"/>`;
+    if(maj&&o.lab!==false){const[lx,ly]=P(cx,cy,r-(o.lr||44),a);out+=T(lx,ly+(o.ly||0),o.ls||30,o.fmt?o.fmt(v):v,{c:red?C.red:(o.lc||C.text),db:'central',f:o.lf||'B5'})}}
+  return out}
+function needle(cx,cy,r0,r1,a,col,w){const[x0,y0]=P(cx,cy,r0,a),[x1,y1]=P(cx,cy,r1,a);
+  return `<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="${col}" stroke-width="${w*3}" stroke-linecap="round" opacity=".45" filter="url(#glow)"/>`+
+         `<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round"/>`}
+function cneedle(cx,cy,r,a,col){const[tx,ty]=P(cx,cy,r,a),[bx1,by1]=P(cx,cy,7,a+90),[bx2,by2]=P(cx,cy,7,a-90),[tl,tly]=P(cx,cy,r*.18,a+180);
+  return `<polygon points="${n1(tx)},${n1(ty)} ${n1(bx1)},${n1(by1)} ${n1(tl)},${n1(tly)} ${n1(bx2)},${n1(by2)}" fill="${col}" stroke="#000" stroke-opacity=".4"/>`+
+         `<circle cx="${cx}" cy="${cy}" r="${Math.max(12,r*.11)}" fill="url(#hub)" stroke="#000"/>`}
+function ring(cx,cy,r,w){return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="url(#chrome)" stroke-width="${w}"/><circle cx="${cx}" cy="${cy}" r="${r-w/2-1}" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="2"/>`}
+function statusTop(o={}){return T(24,34,26,'10:10 PM',{a:'start',f:'B6'})+T(140,34,20,'Sun Nov 8',{a:'start',c:C.dim,f:'B5'})+
+  T(948,34,26,'90°F',{a:'end'})+cog(990,26)}
+function cog(x,y){let p='';for(let i=0;i<8;i++){const a=i*45;const[a1,b1]=P(x,y,13,a-10),[a2,b2]=P(x,y,13,a+10);p+=`<line x1="${n1(a1)}" y1="${n1(b1)}" x2="${n1(a2)}" y2="${n1(b2)}" stroke="${C.dim}" stroke-width="5"/>`}
+  return p+`<circle cx="${x}" cy="${y}" r="10" fill="none" stroke="${C.dim}" stroke-width="4"/>`}
+function dots(i){let o='';for(let k=0;k<4;k++)o+=`<rect x="${470+k*24}" y="584" width="${k==i?28:10}" height="6" rx="3" fill="${k==i?C.acc:C.faint}"/>`;return o}
+
+// ================= PREMIUM =================
+const pages={};
+pages.premium_daily=()=>{
+  // Tach wraps from the left dial into a bar across the top (0-1.5k on the dial, 1.5-5k on the bar).
+  const LX=210,RX=814,CY=338,R=168,TY=CY-R,BAR0=LX,BAR1=RX-R*.62,ANG0=120,ANG1=270;
+  const lin=v=>BAR0+(BAR1-BAR0)*(v-1.5)/3.5, ang=v=>ANG0+(ANG1-ANG0)*v/1.5;
+  let o=statusTop();
+  // track
+  o+=`<path d="${arc(LX,CY,R,ANG0,ANG1)} L${BAR1},${TY}" fill="none" stroke="#132235" stroke-width="22"/>`;
+  // red zone on the bar: vertical stripes 4.0-5.0
+  for(let x=lin(4.0);x<=lin(5)+.1;x+=7)o+=`<line x1="${n1(x)}" y1="${TY-11}" x2="${n1(x)}" y2="${TY+11}" stroke="${C.red}" stroke-width="3.5"/>`;
+  // fill to current rpm
+  const r=V.rpm/1000;o+=`<path d="${arc(LX,CY,R,ANG0,ANG1)} L${n1(lin(r))},${TY}" fill="none" stroke="url(#blue)" stroke-width="22" opacity=".95"/>`;
+  o+=`<line x1="${n1(lin(r))}" y1="${TY-18}" x2="${n1(lin(r))}" y2="${TY+18}" stroke="#fff" stroke-width="5" filter="url(#glow2)"/><line x1="${n1(lin(r))}" y1="${TY-18}" x2="${n1(lin(r))}" y2="${TY+18}" stroke="#fff" stroke-width="4"/>`;
+  // labels
+  [[0,ang(0)],[1,ang(1)]].forEach(([v,a])=>{const[x,y]=P(LX,CY,R-42,a);o+=T(x,y,34,v,{db:'central'});const[x1,y1]=P(LX,CY,R+11,a),[x2,y2]=P(LX,CY,R-14,a);o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="#fff" stroke-width="3"/>`});
+  [2,3,4,5].forEach(v=>{const x=lin(v);o+=T(x,TY-26,34,v,{c:v>=4?C.red:C.text});o+=`<line x1="${n1(x)}" y1="${TY-12}" x2="${n1(x)}" y2="${TY+12}" stroke="#fff" stroke-width="3"/>`});
+  for(let v=1.5;v<5;v+=.5)if(v%1)o+=`<line x1="${n1(lin(v))}" y1="${TY-6}" x2="${n1(lin(v))}" y2="${TY+6}" stroke="${C.dim}" stroke-width="2"/>`;
+  o+=T((lin(2)+lin(3))/2,TY-30,18,'RPM ×1000',{c:C.dim,f:'B5'});
+  // left dial: gear
+  o+=`<circle cx="${LX}" cy="${CY}" r="${R-26}" fill="url(#face)"/>`+ring(LX,CY,R-26,6);
+  o+=T(LX,CY-70,22,'GEAR',{c:C.dim,ls:3,f:'B5'})+T(LX,CY+52,150,V.gear)+T(LX,CY+98,30,fmt(V.rpm)+' rpm',{c:C.dim,f:'B5'});
+  // right dial: speedo
+  o+=`<circle cx="${RX}" cy="${CY}" r="${R}" fill="url(#face)"/>`+ring(RX,CY,R+4,8);
+  o+=scale(RX,CY,R-6,135,270,0,120,20,10,{ls:28,lr:42,ml:18,nl:9});
+  o+=needle(RX,CY,R-118,R-8,135+270*V.mph/120,C.acc,5);
+  o+=T(RX,CY+38,116,V.mph)+T(RX,CY+82,24,'MPH',{c:C.dim,ls:3,f:'B5'});
+  // center card
+  o+=`<rect x="400" y="212" width="224" height="300" rx="16" fill="url(#card)" stroke="#2a4260"/>`;
+  o+=T(512,252,20,'BOOST',{c:C.dim,ls:3,f:'B5'})+T(512,318,72,V.boost.toFixed(1))+T(512,346,20,'psi',{c:C.dim,f:'B5'});
+  o+=`<line x1="420" y1="366" x2="604" y2="366" stroke="#2a4260"/>`;
+  o+=T(420,402,20,'TRANS',{a:'start',c:C.dim,ls:2,f:'B5'})+T(604,410,44,V.trans+'°',{a:'end'});
+  o+=T(420,460,20,'MPG',{a:'start',c:C.dim,ls:2,f:'B5'})+T(604,470,44,V.inst.toFixed(1),{a:'end',c:C.green});
+  // bottom strip
+  o+=`<line x1="24" y1="540" x2="1000" y2="540" stroke="#1d3049"/>`;
+  o+=T(28,578,22,'ODO',{a:'start',c:C.dim,f:'B5'})+T(80,580,32,fmt(V.odo)+' mi',{a:'start'});
+  o+=T(512,580,32,'COOLANT  '+V.cool+'°',{});
+  o+=T(996,580,32,Math.round(V.fuel*100)+'%  ·  '+V.range+' mi',{a:'end'})+T(800,578,22,'FUEL',{a:'end',c:C.dim,f:'B5'});
+  return o+dots(0)};
+
+pages.premium_sport=()=>{
+  const CX=512,CY=318,R=250;let o='';
+  o+=T(24,40,28,'10:10 PM',{a:'start'})+T(1000,40,28,'90°F',{a:'end'})+cog(990,80);
+  // big tach: 0 at the bottom, clockwise, 60° per 1000 rpm
+  const A0=90,SW=300,a=v=>A0+SW*v/5;
+  o+=`<circle cx="${CX}" cy="${CY}" r="${R}" fill="url(#face)"/>`;
+  {const[p0x,p0y]=P(CX,CY,R-10,a(4)),[p1x,p1y]=P(CX,CY,R-10,a(5)),[q1x,q1y]=P(CX,CY,R-120,a(5)),[q0x,q0y]=P(CX,CY,R-120,a(4));
+   o+=`<radialGradient id="rz" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${R-10}"><stop offset=".5" stop-color="${C.red}" stop-opacity="0"/><stop offset="1" stop-color="${C.red}" stop-opacity=".7"/></radialGradient>`+
+     `<path d="M${n1(p0x)},${n1(p0y)} A${R-10},${R-10} 0 0 1 ${n1(p1x)},${n1(p1y)} L${n1(q1x)},${n1(q1y)} A${R-120},${R-120} 0 0 0 ${n1(q0x)},${n1(q0y)} Z" fill="url(#rz)"/>`}
+  o+=`<path d="${arc(CX,CY,R-14,a(4),a(5))}" stroke="${C.red}" stroke-width="10" fill="none"/>`;
+  o+=ring(CX,CY,R+8,14);
+  for(let v=0;v<=5;v+=.5){const[x1,y1]=P(CX,CY,R+20,a(v)),[x2,y2]=P(CX,CY,R+(v%1?28:38),a(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="#fff" stroke-width="${v%1?3:6}" stroke-linecap="round"/>`}
+  o+=scale(CX,CY,R-6,A0,SW,0,5,1,.25,{ls:52,lr:62,ml:22,nl:10,red:4,lf:'B6'});
+  o+=needle(CX,CY,92,R-16,a(V.rpm/1000),C.acc,7);
+  o+=T(CX,CY-34,96,V.mph)+T(CX,CY-6,22,'MPH',{c:C.dim,ls:3,f:'B5'});
+  o+=`<line x1="${CX-100}" y1="${CY+12}" x2="${CX+100}" y2="${CY+12}" stroke="#7d8da1" stroke-width="2"/>`;
+  o+=T(CX-66,CY+92,40,'D',{c:C.faint})+T(CX,CY+104,100,V.gear);
+  o+=T(CX,CY+146,26,fmt(V.rpm)+' rpm',{c:C.dim,f:'B5'})+T(CX+120,CY+196,18,'×1000 RPM',{c:C.dim,f:'B5'});
+  // side arc bars, concentric with the tach
+  const RR=468;
+  function side(a0,a1,frac,lab,val,unit,redFrac,left,top){let g='';
+    g+=`<path d="${arc(CX,CY,RR,a0,a1)}" stroke="#1a283a" stroke-width="18" fill="none"/>`;
+    const af=a0+(a1-a0)*frac;g+=`<path d="${arc(CX,CY,RR,a0,af)}" stroke="${frac>=redFrac?C.red:'#dfe6ee'}" stroke-width="18" fill="none"/>`;
+    const[rx1,ry1]=P(CX,CY,RR-14,a0+(a1-a0)*redFrac),[rx2,ry2]=P(CX,CY,RR+14,a0+(a1-a0)*redFrac);g+=`<line x1="${n1(rx1)}" y1="${n1(ry1)}" x2="${n1(rx2)}" y2="${n1(ry2)}" stroke="${C.red}" stroke-width="4"/>`;
+    const x=left?156:868,y=top?200:470;
+    g+=T(x,y-44,20,lab,{c:C.dim,ls:2,f:'B5'})+T(x,y+6,54,val,{})+T(x,y+34,20,unit,{c:C.dim,f:'B5'});return g}
+  o+=side(218,194,(V.cool-100)/160,'COOLANT',V.cool+'°','°F',(230-100)/160,true,true);
+  o+=side(146,168,(V.trans-100)/180,'TRANS',V.trans+'°','°F',(230-100)/180,true,false);
+  o+=side(322,346,V.boost/40,'BOOST',V.boost.toFixed(1),'psi',35/40,false,true);
+  o+=side(34,12,(V.oil-100)/200,'OIL',V.oil+'°','°F',(260-100)/200,false,false);
+  o+=T(24,590,22,'TRIP '+V.tripmi+' mi',{a:'start',c:C.dim,f:'B5'});
+  return o};
+
+pages.premium_economy=()=>{
+  const CX=512,CY=310,R=178,A0=140,SW=260,a=v=>A0+SW*v/5;let o='';
+  // header like a bracketed status line
+  o+=`<path d="M40,58 H330 L360,28" fill="none" stroke="#2a3a4f" stroke-width="2"/>`+T(56,46,24,'Sun Nov 8',{a:'start',c:C.dim,f:'B5'})+T(316,46,28,'10:10 PM',{a:'end'});
+  o+=`<path d="M984,58 H750 L720,28" fill="none" stroke="#2a3a4f" stroke-width="2"/>`+T(904,46,28,'90°F',{a:'end'})+cog(966,40);
+  // open arc tach
+  o+=`<path d="${arc(CX,CY,R,A0,A0+SW)}" stroke="#13263b" stroke-width="44" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,R,A0,a(V.rpm/1000))}" stroke="url(#blue)" stroke-width="44" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,R,a(4),a(5))}" stroke="${C.red}" stroke-width="44" fill="none" opacity=".55"/>`;
+  {const[x1,y1]=P(CX,CY,R-24,a(V.rpm/1000)),[x2,y2]=P(CX,CY,R+24,a(V.rpm/1000));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="#8fd0ff" stroke-width="8" stroke-linecap="round"/>`}
+  o+=`<path d="${arc(CX,CY,R-24,A0,A0+SW)}" stroke="#dfe6ee" stroke-width="3" fill="none"/>`;
+  for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,R+44,a(v));o+=T(x,y,32,v,{db:'central',c:v>=4?C.red:C.text,f:'B5'})}
+  o+=T(CX,CY-92,22,'ECONOMY',{c:C.amber,ls:4,f:'B5'});
+  o+=T(CX,CY+44,150,V.mph)+T(CX,CY+84,26,'mph',{c:C.dim,f:'B5'});
+  o+=T(CX-40,CY+164,44,'D',{c:C.faint})+T(CX+20,CY+170,64,V.gear);
+  // left: curved fuel bar
+  const LC=[560,300],LR=470,la0=152,la1=208;
+  o+=`<path d="${arc(LC[0],LC[1],LR,la0,la1)}" stroke="#13263b" stroke-width="30" fill="none"/>`;
+  o+=`<path d="${arc(LC[0],LC[1],LR,la0,la0+(la1-la0)*V.fuel)}" stroke="url(#blueV)" stroke-width="30" fill="none"/>`;
+  {const[x,y]=P(LC[0],LC[1],LR,la0+3);o+=`<line x1="${n1(x-16)}" y1="${n1(y)}" x2="${n1(x+16)}" y2="${n1(y)}" stroke="${C.red}" stroke-width="4"/>`}
+  [['E',la0],['½',(la0+la1)/2],['F',la1]].forEach(([t,an])=>{const[x,y]=P(LC[0],LC[1],LR+38,an);o+=T(x,y,26,t,{db:'central',c:C.dim,f:'B5'})});
+  o+=T(140,170,22,'FUEL',{a:'start',c:C.dim,ls:2,f:'B5'})+T(140,232,64,Math.round(V.fuel*100)+'%',{a:'start'});
+  o+=T(140,272,26,'≈ '+V.range+' mi',{a:'start',c:C.dim,f:'B5'});
+  o+=`<rect x="132" y="320" width="176" height="64" rx="10" fill="#0f1b2a"/>`+T(146,345,20,'Trip',{a:'start',c:C.dim,f:'B5'})+T(296,370,34,V.tripmi+' mi',{a:'end'});
+  o+=`<rect x="132" y="392" width="176" height="64" rx="10" fill="#0f1b2a"/>`+T(146,417,20,'Tank avg',{a:'start',c:C.dim,f:'B5'})+T(296,442,34,V.tank.toFixed(1),{a:'end'});
+  // right: instant mpg bar with tank-average marker
+  const RC=[464,300],ra0=28,ra1=-28,mpgF=V.inst/30;
+  o+=`<path d="${arc(RC[0],RC[1],LR,ra0,ra1)}" stroke="#13263b" stroke-width="30" fill="none"/>`;
+  o+=`<path d="${arc(RC[0],RC[1],LR,ra0,ra0+(ra1-ra0)*mpgF)}" stroke="${C.green}" stroke-width="30" fill="none" opacity=".9"/>`;
+  {const an=ra0+(ra1-ra0)*V.tank/30,[x,y]=P(RC[0],RC[1],LR+24,an);o+=`<polygon points="${n1(x)},${n1(y)} ${n1(x+16)},${n1(y-9)} ${n1(x+16)},${n1(y+9)}" fill="${C.acc}"/>`}
+  [['30',ra1],['15',0],['0',ra0]].forEach(([t,an])=>{const[x,y]=P(RC[0],RC[1],an?LR-40:LR+50,an);o+=T(x,y,24,t,{db:'central',c:C.dim,f:'B5'})});
+  o+=T(874,170,22,'MPG NOW',{a:'end',c:C.dim,ls:2,f:'B5'})+T(874,232,64,V.inst.toFixed(1),{a:'end',c:C.green});
+  o+=T(874,280,22,'TRIP',{a:'end',c:C.dim,ls:2,f:'B5'})+T(874,326,48,V.trip.toFixed(1),{a:'end'});
+  o+=T(874,372,22,'LAST 10 MI',{a:'end',c:C.dim,ls:2,f:'B5'})+T(874,418,48,V.last10.toFixed(1),{a:'end'});
+  // telltales
+  o+=`<line x1="80" y1="530" x2="944" y2="530" stroke="#1d3049"/>`;
+  o+=`<polygon points="430,566 446,552 446,560 458,560 458,572 446,572 446,580" fill="${C.green}" opacity=".25"/><polygon points="594,566 578,552 578,560 566,560 566,572 578,572 578,580" fill="${C.green}" opacity=".25"/>`;
+  o+=T(512,576,24,'CEL',{c:C.faint,f:'B6'})+T(350,576,24,'≡D',{c:C.faint})+T(674,576,24,'OIL',{c:C.faint});
+  return o};
+
+pages.premium_trend=()=>{let o=statusTop();
+  const chans=[['Boost','8.0 psi',C.acc,1],['RPM','1,650',C.amber,1],['Coolant','190°F'],['Trans','171°F'],['Oil','205°F'],['MPG','16.9'],['Rail','26.5 kpsi'],['VGT','48 %']];
+  chans.forEach(([n,v,c,on],i)=>{const y=60+i*58;o+=`<rect x="16" y="${y}" width="224" height="50" rx="10" fill="${on?'#132a44':'#0d1724'}" stroke="${on?c:'#1d3049'}" stroke-width="${on?2.5:1}"/>`;
+    if(on)o+=`<rect x="16" y="${y}" width="8" height="50" rx="4" fill="${c}"/>`;
+    o+=T(36,y+34,24,n,{a:'start',c:on?C.text:C.dim,f:'B5'})+T(228,y+34,24,v,{a:'end',c:on?C.text:C.dim})});
+  // chart
+  const X0=300,X1=992,Y0=150,Y1=480;o+=`<rect x="256" y="58" width="752" height="470" rx="12" fill="#08111c" stroke="#1d3049"/>`;
+  o+=T(276,100,22,'BOOST',{a:'start',c:C.acc,ls:2,f:'B5'})+T(276,140,48,'8.0',{a:'start'})+T(356,140,22,'psi',{a:'start',c:C.dim,f:'B5'});
+  o+=T(470,100,22,'RPM',{a:'start',c:C.amber,ls:2,f:'B5'})+T(470,140,48,'1,650',{a:'start'});
+  o+=T(988,100,20,'min 0.4   avg 6.2   max 18.7 psi',{a:'end',c:C.dim,f:'B5'})+T(988,132,20,'last 5 min',{a:'end',c:C.dim,f:'B5'});
+  for(let i=0;i<=5;i++){const y=Y0+(Y1-Y0)*i/5;o+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#16263a"/>`+T(X0-8,y+6,16,(25-i*5),{a:'end',c:C.acc,f:'B5'})+T(X1-4,y-6,16,fmt(4000-i*800),{a:'end',c:C.amber,f:'B5',op:.8})}
+  for(let i=0;i<=5;i++){const x=X0+(X1-X0)*i/5;o+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#16263a"/>`+T(x,Y1+22,16,i==5?'now':'-'+(5-i)+' min',{c:C.dim,f:'B5'})}
+  let b='',rp='';for(let i=0;i<=240;i++){const t=i/240,x=X0+(X1-X0)*t;
+    const boost=Math.max(.3,6+5*Math.sin(t*9)+7*Math.exp(-((t-.55)**2)/.003)+2*Math.sin(t*41)),rpm=1500+300*Math.sin(t*9+.4)+900*Math.exp(-((t-.55)**2)/.004)+60*Math.sin(t*37);
+    b+=(i?'L':'M')+n1(x)+','+n1(Y1-(Y1-Y0)*boost/25);rp+=(i?'L':'M')+n1(x)+','+n1(Y1-(Y1-Y0)*rpm/4000)}
+  o+=`<path d="${rp}" fill="none" stroke="${C.amber}" stroke-width="2.5" opacity=".9"/><path d="${b}" fill="none" stroke="${C.acc}" stroke-width="3.5"/>`;
+  // tapped cursor
+  const cx=X0+(X1-X0)*.55;o+=`<line x1="${cx}" y1="${Y0}" x2="${cx}" y2="${Y1}" stroke="#fff" stroke-dasharray="4 4"/>`+
+    `<rect x="${cx+10}" y="${Y0+6}" width="176" height="74" rx="8" fill="#0d1724" stroke="#2a4260"/>`+T(cx+22,Y0+30,18,'-2:15',{a:'start',c:C.dim,f:'B5'})+
+    T(cx+22,Y0+66,28,'18.7 psi',{a:'start',c:C.acc})+T(cx+176,Y0+66,22,'2,560',{a:'end',c:C.amber});
+  // window buttons
+  ['1 min','5 min','15 min','Drive','Pause'].forEach((t,i)=>{const x=256+i*152;o+=`<rect x="${x}" y="540" width="140" height="50" rx="10" fill="${i==1?C.acc2:'#0d1724'}" stroke="#1d3049"/>`+T(x+70,573,24,t,{c:i==1?'#fff':C.dim,f:'B5'})});
+  o+=T(128,566,20,'Tap a channel',{c:C.dim,f:'B5'})+T(128,590,20,'to add (max 2)',{c:C.dim,f:'B5'});
+  return o};
+
+// ================= CLASSIC =================
+function cdial(cx,cy,r,min,max,step,minor,a0,sw,val,o={}){let g=`<circle cx="${cx}" cy="${cy}" r="${r+10}" fill="url(#chrome)"/><circle cx="${cx}" cy="${cy}" r="${r+2}" fill="#000"/><circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#face)"/>`;
+  if(o.red!=null)g+=`<path d="${arc(cx,cy,r-6,a0+sw*(o.red-min)/(max-min),a0+sw)}" stroke="${C.red}" stroke-width="${o.bw||10}" fill="none"/>`;
+  if(o.green)g+=`<path d="${arc(cx,cy,r-6,a0+sw*(o.green[0]-min)/(max-min),a0+sw*(o.green[1]-min)/(max-min))}" stroke="${C.green}" stroke-width="${o.bw||10}" fill="none" opacity=".8"/>`;
+  g+=scale(cx,cy,r-2,a0,sw,min,max,step,minor,{ls:o.ls||Math.round(r*.17),lr:o.lr||r*.27,ml:o.ml||r*.11,nl:o.nl||r*.055,mw:o.mw||Math.max(3,r*.022),nw:Math.max(1.5,r*.01),lf:'C6',fmt:o.fmt,red:o.redLab?o.red:null});
+  if(o.label)g+=T(cx,cy+r*(o.ly||.42),Math.max(16,r*.1),o.label,{c:C.dim,ls:2,f:'C5'});
+  if(o.peak!=null){const[x,y]=P(cx,cy,r-2,a0+sw*(o.peak-min)/(max-min));g+=`<circle cx="${n1(x)}" cy="${n1(y)}" r="${Math.max(6,r*.045)}" fill="${C.amber}" stroke="#000"/>`}
+  if(o.digital)g+=o.digital;
+  g+=cneedle(cx,cy,r*.86,a0+sw*(Math.min(Math.max(val,min),max)-min)/(max-min),C.acc);
+  return g}
+function lcd(x,y,w,h,txt,size,unit){return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="#0b0a07" stroke="#4a463c"/>`+T(x+w/2-(unit?14:0),y+h/2+size*.36,size,txt,{f:'C6',c:C.text})+(unit?T(x+w-10,y+h-10,16,unit,{a:'end',c:C.dim,f:'C5'}):'')}
+pages.classic_towing=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>`;
+  o+=`<rect x="0" y="0" width="1024" height="56" fill="#141416"/><line x1="0" y1="56" x2="1024" y2="56" stroke="#3a3833"/>`;
+  o+=T(24,40,30,'6th',{a:'start',f:'C6'})+T(110,40,30,V.mph+' mph',{a:'start',f:'C6'})+T(270,40,30,fmt(V.rpm)+' rpm',{a:'start',f:'C6',c:C.dim})+T(512,40,24,'TOWING',{c:C.amber,ls:5,f:'C6'})+T(940,40,26,'10:10 PM',{a:'end',f:'C6'})+cog(990,28);
+  const cells=[['BOOST',V.boost,0,40,10,5,35,'psi',V.boost.toFixed(1),18.7],['TRANS',V.trans,100,280,40,20,230,'°F',V.trans+'°',212],['COOLANT',V.cool,100,260,40,20,230,'°F',V.cool+'°',204],['OIL',V.oil,100,300,40,20,260,'°F',V.oil+'°',221]];
+  cells.forEach(([lab,v,mn,mx,st,mi,red,unit,txt,peak],i)=>{const col=i%2,row=i>>1,x0=col*512,y0=60+row*270,cx=x0+150,cy=y0+136;
+    if(col)o+=`<line x1="512" y1="${y0+14}" x2="512" y2="${y0+256}" stroke="#2a2824"/>`;
+    o+=cdial(cx,cy,114,mn,mx,st,mi,135,270,v,{red,peak,label:mx>=1000?'°F ×100':lab,ls:22,lr:32,ml:13,nl:6,bw:7,fmt:mx>=1000?(n=>n/100):null});
+    o+=T(x0+300,cy-60,24,lab,{a:'start',c:C.dim,ls:3,f:'C5'})+T(x0+300,cy+26,96,txt,{a:'start',f:'C6'})+T(x0+302,cy+64,24,unit+'   peak '+peak+(unit=='psi'?'':'°'),{a:'start',c:C.amber,f:'C5'})});
+  return o};
+pages.classic_economy=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>`;
+  o+=T(24,40,26,'10:10 PM',{a:'start',f:'C6'})+T(940,40,26,'90°F',{a:'end',f:'C6'})+cog(990,28);
+  o+=cdial(290,330,240,0,30,5,1,135,270,V.inst,{green:[14,30],label:'MILES PER GALLON',ly:-.3,ls:42,lr:56,peak:V.tank,
+     digital:lcd(290-90,330+92,180,90,V.inst.toFixed(1),74)});
+  o+=T(290,330+212,18,'● tank average '+V.tank.toFixed(1),{c:C.amber,f:'C5'});
+  // fuel half gauge
+  const fx=790,fy=200,fr=150;o+=`<path d="${arc(fx,fy,fr+8,180,360)}" stroke="url(#chrome)" stroke-width="10" fill="none"/>`;
+  o+=`<path d="${arc(fx,fy,fr-10,180,198)}" stroke="${C.red}" stroke-width="12" fill="none"/>`+scale(fx,fy,fr,180,180,0,1,.5,.125,{lab:false,ml:20,nl:10,mw:4});
+  o+=T(fx-fr+18,fy-12,30,'E',{a:'start',f:'C6'})+T(fx+fr-18,fy-12,30,'F',{a:'end',f:'C6'})+T(fx,fy-98,18,'FUEL',{c:C.dim,ls:3,f:'C5'});
+  o+=cneedle(fx,fy,fr-14,180+180*V.fuel,C.acc);
+  o+=T(fx,fy+52,44,Math.round(V.fuel*100)+'%  ·  '+V.range+' mi',{f:'C6'});
+  [['TANK',V.tank],['TRIP',V.trip],['LAST 10',V.last10]].forEach(([l,v],i)=>{const x=580+i*144;
+    o+=`<rect x="${x}" y="300" width="132" height="150" rx="10" fill="#0b0a07" stroke="url(#chromeV)" stroke-width="3"/>`+T(x+66,334,20,l,{c:C.dim,ls:2,f:'C5'})+T(x+66,408,56,v.toFixed(1),{f:'C6'})+T(x+66,436,18,'mpg',{c:C.dim,f:'C5'})});
+  ['Fill-up','History'].forEach((t,i)=>{const x=580+i*216;o+=`<rect x="${x}" y="480" width="204" height="72" rx="12" fill="${i?'#1a1917':C.acc2}" stroke="url(#chromeV)" stroke-width="3"/>`+T(x+102,527,30,t,{f:'C6'})});
+  return o};
+pages.classic_trend=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>`;
+  // two pen readouts
+  o+=lcd(272,14,200,64,'8.0',48,'psi')+T(260,56,22,'PEN 1  BOOST',{a:'end',c:'#4aa3ff',f:'C6'});
+  o+=lcd(760,14,200,64,'171°',48,'°F')+T(748,56,22,'PEN 2  TRANS',{a:'end',c:C.red,f:'C6'});
+  // paper
+  const X0=260,X1=1004,Y0=96,Y1=520;o+=`<rect x="${X0-6}" y="${Y0-6}" width="${X1-X0+12}" height="${Y1-Y0+12}" rx="6" fill="url(#chromeV)"/><rect x="${X0}" y="${Y0}" width="${X1-X0}" height="${Y1-Y0}" fill="url(#paper)"/>`;
+  for(let i=0;i<=8;i++){const y=Y0+(Y1-Y0)*i/8;o+=`<line x1="${X0}" y1="${y}" x2="${X1}" y2="${y}" stroke="#b8665a" stroke-width="1.4"/>`}
+  for(let i=0;i<=6;i++){const x=X0+(X1-X0)*i/6;o+=`<line x1="${x}" y1="${Y0}" x2="${x}" y2="${Y1}" stroke="#b8665a" stroke-width="1.4"/>`+T(x,Y1+28,18,i==6?'now':'-'+(30-i*5)+' min',{c:C.dim,f:'C5'})}
+  let p1='',p2='';for(let i=0;i<=300;i++){const t=i/300,x=X0+(X1-X0)*t;
+    const b=Math.max(.3,7+5*Math.sin(t*7)+9*Math.exp(-((t-.7)**2)/.002)+1.6*Math.sin(t*53)),tr=150+30*t+12*Math.sin(t*5)+18*Math.exp(-((t-.72)**2)/.006);
+    p1+=(i?'L':'M')+n1(x)+','+n1(Y1-(Y1-Y0)*b/40);p2+=(i?'L':'M')+n1(x)+','+n1(Y1-(Y1-Y0)*(tr-100)/180)}
+  o+=`<path d="${p1}" fill="none" stroke="#1d4fa8" stroke-width="2.6"/><path d="${p2}" fill="none" stroke="#c0281c" stroke-width="2.6"/>`;
+  o+=`<rect x="${X1-10}" y="${Y0}" width="10" height="${Y1-Y0}" fill="#d8ccad"/>`;
+  // pen selector: chrome toggle buttons
+  ['Boost','RPM','Coolant','Trans','Oil','MPG','Rail','VGT'].forEach((t,i)=>{const y=96+i*53,on=t=='Boost'||t=='Trans';
+    o+=`<rect x="16" y="${y}" width="224" height="45" rx="8" fill="#141416" stroke="url(#chromeV)" stroke-width="${on?3:1.5}"/>`+
+       `<circle cx="42" cy="${y+22}" r="9" fill="${on?(t=='Boost'?'#4aa3ff':C.red):'#2a2824'}" stroke="#000"/>`+T(64,y+31,24,t,{a:'start',f:'C6',c:on?C.text:C.dim})});
+  ['5','15','30','Drive'].forEach((t,i)=>{const x=260+i*130;o+=`<rect x="${x}" y="552" width="118" height="42" rx="8" fill="${t=='30'?C.acc2:'#141416'}" stroke="url(#chromeV)" stroke-width="2"/>`+T(x+59,580,22,t+(t=='Drive'?'':' min'),{f:'C6'})});
+  o+=T(1000,582,20,'peak 18.7 psi  ·  212°F',{a:'end',c:C.amber,f:'C5'});
+  return o};
+
+
+// Premium Towing: aftermarket diesel-monitor look (carbon, segmented EGT arc, side data panels)
+pages.premium_towing=()=>{const CX=512,CY=300;let o=`<rect width="1024" height="600" fill="url(#carbon)"/>`;
+  const CY2='#29c4ff',sk=(x,y,sz,t,op={})=>`<g transform="translate(${x},${y}) skewX(-9)">`+T(0,0,sz,t,{f:'C6',...op})+`</g>`;
+  // center disc
+  o+=`<circle cx="${CX}" cy="${CY}" r="232" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="214" fill="none" stroke="#2a3340" stroke-width="2"/>`;
+  [[200,214],[326,340]].forEach(([a0,a1])=>{o+=`<path d="${arc(CX,CY,244,a0,a1)}" stroke="${C.red}" stroke-width="12" fill="none"/>`});
+  [[20,34],[146,160]].forEach(([a0,a1])=>{o+=`<path d="${arc(CX,CY,244,a0,a1)}" stroke="${C.red}" stroke-width="12" fill="none"/>`});
+  // segmented EGT arc: left half, bottom to top
+  const N=34,A0=110,SW=196,fr=V.boost/40;
+  for(let i=0;i<N;i++){const a0=A0+SW*i/N+1,a1=A0+SW*(i+1)/N-1,on=i/N<fr,hot=i/N>=35/40;
+    const[x0,y0]=P(CX,CY,200,a0),[x1,y1]=P(CX,CY,200,a1),[x2,y2]=P(CX,CY,152,a1),[x3,y3]=P(CX,CY,152,a0);
+    o+=`<polygon points="${n1(x0)},${n1(y0)} ${n1(x1)},${n1(y1)} ${n1(x2)},${n1(y2)} ${n1(x3)},${n1(y3)}" fill="${on?(hot?C.red:CY2):'#16202b'}"/>`}
+  o+=T(CX+20,CY-112,30,'BOOST',{f:'C6'})+T(CX+20,CY-86,20,'PSI',{c:C.dim,f:'C5'});
+  o+=sk(CX+20,CY+20,124,V.boost.toFixed(1));
+  o+=`<path d="M${CX-150},${CY+46} H${CX+196} L${CX+176},${CY+128} H${CX-110} Z" fill="#0f141b" stroke="#3a4656"/>`;
+  o+=T(CX-104,CY+98,28,'RPM',{a:'start',f:'C6',c:C.dim})+sk(CX+162,CY+112,72,fmt(V.rpm),{a:'end'});
+  o+=T(CX,CY+190,22,'TOWING',{c:C.amber,ls:6,f:'C6'})+T(CX-40,588,22,'10:10 PM',{a:'end',f:'C6'})+T(CX+40,588,22,'90°F',{a:'start',f:'C6'})+cog(CX+150,578);
+  // side panels
+  const L=[['INTAKE',V.iat,'°F'],['TRANS',V.trans,'°F'],['COOLANT',V.cool,'°F'],['OIL',V.oil,'°F']];
+  const R=[['SPEED',V.mph,'MPH'],['GEAR',V.gear,''],['RAIL',26.5,'KPSI'],['VGT',V.vgt,'%']];
+  [[L,true],[R,false]].forEach(([items,left])=>items.forEach(([lab,val,u],i)=>{const y=12+i*146,x=left?8:772,w=244,h=134;
+    const pts=left?`${x},${y} ${x+w-24},${y} ${x+w},${y+h/2} ${x+w-24},${y+h} ${x},${y+h}`:`${x+24},${y} ${x+w},${y} ${x+w},${y+h} ${x+24},${y+h} ${x},${y+h/2}`;
+    o+=`<polygon points="${pts}" fill="#06080bcc" stroke="${CY2}" stroke-width="2"/>`;
+    const cx=x+w/2+(left?-8:8);o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+98,66,val)+(u?T(cx,y+124,18,u,{c:C.dim,f:'C5'}):'')}));
+  return o};
+
+// Classic Daily: vintage pickup dash (horizontal sweep speedo, round tach, twin-gauge windows)
+pages.classic_daily=()=>{let o=`<rect width="1024" height="600" fill="#101010"/>`;
+  const G=C.green,win=(x,y,w,h,r=18)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="#050505" stroke="#c9cfc9" stroke-width="3"/>`;
+  [[24,24],[1000,24],[24,576],[1000,576],[512,24]].forEach(([x,y])=>{o+=`<circle cx="${x}" cy="${y}" r="7" fill="url(#hub)"/>`});
+  // sweep speedo
+  const X0=266,X1=758,Y0=70,Y1=300,BASE=250,TOP=150,sx=v=>X0+28+(X1-X0-56)*v/120;
+  o+=win(X0,Y0,X1-X0,Y1-Y0,26);
+  for(let v=0;v<=120;v+=5){const x=sx(v),maj=v%20==0,mid=v%10==0,lean=(x-512)*.10;
+    o+=`<line x1="${n1(x)}" y1="${maj?TOP:mid?TOP+22:TOP+40}" x2="${n1(x+lean)}" y2="${BASE}" stroke="${G}" stroke-width="${maj?6:mid?4:2.5}" stroke-linecap="round" opacity="${maj?1:.85}"/>`;
+    if(maj)o+=T(x,TOP-18,40,v,{f:'C6'})}
+  o+=`<line x1="${X0+20}" y1="${BASE+8}" x2="${X1-20}" y2="${BASE+8}" stroke="#2a2a2a" stroke-width="3"/>`;
+  const nx=sx(V.mph);o+=`<rect x="${n1(nx-6)}" y="${TOP-6}" width="12" height="${BASE-TOP+18}" rx="3" fill="${C.acc}" filter="url(#glow2)" opacity=".7"/><rect x="${n1(nx-5)}" y="${TOP-6}" width="10" height="${BASE-TOP+18}" rx="3" fill="${C.acc}"/>`;
+  o+=`<rect x="${512-70}" y="${BASE+14}" width="140" height="28" rx="4" fill="#0a1a0e" stroke="#2f4a35"/>`+T(512,BASE+36,22,fmt(V.odo),{f:'C6',c:G});
+  o+=T(X0+40,BASE+34,18,'MPH',{a:'start',c:C.dim,f:'C5',ls:2});
+  // left round: digital LCD
+  const lx=134,ly=200,rr=120;o+=`<circle cx="${lx}" cy="${ly}" r="${rr}" fill="#050505" stroke="#c9cfc9" stroke-width="3"/>`;
+  o+=`<rect x="${lx-82}" y="${ly-74}" width="164" height="148" rx="12" fill="#04140a" stroke="#1d3a24"/>`;
+  o+=T(lx,ly+8,92,V.mph,{f:'C6',c:G})+T(lx,ly+32,18,'MPH',{f:'C5',c:G,op:.8})+`<line x1="${lx-70}" y1="${ly+42}" x2="${lx+70}" y2="${ly+42}" stroke="#1d3a24"/>`+T(lx-66,ly+66,18,'GEAR',{a:'start',f:'C5',c:G,op:.8})+T(lx+66,ly+68,30,V.gear,{a:'end',f:'C6',c:G});
+  // right round: analog tach
+  const rx=890;o+=`<circle cx="${rx}" cy="${ly}" r="${rr}" fill="#050505" stroke="#c9cfc9" stroke-width="3"/>`;
+  o+=`<path d="${arc(rx,ly,rr-14,135+270*4/5,405)}" stroke="${C.red}" stroke-width="8" fill="none"/>`;
+  o+=scale(rx,ly,rr-10,135,270,0,5,1,.5,{ls:30,lr:36,ml:16,nl:8,mw:5,lf:'C6'});
+  o+=T(rx,ly+56,16,'RPM ×1000',{c:C.dim,f:'C5'})+T(rx,ly+88,26,fmt(V.rpm),{f:'C6'});
+  o+=cneedle(rx,ly,rr-16,135+270*V.rpm/5000,C.acc);
+  // twin gauge windows
+  function mini(cx,pivot,lab,lo,hi,frac,val){let g='';const r=96,a0=232,a1=308;
+    for(let i=0;i<=8;i++){const a=a0+(a1-a0)*i/8,[x1,y1]=P(cx,pivot,r,a),[x2,y2]=P(cx,pivot,r-(i%4?12:22),a);g+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${i==8&&lo!='E'?C.red:G}" stroke-width="${i%4?2.5:4.5}" stroke-linecap="round"/>`}
+    const[lx1,ly1]=P(cx,pivot,r+18,a0),[hx,hy]=P(cx,pivot,r+18,a1);g+=T(lx1,ly1,22,lo,{f:'C6'})+T(hx,hy,22,hi,{f:'C6'});
+    g+=T(cx,pivot-r-14,20,lab,{f:'C6',c:'#dfe3dc',ls:2});
+    g+=cneedle(cx,pivot,r-6,a0+(a1-a0)*frac,C.acc);g+=T(cx,pivot+44,36,val,{f:'C6'});return g}
+  o+=win(150,330,350,220)+win(524,330,350,220);
+  o+=mini(238,470,'TEMP','C','H',(V.cool-100)/160,V.cool+'°')+mini(412,470,'TRANS','C','H',(V.trans-100)/180,V.trans+'°');
+  o+=mini(612,470,'BOOST','0','40',V.boost/40,V.boost.toFixed(1))+mini(786,470,'FUEL','E','F',V.fuel,Math.round(V.fuel*100)+'%');
+  // turn lights and status
+  o+=`<polygon points="40,400 64,384 64,416" fill="${G}" opacity=".18"/><polygon points="984,400 960,384 960,416" fill="${G}" opacity=".18"/>`;
+  o+=`<circle cx="134" cy="360" r="11" fill="#3a0a14" stroke="#000"/><circle cx="890" cy="360" r="11" fill="#3a0a14" stroke="#000"/>`;
+  o+=T(70,520,24,'10:10',{f:'C6',c:G})+T(70,548,18,'PM',{f:'C5',c:C.dim})+T(954,520,24,'90°F',{f:'C6',c:G})+cog(954,556);
+  return o};
+
+s+=(pages[TH+'_'+PG]||(()=>T(512,300,40,'no page '+TH+'_'+PG)))();
+document.getElementById('s').innerHTML=s;
+</script></body></html>

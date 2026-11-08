@@ -20,6 +20,29 @@ Fonts come from Google Fonts (all OFL); the Pi themes will bundle them.
 `current_themes.png` (2026-11-08) shows Premium, Classic and Classic refined
 on all four pages before the theme rework. Only Daily differs between themes.
 
+## v2 theme mockups (2026-11-08)
+
+The rework keeps two themes, Premium and Classic, and each theme gets its own
+layout on every page. Numbers are big: the main readouts are 100 px or more,
+values 45 px or more, and no label is under 16 px. Render with
+`v2.html?t=premium|classic&p=<page>`. The renders are in `v2/` and the
+overview is `v2/sheet.png`.
+
+| Theme | Page | Based on |
+|---|---|---|
+| Premium | Daily | wide twin-dial cluster: tach wraps from the left dial into a top bar, big gear and speed, center card |
+| Premium | Sport | single big center tach, speed and gear inside, red-zone glow, side arc bars |
+| Premium | Towing | diesel-monitor style: carbon, segmented boost arc, 8 big data panels |
+| Premium | Economy | modern digital: open arc tach around a huge speed, curved fuel bar and range, MPG bar |
+| Premium | Trend | pick up to 2 channels, 1/5/15 min or Drive window, tap the chart for a cursor |
+| Classic | Daily | vintage pickup: horizontal sweep speedo, round LCD and tach, twin-gauge windows, green lighting |
+| Classic | Towing | four big analog gauges, each with a big number and a peak marker |
+| Classic | Economy | big analog MPG gauge with a tank-average marker, fuel gauge, tank/trip/last-10 boxes |
+| Classic | Trend | paper strip-chart recorder with two pens |
+
+EGT isn't used: the truck's EGT reads a fixed placeholder (deleted), so boost,
+oil and intake temperature take its place.
+
 ## Reference styles JP liked (for later themes)
 
 Saved 2026-11-07 for detail and feel only. Any theme built from these must be
