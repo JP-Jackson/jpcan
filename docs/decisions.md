@@ -161,3 +161,15 @@ Only one non-fast read happens per cycle, most overdue first, and PIDs that
 share a request come free with it. The diagnostic background read uses the
 slot only when nothing else is due. That leaves about 5 requests per cycle on
 the truck, against 6 before plus a 12-request burst every second.
+
+## D24. Premium theme: an OEM-style skin with bundled fonts
+The first theme built as a full skin (`themes/oem/qml`). Static art (chrome
+bezels, faces, ticks, numbers) is painted once with Canvas. Only the light
+trail (a QtQuick.Shapes conical gradient) and the needles move, and there's a
+key-on needle sweep. Fonts are Barlow and Barlow Semi Condensed under the OFL;
+the license is in `themes/oem/fonts/OFL.txt`, and the app registers every
+`themes/*/fonts/*.ttf` at startup. Pages now carry gauge configs for their
+tile channels (`gauges`), so a skin can draw a tile as a dial or bar (fuel
+sub-dial, oil bar). The OEM top bar (`style.topBar: "oem"`) shows the time
+with the long date, telltales and outside temp, and moves the page dots to the
+bottom. All designs are original: no OEM or aftermarket logos or trade dress.

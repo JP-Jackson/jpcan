@@ -89,15 +89,39 @@ against FORScan or the dash.
   verified 2026-11-07: odometer, outside temp, fuel, RPM, boost, rail, VGT.
   Truck is off-road (DEF/EGR cooler removed, tuned): EGT and coolant2 read
   fixed placeholder values.
-- **1 (current):** core service + MQTT + SQLite logging + trip computer (done);
-  GaugeWorks on the 7" (tach, speed, boost psig, coolant, trans, VGT, gear,
-  instant/avg MPG, outside, oil, battery, fuel, CEL).
+- **1 (current):** core service, MQTT, SQLite logging and the trip computer
+  are done, with fill-up log, correction factor and fuel-history edits.
+  GaugeWorks on the HDMI screen is also done: pages, press-and-hold slot
+  picker, USB export, CEL banner and themes. The Premium theme is an
+  OEM-style skin with chrome dials, a centre economy/engine card, long date
+  and time, and telltales. First drive 2026-11-07 showed RPM lag, so polling
+  now uses tiers (D23); retest on the next drive.
 - 1.5: Phone web dashboard (view-only) over mosquitto websockets plus a Pi
   hotspot on the road.
 - 2: EGT1-4, rail pressure, soot, regen, trans temp, alarms, trailer layout.
 - 3: Theme editor, more themes, round screens (Pi HDMI or ESP32).
 - 4: Power: buck converter, ignition sense, safe shutdown, systemd, fast boot.
 - 5: MQTT/Home Assistant sync, maintenance reminders.
+
+## Open items
+
+- Retest RPM smoothness on the truck with the D23 polling tiers. If it's still
+  slow, try STN multi-PID Mode 01 batching (up to 6 PIDs per request).
+- Find the 6R140 TCM gear DID with `jpcan didscan`/`didwatch` on a drive.
+  Until then the gear is estimated (D17).
+- Turn signal and headlight telltales are wired to optional channels
+  `turn_left`, `turn_right`, `headlights` and `high_beam`. They need body
+  module (BCM) Mode 22 DIDs that haven't been found yet, so they stay dim
+  until then.
+- Premium theme: check the direction of the light-trail fade on the real
+  screen.
+- Offered, not built: a Truck/Simulator switch in Settings, which needs a
+  scoped sudo rule to restart `jpcan-core`.
+- A screen upgrade is under consideration: 10.1" 1280x800 IPS HDMI with
+  capacitive touch, ideally ~900 nits for daylight. GaugeWorks scales to it.
+- The Pi 5 clock needs the RTC coin battery to keep time off Wi-Fi.
+- Phone page (Phase 1.5) comes later.
+- Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
 ## Working style
 

@@ -111,7 +111,8 @@ Plug the 7" into **HDMI0** (next to USB-C) and its touch USB into the Pi.
 
 With no adapter it shows "No adapter... Plugged in?"; with the key off it
 shows "Key on?". For a bench demo, set `JPCAN_ARGS="--sim"` in
-`/etc/default/jpcan`, then run:
+`/etc/default/jpcan`. Set it back to `JPCAN_ARGS=""` for the truck. Either
+way, then run:
 ```bash
 sudo systemctl restart jpcan-core
 ```
