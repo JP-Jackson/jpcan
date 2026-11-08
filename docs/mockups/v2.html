@@ -289,7 +289,8 @@ pages.classic_trend=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>
 
 // Premium Towing: aftermarket diesel-monitor look (carbon, segmented EGT arc, side data panels)
 pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
-  const rpm=+(q.get('rpm')||V.rpm),bst=+(q.get('boost')||V.boost),RMAX=+(q.get('rmax')||3200),BMAX=+(q.get('bmax')||28),rHot=rpm>=RMAX,bHot=bst>=BMAX;
+  const rpm=+(q.get('rpm')||V.rpm),bst=+(q.get('boost')||V.boost),RMAX=+(q.get('rmax')||3200),BMAX=+(q.get('bmax')||28),rHot=rpm>=RMAX,bHot=bst>=BMAX,OFF=q.get('blink')==='0';
+  const hotC=on=>on&&OFF?'#5a1a20':C.red;
   const ACCS={cyan:['#29c4ff','#8fe3ff','#1b78c8','#0d3d73','#5fd4ff'],green:['#2fe37a','#9dffc4','#169a4e','#0a4424','#6af2a2'],
     orange:['#ff8a1e','#ffc48a','#c4560a','#5a2604','#ffab5c'],red:['#ff3b4f','#ff9aa5','#b0182a','#4d0912','#ff6b7a'],
     purple:['#a66bff','#d6bdff','#6b33c4','#2e1557','#c09bff'],white:['#e8eef5','#ffffff','#8c96a3','#353b43','#f4f8fb']};
@@ -321,13 +322,13 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
   o+=`<circle cx="${CX}" cy="${CY}" r="${RD}" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="${RD-14}" fill="none" stroke="#2a3340" stroke-width="2"/>`;
   const A0=140,SW=260;
   // light trails behind both needles (drawn on the face, under the scales)
-  o+=trail(182,RD-14,A0,A0+SW*rpm/5000,rHot?C.red:ACC[0],rHot?.95:.75,'trO')+trail(104,166,A0,A0+SW*bst/40,bHot?C.red:SEC,bHot?.95:.7,'trI');
+  o+=trail(182,RD-14,A0,A0+SW*rpm/5000,rHot?C.red:ACC[0],rHot?(OFF?.12:.95):.75,'trO')+trail(104,166,A0,A0+SW*bst/40,bHot?C.red:SEC,bHot?(OFF?.12:.95):.7,'trI');
   // outer scale: RPM with a needle
   const RO=230,ar=v=>A0+SW*v/5;
   o+=`<path d="${arc(CX,CY,RO+10,A0,A0+SW)}" stroke="${ACC[0]}" stroke-opacity=".35" stroke-width="2" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,RO,ar(RMAX/1000),ar(5))}" stroke="${C.red}" stroke-width="22" fill="none" opacity=".55"/>`;
-  for(let v=0;v<=5;v+=.25){const maj=v%1==0,[x1,y1]=P(CX,CY,RO+11,ar(v)),[x2,y2]=P(CX,CY,RO-(maj?11:2),ar(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v*1000>=RMAX?C.red:'#e9f1f8'}" stroke-width="${maj?4:2}"/>`}
-  for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,RO-32,ar(v));o+=T(x,y,26,v,{db:'central',c:v*1000>=RMAX?C.red:C.text,f:'C6'})}
+  o+=`<path d="${arc(CX,CY,RO+9,ar(RMAX/1000),ar(5))}" stroke="${C.red}" stroke-width="5" fill="none" opacity=".45"/>`;
+  for(let v=0;v<=5;v+=.25){const maj=v%1==0,[x1,y1]=P(CX,CY,RO+11,ar(v)),[x2,y2]=P(CX,CY,RO-(maj?11:2),ar(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v*1000>=RMAX?'#ff8a94':'#e9f1f8'}" stroke-width="${maj?4:2}"/>`}
+  for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,RO-32,ar(v));o+=T(x,y,26,v,{db:'central',c:v*1000>=RMAX?'#ff8a94':C.text,f:'C6'})}
   function wedge(r0,r1,an,w,col,lite){const[bx1,by1]=P(CX,CY,r0,an-w),[bx2,by2]=P(CX,CY,r0,an+w),[tx,ty]=P(CX,CY,r1,an),[mx,my]=P(CX,CY,r0+(r1-r0)*.35,an);
     return `<polygon points="${n1(bx1)},${n1(by1)} ${n1(tx)},${n1(ty)} ${n1(bx2)},${n1(by2)}" fill="${col}" opacity=".8" filter="url(#glowU)"/>`+
       `<polygon points="${n1(bx1)},${n1(by1)} ${n1(tx)},${n1(ty)} ${n1(bx2)},${n1(by2)}" fill="${col}" filter="url(#nshadow)"/>`+
@@ -335,35 +336,35 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
   function limitMark(r,an,out){const[x0,y0]=P(CX,CY,r+(out?16:-16),an),[x1,y1]=P(CX,CY,r+(out?4:-4),an),[a1,b1]=P(CX,CY,r+(out?16:-16),an-2.2),[a2,b2]=P(CX,CY,r+(out?16:-16),an+2.2);
     return `<polygon points="${n1(a1)},${n1(b1)} ${n1(x1)},${n1(y1)} ${n1(a2)},${n1(b2)}" fill="${C.red}" stroke="#fff" stroke-width="1.5"/>`}
   o+=limitMark(RO+12,ar(RMAX/1000),true);
-  o+=wedge(RO+14,RO-34,ar(rpm/1000),3.4,rHot?C.red:ACC[0],rHot?'#ffd0d4':ACC[1]);
+  o+=wedge(RO-12,RO+12,ar(rpm/1000),2.0,rHot?hotC(1):ACC[0],rHot?(OFF?'#5a1a20':'#ffd0d4'):ACC[1]);
   // inner scale: BOOST with its own needle
   const RI=172,ab=v=>A0+SW*v/40;
   o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,RI,ab(BMAX),ab(40))}" stroke="${C.red}" stroke-width="12" fill="none" opacity=".6"/>`;
-  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=BMAX?C.red:SEC}" stroke-width="${maj?3:1.6}"/>`}
-  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=BMAX?C.red:SEC,f:'C6'})}
+  o+=`<path d="${arc(CX,CY,RI+4,ab(BMAX),ab(40))}" stroke="${C.red}" stroke-width="4" fill="none" opacity=".45"/>`;
+  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=BMAX?'#ff8a94':SEC}" stroke-width="${maj?3:1.6}"/>`}
+  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=BMAX?'#ff8a94':SEC,f:'C6'})}
   o+=limitMark(RI-8,ab(BMAX),false);
-  o+=wedge(RI+9,RI-30,ab(bst),4.4,bHot?C.red:SEC,bHot?'#ffd0d4':'#fff3d6');
+  o+=wedge(RI-10,RI+10,ab(bst),2.8,bHot?hotC(1):SEC,bHot?(OFF?'#5a1a20':'#ffd0d4'):'#fff3d6');
   // speed, big; RPM digits with boost under them
   o+=sk(CX-6,CY+20,156,V.mph)+T(CX,CY+48,22,'MPH',{c:C.dim,ls:4,f:'C5'});
   o+=`<rect x="${CX-96}" y="${CY+60}" width="192" height="88" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX,CY+168,15,'RPM ×1000  ·  BOOST psi',{c:C.dim,f:'C5'});
-  o+=T(CX-84,CY+86,17,'RPM',{a:'start',c:C.dim,f:'C5'})+T(CX+84,CY+96,38,fmt(rpm),{a:'end',f:'C6',c:rHot?C.red:C.text});
+  o+=T(CX-84,CY+86,17,'RPM',{a:'start',c:C.dim,f:'C5'})+T(CX+84,CY+96,38,fmt(rpm),{a:'end',f:'C6',c:rHot?hotC(1):C.text});
   o+=`<line x1="${CX-84}" y1="${CY+106}" x2="${CX+84}" y2="${CY+106}" stroke="#22364d"/>`;
-  o+=T(CX-84,CY+134,17,'BOOST',{a:'start',c:SEC,f:'C5'})+T(CX+84,CY+138,30,bst.toFixed(1)+' psi',{a:'end',f:'C6',c:bHot?C.red:SEC});
+  o+=T(CX-84,CY+134,17,'BOOST',{a:'start',c:SEC,f:'C5'})+T(CX+84,CY+138,30,bst.toFixed(1)+' psi',{a:'end',f:'C6',c:bHot?hotC(1):SEC});
   // gear below the circle
   o+=`<rect x="${CX-62}" y="${CY+182}" width="124" height="60" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX-48,CY+219,18,'GEAR',{a:'start',c:C.dim,f:'C5',ls:2})+T(CX+46,CY+229,48,V.gear,{a:'end',f:'C6'});
   // Premium vertical bar: outline frame, red zone fading down, fill fading down from a bright top edge, pointer wedge,
   // dividers, tube shading, scale numbers, and this drive's min-max as a bracket outside the frame.
   let RB=0;
   function rbar(x,y,h,mn,mx,red,lo,hi,now,o2={}){const W=24,left=o2.left!==false,Y=v=>y+h-h*(Math.min(Math.max(v,mn),mx)-mn)/(mx-mn);
-    const id='rb'+(RB++),hot=red!=null&&now>=red,col=hot?C.red:CY2,yn=Y(now);let g='';
+    const id='rb'+(RB++),hot=red!=null&&now>=red,col=hot?C.red:CY2,yn=Y(now);let g='';const dimHot=hot&&OFF;
     g+=`<defs><linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hot?'#ff5a6e':ACC[4]}"/><stop offset=".12" stop-color="${col}"/><stop offset=".6" stop-color="${hot?'#a8152a':ACC[2]}" stop-opacity=".9"/><stop offset="1" stop-color="${hot?'#4a0a14':ACC[3]}" stop-opacity=".75"/></linearGradient>
       <linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b5c" stop-opacity=".85"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/></linearGradient>
       <linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".32" stop-color="#fff" stop-opacity=".18"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs>`;
     g+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" fill="#05080c"/>`;
     if(red!=null){const yr=Y(red);g+=`<rect x="${x}" y="${y}" width="${W}" height="${n1(yr-y+18)}" fill="url(#${id}r)"/>`+
       `<line x1="${left?x+W:x}" y1="${y}" x2="${left?x+W:x}" y2="${n1(yr)}" stroke="#ff4d6a" stroke-width="2.5"/>`}
-    g+=`<rect x="${x}" y="${n1(yn)}" width="${W}" height="${n1(y+h-yn)}" fill="url(#${id}f)"/>`;
+    g+=`<rect x="${x}" y="${n1(yn)}" width="${W}" height="${n1(y+h-yn)}" fill="url(#${id}f)"${dimHot?' opacity=".2"':''}/>`;
     g+=`<line x1="${left?x+W:x}" y1="${n1(yn)}" x2="${left?x+W:x}" y2="${y+h}" stroke="${col}" stroke-width="2" opacity=".9"/>`;
     for(let k=1;k<4;k++)g+=`<line x1="${x}" y1="${n1(y+h*k/4)}" x2="${x+W}" y2="${n1(y+h*k/4)}" stroke="#fff" stroke-opacity=".12"/>`;
     g+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" fill="url(#${id}t)"/>`;
@@ -381,7 +382,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
     // this drive's min-max bracket outside the frame
     if(lo!=null){const bxx=left?fx-8:fx+8,yh=Y(hi),yl=Y(lo);g+=`<path d="M${bxx+(left?5:-5)},${n1(yh)} H${bxx} V${n1(yl)} H${bxx+(left?5:-5)}" fill="none" stroke="${ACC[1]}" stroke-width="2.5"/>`}
     return g}
-  const L=[['INTAKE',V.iat,'°F',[0,200,150,70,118]],['TRANS',V.trans,'°F',[100,280,230,150,212]],['COOLANT',V.cool,'°F',[100,260,230,180,204]],['OIL',V.oil,'°F',[100,300,260,190,221]]];
+  const L=[['INTAKE',V.iat,'°F',[0,200,150,70,118]],['TRANS',+(q.get('trans')||V.trans),'°F',[100,280,230,150,Math.max(212,+(q.get('trans')||0))]],['COOLANT',V.cool,'°F',[100,260,230,180,204]],['OIL',V.oil,'°F',[100,300,260,190,221]]];
   const Rr=[['FUEL',70,'%',[0,100,null,68,81]],['LOAD',42,'%',[0,100,null,18,96]],['RAIL',26.5,'KPSI',[0,30,null,5,29]],['VGT',null,'',null]];
   [[L,true],[Rr,false]].forEach(([items,left])=>items.forEach(([lab,val,u,rng],i)=>{const w=228,h=126,y=56+i*(h+9),x=left?6:1018-w;
     const pts=left?`${x},${y} ${x+w-24},${y} ${x+w},${y+h/2} ${x+w-24},${y+h} ${x},${y+h}`:`${x+24},${y} ${x+w},${y} ${x+w},${y+h} ${x+24},${y+h} ${x},${y+h/2}`;
@@ -397,7 +398,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
     if(lab=='GEAR'){o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+106,74,val);
       for(let g=1;g<=6;g++){const py=y+h-14-g*17;o+=`<rect x="${bx}" y="${py}" width="12" height="12" rx="3" fill="${g<=+val?CY2:'#16202b'}"${g==+val?' filter="url(#glow2)"':''}/>`}return}
     const hot=rng&&rng[2]!=null&&val>=rng[2];
-    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+94,62,val,{c:hot?C.red:C.text})+T(cx,y+118,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
+    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+94,62,val,{c:hot?hotC(1):C.text})+T(cx,y+118,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
     if(rng)o+=rbar(bx,y+14,h-28,rng[0],rng[1],rng[2],rng[3],rng[4],val,{left});
 }));
   if(q.get('limits')){o+=`<rect width="1024" height="600" fill="#000" opacity=".72"/><rect x="172" y="90" width="680" height="420" rx="18" fill="#0b131d" stroke="${CY2}" stroke-width="2"/>`;
