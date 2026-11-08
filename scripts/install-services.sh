@@ -20,18 +20,52 @@ apt-get install -y -q mosquitto mosquitto-clients fbset \
 # GLib was renamed for the 64-bit time_t transition (Trixie); accept either name.
 apt-get install -y -q libglib2.0-0t64 >/dev/null 2>&1 || apt-get install -y -q libglib2.0-0 >/dev/null
 systemctl enable --now mosquitto >/dev/null
-sudo -u "$USER_NAME" "$VENV/bin/pip" install -q -e "$REPO[ui]"
-# Fail loudly if Qt is missing a system library (GaugeWorks would crash-loop).
-# Only the pieces GaugeWorks loads (EGLFS, no desktop); X11/Wayland libs are irrelevant.
-QT="$(echo "$VENV"/lib/python3*/site-packages/PySide6/Qt)"
-MISSING="$(ldd "$QT"/lib/libQt6Core.so.6 "$QT"/lib/libQt6Gui.so.6 "$QT"/lib/libQt6Qml.so.6 \
-    "$QT"/lib/libQt6Quick.so.6 "$QT"/lib/libQt6EglFSDeviceIntegration.so.6 \
-    "$QT"/plugins/platforms/libqeglfs.so "$QT"/plugins/platforms/libqlinuxfb.so \
-    "$QT"/plugins/egldeviceintegrations/libqeglfs-kms-integration.so \
-    2>/dev/null | grep 'not found' | sort -u)"
-if [ -n "$MISSING" ]; then echo "WARNING: Qt is missing system libraries:"; echo "$MISSING"; fi
-sudo -u "$USER_NAME" "$VENV/bin/python" -c "from PySide6.QtGui import QGuiApplication" \
-    && echo "Qt import OK" || echo "WARNING: PySide6 import failed; see above"
+# Qt for GaugeWorks (D29). Default "system": Raspberry Pi OS's PySide6 from apt,
+# whose Qt has the EGLFS KMS/GBM GPU path (the pip wheel lacks
+# libQt6EglFsKmsGbmSupport, so it could only draw with the CPU).
+# GW_QT=pip goes back to the pip wheel.
+GW_QT="${GW_QT:-system}"
+CFG="$VENV/pyvenv.cfg"
+if [ "$GW_QT" = "system" ]; then
+    echo "== Qt: Raspberry Pi OS PySide6 (GPU)"
+    for p in python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtqml python3-pyside6.qtquick \
+             qml6-module-qtquick qml6-module-qtquick-shapes qml6-module-qtquick-window \
+             qml6-module-qtqml-workerscript qml6-module-qtqml-models qt6-qpa-plugins libqt6gui6; do
+        apt-get install -y -q "$p" >/dev/null 2>&1 || echo "WARNING: apt couldn't install $p"
+    done
+    sed -i 's/^include-system-site-packages = .*/include-system-site-packages = true/' "$CFG"
+    sudo -u "$USER_NAME" "$VENV/bin/pip" uninstall -y -q PySide6 PySide6-Essentials PySide6-Addons shiboken6 \
+        >/dev/null 2>&1 || true
+    sudo -u "$USER_NAME" "$VENV/bin/pip" install -q -e "$REPO"
+else
+    echo "== Qt: pip wheel (CPU drawing only)"
+    sed -i 's/^include-system-site-packages = .*/include-system-site-packages = false/' "$CFG"
+    sudo -u "$USER_NAME" "$VENV/bin/pip" install -q -e "$REPO[ui]"
+fi
+# Fail loudly if the pieces GaugeWorks loads are missing (it would crash-loop or
+# fall back to the CPU): EGLFS + KMS integration (GPU), linuxfb (fallback),
+# evdevtouch (touch). X11/Wayland are irrelevant.
+QTINFO="$(sudo -u "$USER_NAME" "$VENV/bin/python" -c "import PySide6
+from PySide6.QtCore import QLibraryInfo as L
+print(PySide6.__version__, L.path(L.LibraryPath.PluginsPath))" 2>/dev/null)" \
+    || { echo "WARNING: PySide6 import failed"; QTINFO=""; }
+if [ -n "$QTINFO" ]; then
+    PLUG="${QTINFO#* }"
+    echo "   PySide6 ${QTINFO%% *}, plugins in $PLUG"
+    for f in platforms/libqeglfs.so egldeviceintegrations/libqeglfs-kms-integration.so \
+             platforms/libqlinuxfb.so generic/libqevdevtouchplugin.so; do
+        if [ ! -e "$PLUG/$f" ]; then echo "WARNING: missing Qt plugin $f"; continue; fi
+        MISSING="$(ldd "$PLUG/$f" 2>/dev/null | grep 'not found' | sort -u)"
+        if [ -n "$MISSING" ]; then echo "WARNING: $f is missing libraries:"; echo "$MISSING"; fi
+    done
+    # End to end: render the Premium theme offscreen; QML errors make it exit non-zero.
+    if sudo -u "$USER_NAME" env QT_QPA_PLATFORM=offscreen timeout 90 "$VENV/bin/gaugeworks" \
+            --demo cruise --theme oem --screenshot /tmp/gaugeworks-check.png >/tmp/gaugeworks-check.log 2>&1; then
+        echo "   GaugeWorks render check OK"
+    else
+        echo "WARNING: GaugeWorks render check failed; see /tmp/gaugeworks-check.log"
+    fi
+fi
 
 echo "== permissions"
 # GaugeWorks' Shut Down button: allow exactly 'systemctl poweroff', nothing else.

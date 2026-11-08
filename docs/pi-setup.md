@@ -71,6 +71,8 @@ git clone -b phase0 https://github.com/JP-Jackson/jpcan.git && cd jpcan
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e .
 ```
+GaugeWorks' Qt comes later from `install-services.sh`: it installs Raspberry
+Pi OS's PySide6 from apt (it has the GPU path) and lets the venv see it (D29).
 Bench test with no truck (simulator):
 ```bash
 .venv/bin/jpcan live --sim

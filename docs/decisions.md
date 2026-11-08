@@ -217,3 +217,16 @@ GaugeWorks then centres its 600-tall layout, 84 px low, and the panel shows
 only the top 600 lines, so the bottom gets cut. `install-services.sh` adds
 `video=HDMI-A-1:1024x600@60D` to `cmdline.txt` (`GW_MODE` overrides it for
 another screen, such as the 10.1" 1280x800).
+
+## D29. GaugeWorks uses Raspberry Pi OS's PySide6 (GPU), not the pip wheel
+The pip PySide6 wheel ships the EGLFS KMS plugin without
+`libQt6EglFsKmsGbmSupport.so.6`, so on the Pi, EGLFS failed and GaugeWorks
+always fell back to linuxfb with CPU drawing (confirmed in the journal
+2026-11-08). `install-services.sh` now installs PySide6 6.8.2 and the Qt
+plugins and QML modules from apt. It turns on the venv's
+`include-system-site-packages` and removes the venv's own PySide6. Everything
+else stays in the venv from pip. Before switching, the full test suite and
+every theme were checked on PySide6 6.8.2. The install script checks the
+EGLFS, KMS, linuxfb and evdevtouch plugins and does an offscreen render of the
+Premium theme. `GW_QT=pip` goes back to the wheel. The linuxfb fallback in the
+launcher stays as a safety net.

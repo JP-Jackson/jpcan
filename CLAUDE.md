@@ -62,7 +62,8 @@ Every byte sent to the adapter goes through `core/guard.py::RequestGuard`, via
   converts them, and Imperial/Metric is a setting.
 - Shift state is per profile (`shift.enabled`, `shift.rpm`).
 - UI is PySide6 + QML (Qt), EGLFS/linuxfb, with resolution-independent
-  layouts.
+  layouts. On the Pi, PySide6 comes from apt (Raspberry Pi OS, Qt 6.8) for the
+  GPU path; the pip wheel can't do EGLFS KMS (D29).
 
 ## Layout
 
@@ -105,12 +106,10 @@ against FORScan or the dash.
 
 ## Open items
 
-- Touch lockups: root cause found and fixed (D27). The launcher pointed Qt's
-  mouse handler at /dev/null, which spun at 100% CPU. Confirm on the Pi. The
-  D25 watchdog and persistent journal stay as backstops.
-- Picture shifted down with the bottom cut off: the HDMI framebuffer was
-  1024x768 because the screen was plugged in after boot. Fixed by locking the
-  mode on the kernel command line (D28). Needs a reboot to confirm.
+- Touch lockups: fixed (D27), confirmed on the Pi bench 2026-11-08. The D25
+  watchdog and persistent journal stay as backstops.
+- Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
+  Pi bench 2026-11-08.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
   there was the old poller.
 - Retest RPM smoothness on the truck with the D23 polling tiers. If it's still
@@ -129,12 +128,9 @@ against FORScan or the dash.
   it, the 2026-11-08 drive booted on the 11-07 clock and jumped +6.3 h mid-log
   (`jpcan logstats` flags and skips such jumps).
 - Phone page (Phase 1.5) comes later.
-- GPU: the PySide6 wheel lacks `libQt6EglFsKmsGbmSupport.so.6`, so EGLFS
-  probably can't load on the Pi and GaugeWorks falls back to linuxfb with
-  software rendering. Confirm in the journal, then pick a fix with JP.
-  Plan if confirmed: Raspberry Pi OS PySide6 6.8.2 from apt (venv with system
-  site-packages). All tests and every theme pass on 6.8.2. cage (Wayland
-  kiosk) is the backup.
+- GPU: switched to Raspberry Pi OS PySide6 6.8.2 (D29). Confirm on the Pi
+  that the journal no longer says "EGLFS failed", and check GaugeWorks CPU.
+  cage (Wayland kiosk) is the backup if EGLFS still won't start.
 - Truck/Simulator switch is in Settings (D26).
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
