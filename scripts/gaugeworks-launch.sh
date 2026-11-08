@@ -49,14 +49,20 @@ EOF
 export QT_QPA_EGLFS_KMS_CONFIG="$RUNDIR/gaugeworks-kms.json"
 export QT_QPA_EGLFS_ALWAYS_SET_MODE=1
 export QT_QPA_EGLFS_HIDECURSOR=1
-export QT_QPA_EGLFS_NO_LIBINPUT=1            # evdev: lets us pick ONE touch device
-export QT_QPA_FB_NO_LIBINPUT=1               # same for the linuxfb fallback
-# One handler only: eglfs/linuxfb read this themselves. (Also loading the
-# evdevtouch generic plugin gave a second handler on the same device.)
-export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="${TOUCH}"
-export QT_QPA_EVDEV_MOUSE_PARAMETERS="/dev/null"
-export GAUGEWORKS_TOUCH="${TOUCH}"           # touch watchdog (restarts us if touch dies)
-[ -z "$TOUCH" ] && unset QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS GAUGEWORKS_TOUCH
+# Input: turn OFF Qt's built-in handlers (mouse, keyboard, touch, libinput) and
+# load exactly one evdev touch handler on the HDMI screen's touch device.
+# Never point a handler at /dev/null to "disable" it: it reads EOF forever and
+# Qt spins at 100% CPU logging "evdevmouse: Got EOF" (the touch lockups, D27).
+unset QT_QPA_EVDEV_MOUSE_PARAMETERS QT_QPA_EVDEV_KEYBOARD_PARAMETERS QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS
+if [ -n "$TOUCH" ]; then
+    export QT_QPA_EGLFS_DISABLE_INPUT=1
+    export QT_QPA_FB_DISABLE_INPUT=1         # same for the linuxfb fallback
+    export QT_QPA_GENERIC_PLUGINS="evdevtouch:${TOUCH}"
+    export GAUGEWORKS_TOUCH="${TOUCH}"       # touch watchdog (restarts us if touch dies)
+else
+    # No USB touch: let Qt find whatever input there is.
+    unset QT_QPA_EGLFS_DISABLE_INPUT QT_QPA_FB_DISABLE_INPUT QT_QPA_GENERIC_PLUGINS GAUGEWORKS_TOUCH
+fi
 
 start=$(date +%s)
 QT_QPA_PLATFORM=eglfs "$GW" "$@"

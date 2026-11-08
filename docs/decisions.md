@@ -199,3 +199,13 @@ still covers every byte. In sim mode, a yellow SIMULATOR badge stays on screen
 in every theme, so sim numbers can't pass for real ones. `JPCAN_ARGS` in
 `/etc/default/jpcan` is for other flags and should no longer carry `--sim`.
 The Settings rows now scroll, because they no longer fit the panel.
+
+## D27. Touch lockups: never point a Qt input handler at /dev/null
+The real cause of the touch lockups. The launcher used to "disable" the evdev
+mouse with `QT_QPA_EVDEV_MOUSE_PARAMETERS=/dev/null`. Qt opens it anyway,
+reads EOF forever and logs "evdevmouse: Got EOF" in a tight loop: 260k lines
+in 2 s and one core at 100% (reproduced). The flood into journald starves
+input. Now, when the USB touch is found, the launcher turns off Qt's built-in
+input (`QT_QPA_EGLFS_DISABLE_INPUT`, `QT_QPA_FB_DISABLE_INPUT`) and loads one
+`evdevtouch:<device>` generic plugin. With no touch found, Qt auto-detects.
+`tests/test_launcher.py` guards it. The D25 watchdog stays as a backstop.
