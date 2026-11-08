@@ -359,5 +359,18 @@ s=s.replace('<!--SPILL-->',spill)+pg;
 GL.forEach(([cx,cy,r])=>s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#glassG)"/>`);
 GLR.forEach(([x,y,w,h,r])=>s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#glassG)"/>`);
 s+='<rect width="1024" height="600" fill="url(#vign)" pointer-events="none"/>';
+// ?n=1: numbered callouts so feedback can say "P2-4" or "C3-6"
+const CALL={premium_daily:[[118,262],[262,250],[512,222],[690,170],[48,560],[400,560],[740,560],[60,8]],
+ premium_sport:[[312,128],[600,180],[600,370],[690,280],[48,96],[48,420],[976,96],[976,420]],
+ premium_towing:[[512,212],[318,296],[392,388],[226,40],[798,40]],
+ premium_economy:[[420,110],[640,250],[580,450],[96,330],[260,150],[340,330],[980,330],[800,150],[512,548]],
+ premium_trend:[[248,62],[440,80],[620,330],[716,165],[790,96],[262,540]],
+ classic_daily:[[52,112],[300,92],[620,278],[992,112],[170,350],[546,350],[40,488]],
+ classic_towing:[[48,20],[38,82],[550,82],[38,352],[550,352],[134,86],[466,150]],
+ classic_economy:[[80,110],[324,84],[400,430],[690,62],[592,310],[592,488]],
+ classic_trend:[[140,46],[26,104],[600,300],[272,556],[836,556]]};
+if(q.get('n')){(CALL[TH+'_'+PG]||[]).forEach(([x,y],i)=>{s+=`<g filter="url(#dshadow)"><circle cx="${x}" cy="${y}" r="17" fill="#ffd400" stroke="#000" stroke-width="2.5"/>`+Tx(x,y+7,20,i+1,{f:'B6',c:'#000'})+`</g>`});
+  const id=(TH=='premium'?'P':'C')+({premium:['daily','sport','towing','economy','trend'],classic:['daily','towing','economy','trend']}[TH].indexOf(PG)+1);
+  s+=`<g filter="url(#dshadow)"><rect x="940" y="548" width="76" height="44" rx="10" fill="#ffd400" stroke="#000" stroke-width="2.5"/>`+Tx(978,579,28,id,{f:'B6',c:'#000'})+`</g>`}
 document.getElementById('s').innerHTML=s;
 </script></body></html>
