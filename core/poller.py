@@ -1,7 +1,14 @@
 """Poller: reads profile PIDs by rate class and publishes to the bus.
 
-fast = every cycle, slow = every `slow_interval` s, once = first success only.
-PIDs sharing one request (e.g. EGT11-14 from 22F478) cost one request per cycle.
+Rate classes:
+  fast   = every cycle (rpm, boost, VGT, speed: things the eye tracks)
+  medium = about every `medium_interval` s (rail pressure, fuel rate)
+  slow   = about every `slow_interval` s (temps, fuel level, odometer)
+  once   = first success only (engine hours, VIN-like values)
+Only `extra_per_cycle` non-fast reads happen per cycle, most overdue first, so
+slow PIDs never burst together and stall the fast ones. A cycle with no extra
+read due reads one diagnostic-list PID instead (background).
+PIDs sharing one request (e.g. EGT11-14 from 22F478) cost one request.
 Failing PIDs back off to one retry every `retry_after` s. All traffic goes
 through Elm -> GuardedPort, so the guard and throttle always apply.
 """
@@ -35,7 +42,9 @@ class Poller:
     background: list[str] | None = None  # read one per cycle, round-robin (diagnostic list)
     supported: set[int] | None = None   # Mode 01 bitmap from the ECU, if known
     fast_interval: float = 0.1          # ~10 Hz cap for the fast class
-    slow_interval: float = 1.0
+    medium_interval: float = 1.0
+    slow_interval: float = 5.0
+    extra_per_cycle: int = 1            # non-fast reads per cycle
     retry_after: float = 30.0
     max_fails: int = 3
     state: dict[str, PidState] = field(default_factory=dict)
@@ -54,7 +63,6 @@ class Poller:
                               if k not in keys and not self.profile.pids[k].is_derived]
         self.state = {p.key: PidState() for p in [*self.pids, *self.bg]}
         self._bg_i = 0
-        self._last_slow = 0.0
 
     def is_skipped(self, p: Pid) -> bool:
         if p.is_derived:
@@ -62,24 +70,41 @@ class Poller:
         return (self.supported is not None and p.service == "01"
                 and int(p.pid, 16) not in self.supported)
 
-    def _due(self, p: Pid, now: float, slow_due: bool) -> bool:
+    def _blocked(self, p: Pid, now: float) -> bool:
         st = self.state[p.key]
-        if st.done or self.is_skipped(p):
-            return False
-        if st.fails >= self.max_fails and now - st.last_try < self.retry_after:
-            return False
-        return p.poll_rate == "fast" or slow_due or (p.poll_rate == "once" and st.last_ok == 0)
+        return (st.done or self.is_skipped(p)
+                or (st.fails >= self.max_fails and now - st.last_try < self.retry_after))
+
+    def _interval(self, p: Pid) -> float:
+        return {"medium": self.medium_interval, "slow": self.slow_interval}.get(p.poll_rate, 0.0)
 
     def cycle(self) -> None:
         now = time.monotonic()
-        slow_due = now - self._last_slow >= self.slow_interval
-        if slow_due:
-            self._last_slow = now
         cache: dict[tuple[str, str], bytes | Exception] = {}
         for p in self.pids:
-            if self._due(p, now, slow_due):
+            if p.poll_rate == "fast" and not self._blocked(p, now):
                 self._read(p, now, cache)
-        self._background(now, cache)
+        # non-fast: most overdue first, a few per cycle; siblings sharing the request come free
+        due = [(now - self.state[p.key].last_try - self._interval(p), p) for p in self.pids
+               if p.poll_rate != "fast" and not self._blocked(p, now)
+               and now - self.state[p.key].last_try >= self._interval(p)]
+        due.sort(key=lambda t: -t[0])
+        reads = 0
+        for _, p in due:
+            if reads >= self.extra_per_cycle:
+                break
+            if p.service != "AT" and (self.profile.header_for(p), p.request) in cache:
+                continue  # already read as a sibling this cycle
+            self._read(p, now, cache)
+            reads += 1
+            if p.service != "AT":
+                k = (self.profile.header_for(p), p.request)
+                for q in self.pids:
+                    if (q is not p and q.poll_rate != "fast" and q.service != "AT" and not self._blocked(q, now)
+                            and (self.profile.header_for(q), q.request) == k):
+                        self._read(q, now, cache)
+        if reads == 0:
+            self._background(now, cache)
         self._compute_derived()
         self.cycles += 1
 

@@ -59,7 +59,7 @@ pids:
     units: "%"
     min: 0
     max: 100
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 04
 
@@ -144,7 +144,7 @@ pids:
     units: g/s
     min: 0
     max: 655
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 10
 
@@ -240,7 +240,7 @@ pids:
     units: L/h
     min: 0
     max: 3276
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 5E
     notes: Often unsupported on older diesels; check supported-PID list.
@@ -340,7 +340,7 @@ pids:
     units: "°"
     min: -210
     max: 302
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 5D
     notes: Degrees relative to TDC (negative = before TDC).
@@ -355,7 +355,7 @@ pids:
     units: "%"
     min: -125
     max: 130
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 61
 
@@ -369,7 +369,7 @@ pids:
     units: "%"
     min: -125
     max: 130
-    poll_rate: fast
+    poll_rate: medium
     verified: true
     source: SAE J1979 PID 62
 

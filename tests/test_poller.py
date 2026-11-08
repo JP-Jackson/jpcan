@@ -47,9 +47,9 @@ def test_unsupported_mode01_skipped():
 
 def test_once_and_backoff():
     p, sim, bus = setup(["engine_hours", "trans_temp_pcm"])
+    p.slow_interval = 0  # every cycle, for the test
     sim.obd.clear()
     for _ in range(5):
-        p._last_slow = 0  # force slow due
         p.cycle()
     assert sim.obd.count("017F") == 1            # once: read a single time
     assert sim.obd.count("221E1C") == p.max_fails  # NRC 31 via PCM, then backs off
@@ -81,3 +81,26 @@ def test_background_reads_one_per_cycle_round_robin():
     for req in ("0167", "0146", "012F"):                   # each background PID twice
         assert sim.obd.count(req) == 2
     assert {"coolant", "ambient", "fuel_level"} <= set(bus.latest())
+
+
+def test_slow_pids_spread_one_per_cycle_fast_every_cycle():
+    keys = ["rpm", "coolant", "ambient", "fuel_level", "oil_temp_std"]
+    p, sim, bus = setup(keys)
+    sim.obd.clear()
+    for _ in range(4):
+        p.cycle()
+    assert sim.obd.count("010C") == 4                     # rpm never waits on slow PIDs
+    for req in ("0167", "0146", "012F", "015C"):          # each slow PID once, one per cycle
+        assert sim.obd.count(req) == 1
+    sim.obd.clear()
+    p.cycle()                                             # nothing slow due yet: background slot
+    assert sim.obd == ["010C"]
+
+
+def test_slow_pid_rereads_after_interval():
+    p, sim, bus = setup(["rpm", "coolant"])
+    p.cycle()
+    sim.obd.clear()
+    p.state["coolant"].last_try -= p.slow_interval
+    p.cycle()
+    assert sim.obd.count("0167") == 1

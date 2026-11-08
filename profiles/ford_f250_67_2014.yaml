@@ -300,7 +300,7 @@ pids:
     units: barg
     min: 0
     max: 2200
-    poll_rate: fast
+    poll_rate: medium
     verified: false
     source: SAE J1979 PID 6D; 22F46D key-on read 300 bar desired (2026-11-07)
 
@@ -314,7 +314,7 @@ pids:
     units: barg
     min: 0
     max: 2200
-    poll_rate: fast
+    poll_rate: medium
     verified: false
     source: SAE J1979 PID 6D; 22F46D key-on read 6 bar (lift pump) (2026-11-07)
 

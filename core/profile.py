@@ -17,7 +17,7 @@ PROFILES_DIR = Path(__file__).resolve().parent.parent / "profiles"
 REQUIRED = ("name", "service", "pid", "header", "formula", "units", "min", "max",
             "poll_rate", "verified", "source")
 DERIVED_REQUIRED = ("name", "derived", "units", "min", "max", "verified", "source")
-POLL_RATES = {"fast", "slow", "once"}
+POLL_RATES = {"fast", "medium", "slow", "once"}
 DERIVED = "DERIVED"
 
 

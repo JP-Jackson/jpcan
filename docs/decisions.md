@@ -147,3 +147,17 @@ spinner on boost, rev flame on rpm, leaf on MPG tiles) and `quips`
 (occasional status-line jokes, rate limited). Themes: Classic, Classic
 refined, Modern, Race, Night, Turbo Snail. Assets are SVG in the theme
 folder.
+
+## D23. Poll tiers: fast / medium / slow, spread out
+In the truck, RPM lagged because every second all ~12 slow PIDs were read in
+one burst (temps, fuel, odometer, and trans on another module), which froze
+the fast ones for about half a second. Now:
+- **fast** (every cycle): rpm, speed, boost inputs, VGT desired/actual.
+- **medium** (~1 s): rail pressure, fuel rate, load, MAF, torque, timing.
+- **slow** (~5 s): temps, fuel level, odometer, battery, baro, soot, CEL.
+- **once**: engine hours.
+
+Only one non-fast read happens per cycle, most overdue first, and PIDs that
+share a request come free with it. The diagnostic background read uses the
+slot only when nothing else is due. That leaves about 5 requests per cycle on
+the truck, against 6 before plus a 12-request burst every second.
