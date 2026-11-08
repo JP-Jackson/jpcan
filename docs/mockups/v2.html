@@ -47,6 +47,7 @@ s+=`<defs>
 <linearGradient id="cw1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0b0d11"/><stop offset=".5" stop-color="#262c36"/><stop offset="1" stop-color="#0b0d11"/></linearGradient>
 <linearGradient id="cw2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#090b0e"/><stop offset=".5" stop-color="#1c2129"/><stop offset="1" stop-color="#090b0e"/></linearGradient>
 <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop offset=".2" stop-color="#bfe6ff" stop-opacity="0"/><stop offset=".5" stop-color="#bfe6ff" stop-opacity=".10"/><stop offset=".8" stop-color="#bfe6ff" stop-opacity="0"/></linearGradient>
+<filter id="glowU" filterUnits="userSpaceOnUse" x="0" y="0" width="1024" height="600"><feGaussianBlur stdDeviation="5"/></filter>
 <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5"/></filter>
 <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
 <radialGradient id="hub" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9aa2ad"/><stop offset=".5" stop-color="#2b2f35"/><stop offset="1" stop-color="#08090a"/></radialGradient>
@@ -73,7 +74,7 @@ function scale(cx,cy,r,a0,sw,min,max,step,minor,o={}){let out='';const n=Math.ro
     if(maj&&o.lab!==false){const[lx,ly]=P(cx,cy,r-(o.lr||44),a);out+=T(lx,ly+(o.ly||0),o.ls||30,o.fmt?o.fmt(v):v,{c:red?C.red:(o.lc||C.text),db:'central',f:o.lf||'B5'})}}
   return `<g filter="url(#bloom)">${out}</g>`+out}
 function needle(cx,cy,r0,r1,a,col,w){const[x0,y0]=P(cx,cy,r0,a),[x1,y1]=P(cx,cy,r1,a);
-  return `<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="${col}" stroke-width="${w*3}" stroke-linecap="round" opacity=".45" filter="url(#glow)"/>`+
+  return `<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="${col}" stroke-width="${w*3}" stroke-linecap="round" opacity=".45" filter="url(#glowU)"/>`+
          `<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" filter="url(#nshadow)"/>`+`<line x1="${n1(x0)}" y1="${n1(y0)}" x2="${n1(x1)}" y2="${n1(y1)}" stroke="#fff" stroke-opacity=".55" stroke-width="${w*.3}" stroke-linecap="round"/>`}
 function cneedle(cx,cy,r,a,col){const[tx,ty]=P(cx,cy,r,a),[bx1,by1]=P(cx,cy,7,a+90),[bx2,by2]=P(cx,cy,7,a-90),[tl,tly]=P(cx,cy,r*.18,a+180);
   return `<g filter="url(#nshadow)"><polygon points="${n1(tx)},${n1(ty)} ${n1(bx1)},${n1(by1)} ${n1(tl)},${n1(tly)}" fill="${col}"/><polygon points="${n1(tx)},${n1(ty)} ${n1(tl)},${n1(tly)} ${n1(bx2)},${n1(by2)}" fill="${col}"/><polygon points="${n1(tx)},${n1(ty)} ${n1(tl)},${n1(tly)} ${n1(bx2)},${n1(by2)}" fill="#000" fill-opacity=".35"/><line x1="${n1(tx)}" y1="${n1(ty)}" x2="${n1(tl)}" y2="${n1(tly)}" stroke="#fff" stroke-opacity=".45" stroke-width="1.2"/></g>`+
@@ -292,7 +293,10 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
     orange:['#ff8a1e','#ffc48a','#c4560a','#5a2604','#ffab5c'],red:['#ff3b4f','#ff9aa5','#b0182a','#4d0912','#ff6b7a'],
     purple:['#a66bff','#d6bdff','#6b33c4','#2e1557','#c09bff'],white:['#e8eef5','#ffffff','#8c96a3','#353b43','#f4f8fb']};
   const SECS={amber:'#ffb340',cyan:'#29c4ff',green:'#2fe37a',orange:'#ff8a1e',purple:'#c09bff',white:'#e8eef5'};
-  const ACC=ACCS[q.get('acc')||'cyan'],SEC=SECS[q.get('sec')||'amber'],CY2=ACC[0];
+  const hx=(h,s,l)=>{s/=100;l/=100;const k=n=>(n+h/30)%12,a=s*Math.min(l,1-l),f=n=>l-a*Math.max(-1,Math.min(k(n)-3,9-k(n),1));return '#'+[0,8,4].map(n=>Math.round(f(n)*255).toString(16).padStart(2,'0')).join('')};
+  const fromHue=(h,l=58)=>[hx(h,95,l),hx(h,100,Math.min(l+22,92)),hx(h,85,l-18),hx(h,80,l-40),hx(h,100,l+10)];
+  const pa=q.get('acc')||'cyan',ps=q.get('sec')||'amber';
+  const ACC=/^h\d+/.test(pa)?fromHue(+pa.slice(1)):ACCS[pa],SEC=/^h\d+/.test(ps)?fromHue(+ps.slice(1))[0]:SECS[ps],CY2=ACC[0];
   const BGS={carbon:'url(#carbon)',expanded:'url(#xmetal)',diamond:'url(#dplate)',brushed:'url(#bal)',honeycomb:'url(#honey)',black:'#040506'};
   const bgk=q.get('bg')||'carbon';
   let o=`<rect width="1024" height="600" fill="${BGS[bgk]}"/>`+(bgk=='brushed'?'<rect width="1024" height="600" fill="url(#brushed)"/>':'')+
@@ -307,13 +311,19 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
    o+=g+`<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="#dbe7f2" stroke-width="5"/>`}
   o+=`<defs><linearGradient id="ofill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${ACC[0]}" stop-opacity=".06"/><stop offset="1" stop-color="${ACC[0]}" stop-opacity=".32"/></linearGradient>
     <linearGradient id="ifill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${SEC}" stop-opacity=".06"/><stop offset="1" stop-color="${SEC}" stop-opacity=".36"/></linearGradient></defs>`;
+  function trail(r0,r1,a0,a1,col,peak,id){let g=`<defs><radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${CX}" cy="${CY}" r="${r1}"><stop offset="${(r0/r1).toFixed(3)}" stop-color="${col}" stop-opacity="0"/><stop offset="${((r0+(r1-r0)*.55)/r1).toFixed(3)}" stop-color="${col}" stop-opacity=".35"/><stop offset="1" stop-color="${col}" stop-opacity="1"/></radialGradient></defs>`;
+    const N=40;for(let i=0;i<N;i++){const t0=a0+(a1-a0)*Math.pow(i/N,.7),t1=a1,op=(peak*2.2/N).toFixed(3);
+      const[p0x,p0y]=P(CX,CY,r1,t0),[p1x,p1y]=P(CX,CY,r1,t1),[q1x,q1y]=P(CX,CY,r0,t1),[q0x,q0y]=P(CX,CY,r0,t0);
+      const lg=t1-t0>180?1:0;g+=`<path d="M${n1(p0x)},${n1(p0y)} A${r1},${r1} 0 ${lg} 1 ${n1(p1x)},${n1(p1y)} L${n1(q1x)},${n1(q1y)} A${r0},${r0} 0 ${lg} 0 ${n1(q0x)},${n1(q0y)} Z" fill="url(#${id})" opacity="${op}"/>`}
+    return g}
   // center disc
   o+=`<circle cx="${CX}" cy="${CY}" r="${RD}" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="${RD-14}" fill="none" stroke="#2a3340" stroke-width="2"/>`;
   const A0=140,SW=260;
+  // light trails behind both needles (drawn on the face, under the scales)
+  o+=trail(182,RD-14,A0,A0+SW*V.rpm/5000,ACC[0],.75,'trO')+trail(104,166,A0,A0+SW*V.boost/40,SEC,.7,'trI');
   // outer scale: RPM with a needle
   const RO=230,ar=v=>A0+SW*v/5;
-  o+=`<path d="${arc(CX,CY,RO,A0,A0+SW)}" stroke="${ACC[3]}" stroke-opacity=".7" stroke-width="22" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,RO,A0,ar(V.rpm/1000))}" stroke="url(#ofill)" stroke-width="22" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RO+10,A0,A0+SW)}" stroke="${ACC[0]}" stroke-opacity=".35" stroke-width="2" fill="none"/>`;
   o+=`<path d="${arc(CX,CY,RO,ar(4),ar(5))}" stroke="${C.red}" stroke-width="22" fill="none" opacity=".6"/>`;
   for(let v=0;v<=5;v+=.25){const maj=v%1==0,[x1,y1]=P(CX,CY,RO+11,ar(v)),[x2,y2]=P(CX,CY,RO-(maj?11:2),ar(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=4?C.red:'#e9f1f8'}" stroke-width="${maj?4:2}"/>`}
   for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,RO-32,ar(v));o+=T(x,y,26,v,{db:'central',c:v>=4?C.red:C.text,f:'C6'})}
@@ -321,7 +331,6 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
   // inner scale: BOOST with its own needle
   const RI=172,ab=v=>A0+SW*v/40;
   o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,RI,A0,ab(V.boost))}" stroke="url(#ifill)" stroke-width="12" fill="none"/>`;
   o+=`<path d="${arc(CX,CY,RI,ab(35),ab(40))}" stroke="${C.red}" stroke-width="12" fill="none" opacity=".6"/>`;
   for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=35?C.red:SEC}" stroke-width="${maj?3:1.6}"/>`}
   for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=35?C.red:SEC,f:'C6'})}
@@ -382,6 +391,21 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
     o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+94,62,val,{c:hot?C.red:C.text})+T(cx,y+118,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
     if(rng)o+=rbar(bx,y+14,h-28,rng[0],rng[1],rng[2],rng[3],rng[4],val,{left});
 }));
+  if(q.get('colors')){o+=`<rect width="1024" height="600" fill="#000" opacity=".72"/><rect x="72" y="40" width="880" height="520" rx="18" fill="#0b131d" stroke="${CY2}" stroke-width="2"/>`;
+    o+=T(104,90,30,'Colors',{a:'start',f:'C6'});
+    [['Main accent',ACC[0],1],['Second accent',SEC,0]].forEach(([t,c,on],i)=>{const y=120+i*84;o+=`<rect x="104" y="${y}" width="250" height="70" rx="12" fill="${on?'#134a74':'#111c29'}" stroke="${on?CY2:'#22364d'}" stroke-width="${on?3:1.5}"/><circle cx="140" cy="${y+35}" r="18" fill="${c}" stroke="#fff" stroke-width="2"/>`+T(170,y+43,24,t,{a:'start',f:'C6'})});
+    o+=T(104,320,18,'Frames, RPM needle, bars, glow',{a:'start',c:C.dim,f:'C5'})+T(104,344,18,'Second: boost needle and scale',{a:'start',c:C.dim,f:'C5'});
+    o+=T(104,392,18,'Red, amber and green stay fixed:',{a:'start',c:C.dim,f:'C5'})+T(104,416,18,'they mean danger, warning, OK.',{a:'start',c:C.dim,f:'C5'});
+    const hc=[560,300],hr=150;for(let h=0;h<360;h+=5){o+=`<path data-flat="1" d="${arc(hc[0],hc[1],hr,h-90,h-90+5.6)}" stroke="${hx(h,95,58)}" stroke-width="40" fill="none"/>`}
+    const cur=195;{const[x,y]=P(hc[0],hc[1],hr,cur-90);o+=`<circle cx="${n1(x)}" cy="${n1(y)}" r="26" fill="${ACC[0]}" stroke="#fff" stroke-width="5" filter="url(#dshadow)"/>`}
+    o+=`<circle cx="${hc[0]}" cy="${hc[1]}" r="98" fill="${ACC[0]}"/><circle cx="${hc[0]}" cy="${hc[1]}" r="98" fill="url(#glassG)"/>`+T(hc[0],hc[1]+10,28,ACC[0].toUpperCase(),{f:'C6',c:'#000'});
+    o+=T(hc[0],hc[1]+hr+46,18,'Drag around the ring for any color',{c:C.dim,f:'C5'});
+    o+=`<defs><linearGradient id="brt" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="${hx(cur,90,20)}"/><stop offset=".5" stop-color="${hx(cur,95,55)}"/><stop offset="1" stop-color="${hx(cur,100,88)}"/></linearGradient></defs>`;
+    o+=`<rect x="770" y="152" width="44" height="300" rx="12" fill="url(#brt)" stroke="#22364d" stroke-width="2"/><rect x="760" y="${150+300*.42-8}" width="64" height="16" rx="6" fill="#fff" stroke="#000" stroke-width="2"/>`+T(792,140,18,'Brightness',{c:C.dim,f:'C5'});
+    [195,215,140,30,275,320,0,50].forEach((h,i)=>{const x=846+(i%2)*52,y=150+Math.floor(i/2)*58;o+=`<circle cx="${x+20}" cy="${y+20}" r="22" fill="${h==0?'#e8eef5':hx(h,95,58)}" stroke="${h==195?'#fff':'#22364d'}" stroke-width="${h==195?4:2}"/>`});
+    o+=T(892,402,18,'Quick picks',{c:C.dim,f:'C5'});
+    o+=`<rect x="104" y="476" width="230" height="60" rx="12" fill="#111c29" stroke="#22364d"/>`+T(219,515,24,'Reset to default',{f:'C6',c:C.dim});
+    o+=`<rect x="760" y="476" width="168" height="60" rx="12" fill="${CY2}"/>`+T(844,515,26,'Done',{f:'C6',c:'#000'})}
   if(q.get('pick')){o+=`<rect width="1024" height="600" fill="#000" opacity=".72"/>`;
     o+=`<rect x="92" y="44" width="840" height="512" rx="18" fill="#0b131d" stroke="${CY2}" stroke-width="2"/>`;
     o+=T(124,96,30,'Show in the center',{a:'start',f:'C6'})+T(124,126,20,'Press and hold any reading to change it',{a:'start',c:C.dim,f:'C5'});
@@ -446,7 +470,7 @@ let spill=TH=='classic'?'<rect width="1024" height="600" fill="url(#brushed)"/>'
 GL.forEach(([cx,cy,r])=>spill+=`<circle cx="${cx}" cy="${cy}" r="${(r*1.12).toFixed(0)}" fill="${TH=='classic'?C.green:C.acc}" opacity="${TH=='classic'?.07:.12}" filter="url(#bloomBig)"/>`);
 s=s.replace('<!--SPILL-->',spill)+pg;
 // glass on every dial and window, then a vignette
-if(!q.get('pick'))GL.forEach(([cx,cy,r])=>s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#glassG)"/>`);
+if(!q.get('pick')&&!q.get('colors'))GL.forEach(([cx,cy,r])=>s+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="url(#glassG)"/>`);
 GLR.forEach(([x,y,w,h,r])=>s+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="url(#glassG)"/>`);
 s+='<rect width="1024" height="600" fill="url(#vign)" pointer-events="none"/>';
 // ?n=1: numbered callouts so feedback can say "P2-4" or "C3-6"
