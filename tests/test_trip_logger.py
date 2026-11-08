@@ -143,3 +143,24 @@ def test_log_stats_rates_and_gaps(tmp_path):
     assert 2.9 < s["keys"]["rpm"]["hz"] < 4.0
     txt = format_log_stats(s)
     assert "rpm" in txt and "coolant" in txt
+
+
+def test_log_stats_clock_jump_and_unclosed(tmp_path):
+    import sqlite3, json
+    from core.export import format_log_stats, log_stats
+
+    p = tmp_path / "d.sqlite"
+    with sqlite3.connect(p) as db:
+        db.execute("CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT)")
+        db.execute("CREATE TABLE readings (ts REAL, key TEXT, value REAL, err TEXT)")
+        db.execute("INSERT INTO meta VALUES ('started', ?)", (json.dumps(100.0),))  # no 'ended'
+        rows = [(100 + i * 0.2, "rpm", 1.0, None) for i in range(50)]           # 10 s
+        rows += [(22700 + i * 0.2, "rpm", 1.0, None) for i in range(50)]        # after a 6 h jump
+        db.executemany("INSERT INTO readings VALUES (?, ?, ?, ?)", rows)
+    s = log_stats(p)
+    assert len(s["jumps"]) == 1
+    assert 19 < s["duration"] < 20
+    assert abs(s["keys"]["rpm"]["hz"] - 5.0) < 0.01
+    assert s["keys"]["rpm"]["max_gap"] < 1
+    txt = format_log_stats(s)
+    assert "clock jump" in txt and "not closed cleanly" in txt

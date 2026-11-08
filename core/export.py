@@ -61,53 +61,57 @@ def export_csv(db_path: Path, out_path: Path, rate: float = 1.0, imperial: bool 
     return n
 
 
+JUMP_S = 60.0  # a gap this long inside a drive is the clock jumping (no RTC), not polling
+
+
 def log_stats(db_path: Path, top: int = 5) -> dict:
     """Per-key sample rate and gaps for a drive log, to judge poll lag.
 
-    Returns {"meta": {...}, "keys": {key: {"n", "hz", "max_gap", "p95_gap", "errors",
-    "gaps": [(ts, gap), ...]}}} where gaps are the `top` longest gaps.
+    Gaps over JUMP_S are treated as clock jumps (the Pi has no RTC battery and
+    steps its clock when it gets network time) and left out of the rates.
+    Returns {"meta", "duration", "jumps": [(ts, seconds)], "keys": {key: {...}}}.
     """
     import statistics
 
-    out: dict = {"meta": read_meta(db_path), "keys": {}}
     with sqlite3.connect(db_path) as db:
         rows = db.execute("SELECT key, ts, err FROM readings ORDER BY key, ts").fetchall()
-    cur, ts_list, errs = None, [], 0
-
-    def flush():
-        if cur is None or not ts_list:
-            return
-        gaps = [(ts_list[i], ts_list[i] - ts_list[i - 1]) for i in range(1, len(ts_list))]
-        gaps_only = sorted(g for _, g in gaps)
-        span = ts_list[-1] - ts_list[0]
-        out["keys"][cur] = {
-            "n": len(ts_list),
-            "hz": (len(ts_list) - 1) / span if span > 0 else 0.0,
-            "max_gap": gaps_only[-1] if gaps_only else 0.0,
-            "p95_gap": gaps_only[int(0.95 * (len(gaps_only) - 1))] if gaps_only else 0.0,
-            "median_gap": statistics.median(gaps_only) if gaps_only else 0.0,
-            "errors": errs,
-            "gaps": sorted(gaps, key=lambda g: -g[1])[:top],
-        }
-
+        all_ts = [t for (t,) in db.execute("SELECT DISTINCT ts FROM readings ORDER BY ts")]
+    jumps = [(all_ts[i - 1], all_ts[i] - all_ts[i - 1]) for i in range(1, len(all_ts))
+             if all_ts[i] - all_ts[i - 1] > JUMP_S]
+    duration = (all_ts[-1] - all_ts[0] - sum(j for _, j in jumps)) if all_ts else 0.0
+    out: dict = {"meta": read_meta(db_path), "duration": duration, "jumps": jumps, "keys": {}}
+    by_key: dict[str, tuple[list, int]] = {}
     for key, ts, err in rows:
-        if key != cur:
-            flush()
-            cur, ts_list, errs = key, [], 0
-        ts_list.append(ts)
-        if err:
-            errs += 1
-    flush()
+        lst, errs = by_key.get(key, ([], 0))
+        lst.append(ts)
+        by_key[key] = (lst, errs + (1 if err else 0))
+    for key, (ts_list, errs) in by_key.items():
+        gaps = [(ts_list[i - 1], ts_list[i] - ts_list[i - 1]) for i in range(1, len(ts_list))]
+        real = sorted(g for _, g in gaps if g <= JUMP_S)
+        span = sum(real)
+        out["keys"][key] = {
+            "n": len(ts_list),
+            "hz": len(real) / span if span > 0 else 0.0,
+            "median_gap": statistics.median(real) if real else 0.0,
+            "p95_gap": real[int(0.95 * (len(real) - 1))] if real else 0.0,
+            "p99_gap": real[int(0.99 * (len(real) - 1))] if real else 0.0,
+            "max_gap": real[-1] if real else 0.0,
+            "errors": errs,
+            "gaps": sorted((g for g in gaps if g[1] <= JUMP_S), key=lambda g: -g[1])[:top],
+        }
     return out
 
 
 def format_log_stats(stats: dict) -> str:
     m = stats["meta"]
-    dur = (m.get("ended") or 0) - m.get("started", 0)
-    lines = [f"profile {m.get('profile', '?')}  duration {dur / 60:.1f} min  "
-             f"started {time.strftime('%Y-%m-%d %H:%M', time.localtime(m.get('started', 0)))}",
-             f"{'key':20} {'n':>7} {'Hz':>6} {'med':>6} {'p95':>6} {'max':>7} {'err':>5}"]
+    lines = [f"profile {m.get('profile', '?')}  duration {stats['duration'] / 60:.1f} min  "
+             f"started {time.strftime('%Y-%m-%d %H:%M', time.localtime(m.get('started', 0)))}"
+             + ("" if m.get("ended") else "  (not closed cleanly)")]
+    for ts, j in stats["jumps"]:
+        lines.append(f"clock jump +{j / 3600:.1f} h at {time.strftime('%H:%M:%S', time.localtime(ts))}"
+                     " (no RTC battery?), left out of the rates")
+    lines.append(f"{'key':20} {'n':>7} {'Hz':>6} {'med':>6} {'p95':>6} {'p99':>6} {'max':>6} {'err':>5}")
     for key, s in sorted(stats["keys"].items(), key=lambda kv: -kv[1]["hz"]):
         lines.append(f"{key:20} {s['n']:7d} {s['hz']:6.2f} {s['median_gap']:6.2f} "
-                     f"{s['p95_gap']:6.2f} {s['max_gap']:7.1f} {s['errors']:5d}")
+                     f"{s['p95_gap']:6.2f} {s['p99_gap']:6.2f} {s['max_gap']:6.1f} {s['errors']:5d}")
     return "\n".join(lines)

@@ -124,7 +124,9 @@ against FORScan or the dash.
   scoped sudo rule to restart `jpcan-core`.
 - A screen upgrade is under consideration: 10.1" 1280x800 IPS HDMI with
   capacitive touch, ideally ~900 nits for daylight. GaugeWorks scales to it.
-- The Pi 5 clock needs the RTC coin battery to keep time off Wi-Fi.
+- The Pi 5 clock needs the RTC coin battery to keep time off Wi-Fi. Without
+  it, the 2026-11-08 drive booted on the 11-07 clock and jumped +6.3 h mid-log
+  (`jpcan logstats` flags and skips such jumps).
 - Phone page (Phase 1.5) comes later.
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
