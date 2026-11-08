@@ -397,7 +397,7 @@ Rectangle {
 
         // ---- simulator badge: always on top in sim mode, so fake numbers can't pass as real
         Rectangle {
-            visible: backend.status.mode === "SIM"
+            visible: backend.status.mode === "SIM" && !demoMode
             z: 50
             anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 10
             width: simText.implicitWidth + 28; height: 36; radius: 18

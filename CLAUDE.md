@@ -129,6 +129,9 @@ against FORScan or the dash.
 - GPU: the PySide6 wheel lacks `libQt6EglFsKmsGbmSupport.so.6`, so EGLFS
   probably can't load on the Pi and GaugeWorks falls back to linuxfb with
   software rendering. Confirm in the journal, then pick a fix with JP.
+  Plan if confirmed: Raspberry Pi OS PySide6 6.8.2 from apt (venv with system
+  site-packages). All tests and every theme pass on 6.8.2. cage (Wayland
+  kiosk) is the backup.
 - Truck/Simulator switch is in Settings (D26).
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
