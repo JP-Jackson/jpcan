@@ -169,3 +169,46 @@ def test_towing_page_limits_and_split():
     assert to_imperial(212.0, "°C", True) == 212.0
     met = build_pages(meta, False, 10, {}, {"trans_temp": 212})[1]["slots"]
     assert abs(met["l2"]["alarm"] - 100.0) < 1e-6
+
+
+def test_backend_red_lines_colors_background_and_drive_minmax(tmp_path, monkeypatch):
+    monkeypatch.setenv("JPCAN_CONFIG", str(tmp_path))
+    monkeypatch.setenv("QT_QPA_PLATFORM", os.environ.get("QT_QPA_PLATFORM", "offscreen"))
+    from PySide6.QtGui import QGuiApplication
+
+    app = QGuiApplication.instance() or QGuiApplication([])  # noqa: F841
+    from core import settings as settings_mod
+    from gaugeworks.app import DemoFeed
+    from gaugeworks.backend import Backend
+
+    b = Backend(DemoFeed("cruise", "ford_f250_67_2014"), {**settings_mod.DEFAULTS}, poll_ms=10_000)
+    # red lines: per reading, per vehicle, survive a reload
+    assert b.limitFor("trans_temp")["value"] == 240 and not b.limitFor("trans_temp")["custom"]
+    b.setLimit("trans_temp", 225)
+    assert b.limitFor("trans_temp")["value"] == 225 and b.limitFor("trans_temp")["custom"]
+    assert settings_mod.load()["limits"]["ford_f250_67_2014"]["trans_temp"] == 225
+    tow = b._config["pages"][1]["slots"]
+    assert tow["l2"]["alarm"] == 225
+    b.resetLimit("trans_temp")
+    assert b.limitFor("trans_temp")["value"] == 240
+    # metric: a typed °C red line is stored as °F
+    b.setImperial(False)
+    b.setLimit("coolant", 110.0)
+    assert abs(settings_mod.load()["limits"]["ford_f250_67_2014"]["coolant"] - 230.0) < 1e-6
+    b.setImperial(True)
+    # appearance
+    assert b.background == "carbon" and b.backgroundUrl.endswith("/bg/carbon.png")
+    b.setBackground("diamond")
+    assert b.background == "diamond"
+    b.setBackground("plaid")                       # not a choice: ignored
+    assert b.background == "diamond"
+    b.setAccent(0, "#12AB34")
+    assert b.accent == "#12ab34"
+    b.setAccent(1, "red")                          # not a hex color: ignored
+    assert b.accent2 == "#ffb340"
+    b.resetColors()
+    assert b.accent == "#29c4ff"
+    # this drive's min/max follow the readings
+    assert b.lo.value("rpm") == 1650 and b.hi.value("rpm") == 1650
+    b.resetDriveMinMax()
+    assert b.lo.value("rpm") is None

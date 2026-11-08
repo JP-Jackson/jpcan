@@ -146,7 +146,7 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
-    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm", "edit", "deleteall"], help="open a panel (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm", "edit", "deleteall", "colors"], help="open a panel (screenshots)")
     ap.add_argument("--page", type=int, help="start on this page index (screenshots)")
     ap.add_argument("--theme", help="theme id (screenshots)")
     args = ap.parse_args(argv)
@@ -217,6 +217,10 @@ def main(argv=None) -> int:
     if want:
         panel = view.rootObject().findChild(QObject, f"{want}Panel")
         if panel is not None:
+            if want == "picker":   # as if trans temp on the Towing page was pressed and held
+                panel.setProperty("pageName", "Towing")
+                panel.setProperty("slotName", "l2")
+                panel.setProperty("current", "trans_temp")
             panel.setProperty("visible", True)
 
     if not (args.screenshot or args.demo or args.windowed):

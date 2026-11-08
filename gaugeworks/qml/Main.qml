@@ -60,7 +60,7 @@ Rectangle {
             boundsBehavior: Flickable.StopAtBounds
             highlightMoveDuration: 250
             model: root.pages
-            interactive: !settings.visible && !picker.visible && !fillup.visible && !history.visible
+            interactive: !settings.visible && !picker.visible && !fillup.visible && !history.visible && !colorPicker.visible
                          && !exportPanel.visible && !confirm.visible
             onMovementEnded: backend.setPage(currentIndex)
             onCountChanged: positionViewAtIndex(Math.min(backend.currentPage, Math.max(0, count - 1)), ListView.Beginning)
@@ -247,7 +247,8 @@ Rectangle {
 
         // ---- page dots for the OEM-style bar (bottom centre)
         Row {
-            visible: root.oemBar && root.pages.length > 1
+            visible: root.oemBar && root.pages.length > 1 && !settings.visible && !picker.visible && !colorPicker.visible
+                     && !fillup.visible && !history.visible && !exportPanel.visible && !confirm.visible
             anchors.horizontalCenter: parent.horizontalCenter; y: 566; spacing: 9; z: 4
             Repeater {
                 model: root.pages.length
@@ -327,6 +328,7 @@ Rectangle {
             onOpenFillup: { visible = false; fillup.openNew() }
             onOpenHistory: { visible = false; history.visible = true }
             onOpenExport: { visible = false; exportPanel.visible = true }
+            onOpenColors: { visible = false; colorPicker.visible = true }
         }
         ExportPanel {
             id: exportPanel
@@ -356,6 +358,14 @@ Rectangle {
             onDeleteRow: (id) => root.askConfirm("Delete this fill-up?",
                 "Miles and MPG for the next fill-up are recalculated.", "Delete",
                 function() { backend.fuelDelete(id); fillup.visible = false })
+        }
+        ColorPicker {
+            id: colorPicker
+            objectName: "colorsPanel"
+            anchors.fill: parent
+            visible: false
+            theme: root.theme
+            onClose: visible = false
         }
         Picker {
             id: picker

@@ -12,6 +12,7 @@ Rectangle {
     signal openFillup()
     signal openHistory()
     signal openExport()
+    signal openColors()
     color: "#cc000000"
 
     MouseArea { anchors.fill: parent; onClicked: {} }  // swallow taps behind the panel
@@ -114,6 +115,25 @@ Rectangle {
                         }
                     }
                 }
+            }
+            Row {
+                spacing: 12
+                Text { width: 150; text: "Background"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Flow {
+                    width: 560; spacing: 8
+                    Repeater {
+                        model: [["carbon", "Carbon"], ["expanded", "Expanded"], ["diamond", "Diamond"], ["brushed", "Brushed"], ["honeycomb", "Honeycomb"], ["black", "Black"]]
+                        Btn { theme: s.theme; width: 176; height: 48; text: modelData[1]
+                              active: backend.background === modelData[0]; onClicked: backend.setBackground(modelData[0]) }
+                    }
+                }
+            }
+            Row {
+                spacing: 12
+                Text { width: 150; text: "Colors"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Rectangle { width: 44; height: 44; radius: 22; color: backend.accent; border.color: "#ffffff"; border.width: 2; anchors.verticalCenter: parent.verticalCenter }
+                Rectangle { width: 44; height: 44; radius: 22; color: backend.accent2; border.color: "#ffffff"; border.width: 2; anchors.verticalCenter: parent.verticalCenter }
+                Btn { theme: s.theme; width: 170; text: "Change"; onClicked: s.openColors() }
             }
             Row {
                 spacing: 12
