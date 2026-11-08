@@ -114,8 +114,12 @@ against FORScan or the dash.
   "Touch & Power" port only. A separate 5 V supply on the "Power Only" port
   and a different Pi USB port did NOT stop the drops (31 by then), so suspect
   the micro-USB cable or the touch board. The watchdog now follows the touch
-  by name and restarts GaugeWorks when it comes back (D30). Still to do: Qt
-  udev hotplug, so a drop doesn't need a restart (after the GPU switch).
+  by name and restarts GaugeWorks when it comes back (D30). On the GPU path
+  (2026-11-08, 16:02 on), touch tested fine with no watchdog restarts. The
+  earlier "taps never reached GaugeWorks" restarts all came while drawing on
+  the CPU, so a busy GUI thread is the likely cause. Still to do: swap the
+  touch cable if drops continue; maybe Qt udev hotplug so a drop needs no
+  restart.
 - Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
   Pi bench 2026-11-08.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
