@@ -297,31 +297,54 @@ pages.premium_towing=()=>{const CX=512,CY=280;const CY2='#29c4ff';
   o+=T(CX,CY+172,22,'TOWING',{c:C.amber,ls:6,f:'C6'});
   o+=T(CX-40,588,22,'10:10 PM',{a:'end',f:'C6'})+T(CX+40,588,22,'90°F',{a:'start',f:'C6'})+cog(CX+150,578);
   // side panels with a range bar on the straight edge: normal range, red zone, this drive's min-max, and now
-  function rbar(x,y,h,mn,mx,red,lo,hi,now,o2={}){const Y=v=>y+h-h*(Math.min(Math.max(v,mn),mx)-mn)/(mx-mn);let g='';
-    g+=`<rect x="${x}" y="${y}" width="12" height="${h}" rx="4" fill="#16202b"/>`;
-    if(red!=null)g+=`<rect x="${x}" y="${y}" width="12" height="${n1(Y(red)-y)}" rx="4" fill="${C.red}" opacity=".45"/>`;
-    if(lo!=null)g+=`<rect x="${x+1}" y="${n1(Y(hi))}" width="10" height="${n1(Y(lo)-Y(hi))}" rx="3" fill="${CY2}" opacity=".5"/>`;
-    if(o2.cmd!=null)g+=`<rect x="${x-5}" y="${n1(Y(o2.cmd)-3)}" width="22" height="6" rx="2" fill="none" stroke="#fff" stroke-width="2"/>`;
-    const hot=red!=null&&now>=red;g+=`<rect x="${x-5}" y="${n1(Y(now)-3)}" width="22" height="6" rx="2" fill="${hot?C.red:'#fff'}" filter="url(#glow2)"/><rect x="${x-5}" y="${n1(Y(now)-3)}" width="22" height="6" rx="2" fill="${hot?C.red:'#fff'}"/>`;return g}
+  // Premium vertical bar: outline frame, red zone fading down, fill fading down from a bright top edge, pointer wedge,
+  // dividers, tube shading, scale numbers, and this drive's min-max as a bracket outside the frame.
+  let RB=0;
+  function rbar(x,y,h,mn,mx,red,lo,hi,now,o2={}){const W=24,left=o2.left!==false,Y=v=>y+h-h*(Math.min(Math.max(v,mn),mx)-mn)/(mx-mn);
+    const id='rb'+(RB++),hot=red!=null&&now>=red,col=hot?C.red:CY2,yn=Y(now);let g='';
+    g+=`<defs><linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hot?'#ff5a6e':'#5fd4ff'}"/><stop offset=".12" stop-color="${col}"/><stop offset=".6" stop-color="${hot?'#a8152a':'#1b78c8'}" stop-opacity=".9"/><stop offset="1" stop-color="${hot?'#4a0a14':'#0d3d73'}" stop-opacity=".75"/></linearGradient>
+      <linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b5c" stop-opacity=".85"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/></linearGradient>
+      <linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".32" stop-color="#fff" stop-opacity=".18"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs>`;
+    g+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" fill="#05080c"/>`;
+    if(red!=null){const yr=Y(red);g+=`<rect x="${x}" y="${y}" width="${W}" height="${n1(yr-y+18)}" fill="url(#${id}r)"/>`+
+      `<line x1="${left?x+W:x}" y1="${y}" x2="${left?x+W:x}" y2="${n1(yr)}" stroke="#ff4d6a" stroke-width="2.5"/>`}
+    g+=`<rect x="${x}" y="${n1(yn)}" width="${W}" height="${n1(y+h-yn)}" fill="url(#${id}f)"/>`;
+    g+=`<line x1="${left?x+W:x}" y1="${n1(yn)}" x2="${left?x+W:x}" y2="${y+h}" stroke="${col}" stroke-width="2" opacity=".9"/>`;
+    for(let k=1;k<4;k++)g+=`<line x1="${x}" y1="${n1(y+h*k/4)}" x2="${x+W}" y2="${n1(y+h*k/4)}" stroke="#fff" stroke-opacity=".12"/>`;
+    g+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" fill="url(#${id}t)"/>`;
+    if(o2.cmd!=null){const yc=Y(o2.cmd);g+=`<line x1="${x-3}" y1="${n1(yc)}" x2="${x+W+3}" y2="${n1(yc)}" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 3"/>`}
+    // pointer wedge toward the scale
+    const tip=left?x+W+12:x-12,base=left?x+2:x+W-2;
+    g+=`<polygon points="${base},${n1(yn-5)} ${tip},${n1(yn-1)} ${tip},${n1(yn+1)} ${base},${n1(yn+5)}" fill="${hot?'#ff6b6b':'#8fe3ff'}" filter="url(#glow2)"/><polygon points="${base},${n1(yn-4)} ${tip},${n1(yn)} ${base},${n1(yn+4)}" fill="${hot?'#ff8a8a':'#c9f1ff'}"/>`;
+    // outline frame on the outer side, rounded, with a top cap and bottom foot
+    const fx=left?x-5:x+W+5,cap=left?x+W+6:x-6;
+    g+=`<path d="M${cap},${y-5} H${fx+(left?8:-8)} Q${fx},${y-5} ${fx},${y+3} V${y+h-3} Q${fx},${y+h+5} ${fx+(left?8:-8)},${y+h+5} H${cap}" fill="none" stroke="#e9f1f8" stroke-width="2.5" stroke-linecap="round" filter="url(#glow2)" opacity=".6"/>`+
+       `<path d="M${cap},${y-5} H${fx+(left?8:-8)} Q${fx},${y-5} ${fx},${y+3} V${y+h-3} Q${fx},${y+h+5} ${fx+(left?8:-8)},${y+h+5} H${cap}" fill="none" stroke="#e9f1f8" stroke-width="2.5" stroke-linecap="round"/>`;
+    // scale numbers
+    const lx=left?x+W+16:x-16,an=left?'start':'end',fm=v=>Number.isInteger(v)?v:v.toFixed(0);
+    if(!o2.nolab)g+=T(lx,y+6,17,fm(mx),{a:an,f:'C5',c:'#dbe7f2'})+T(lx,y+h+4,17,fm(mn),{a:an,f:'C5',c:'#dbe7f2'});
+    // this drive's min-max bracket outside the frame
+    if(lo!=null){const bxx=left?fx-8:fx+8,yh=Y(hi),yl=Y(lo);g+=`<path d="M${bxx+(left?5:-5)},${n1(yh)} H${bxx} V${n1(yl)} H${bxx+(left?5:-5)}" fill="none" stroke="#bfe9ff" stroke-width="2.5"/>`}
+    return g}
   const L=[['INTAKE',V.iat,'°F',[0,200,150,70,118]],['TRANS',V.trans,'°F',[100,280,230,150,212]],['COOLANT',V.cool,'°F',[100,260,230,180,204]],['OIL',V.oil,'°F',[100,300,260,190,221]]];
   const Rr=[['SPEED',V.mph,'MPH',[0,120,null,0,74]],['GEAR',V.gear,'',null],['RAIL',26.5,'KPSI',[0,30,null,5,29]],['VGT',null,'',null]];
   [[L,true],[Rr,false]].forEach(([items,left])=>items.forEach(([lab,val,u,rng],i)=>{const y=12+i*146,x=left?8:772,w=244,h=134;
     const pts=left?`${x},${y} ${x+w-24},${y} ${x+w},${y+h/2} ${x+w-24},${y+h} ${x},${y+h}`:`${x+24},${y} ${x+w},${y} ${x+w},${y+h} ${x+24},${y+h} ${x},${y+h/2}`;
     o+=`<polygon points="${pts}" fill="#06080bcc" stroke="${CY2}" stroke-width="2"/>`;
-    const bx=left?x+12:x+w-24,cx=x+w/2+(left?8:-8);
+    const bx=left?x+20:x+w-44,cx=x+w/2+(left?30:-30);
     if(lab=='VGT'){const cmd=45,act=V.vgt,diff=act-cmd,dc=Math.abs(diff)>=10?C.red:Math.abs(diff)>=5?C.amber:C.green;
-      o+=T(cx,y+28,22,'VGT VANE',{f:'C6',c:'#dbe7f2',ls:2});
-      o+=T(x+38,y+70,17,'CMD',{a:'start',c:C.dim,f:'C5'})+sk(x+126,y+72,34,cmd,{a:'end'});
-      o+=T(x+136,y+70,17,'ACT',{a:'start',c:C.dim,f:'C5'})+sk(x+204,y+72,34,act,{a:'end'});
-      o+=`<line x1="${x+36}" y1="${y+84}" x2="${x+214}" y2="${y+84}" stroke="#22364d"/>`;
-      o+=T(x+38,y+116,17,'DIFF',{a:'start',c:C.dim,f:'C5'})+sk(x+204,y+122,46,(diff>0?'+':'')+diff+'%',{a:'end',c:dc});
-      o+=rbar(bx,y+14,h-28,0,100,null,null,null,act,{cmd});return}
+      o+=T(x+110,y+28,22,'VGT VANE',{f:'C6',c:'#dbe7f2',ls:2});
+      o+=T(x+36,y+70,17,'CMD',{a:'start',c:C.dim,f:'C5'})+sk(x+104,y+72,34,cmd,{a:'end'});
+      o+=T(x+114,y+70,17,'ACT',{a:'start',c:C.dim,f:'C5'})+sk(x+184,y+72,34,act,{a:'end'});
+      o+=`<line x1="${x+36}" y1="${y+84}" x2="${x+186}" y2="${y+84}" stroke="#22364d"/>`;
+      o+=T(x+38,y+116,17,'DIFF',{a:'start',c:C.dim,f:'C5'})+sk(x+184,y+122,46,(diff>0?'+':'')+diff+'%',{a:'end',c:dc});
+      o+=rbar(bx,y+14,h-28,0,100,null,null,null,act,{cmd,left,nolab:1});return}
     if(lab=='GEAR'){o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+106,74,val);
       for(let g=1;g<=6;g++){const py=y+h-14-g*17;o+=`<rect x="${bx}" y="${py}" width="12" height="12" rx="3" fill="${g<=+val?CY2:'#16202b'}"${g==+val?' filter="url(#glow2)"':''}/>`}return}
     const hot=rng&&rng[2]!=null&&val>=rng[2];
-    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+98,66,val,{c:hot?C.red:C.text})+(u?T(cx,y+124,18,u,{c:C.dim,f:'C5'}):'');
-    if(rng)o+=rbar(bx,y+14,h-28,rng[0],rng[1],rng[2],rng[3],rng[4],val);
-    o+=T(left?x+w-40:x+40,y+124,16,rng&&rng[3]!=null?`${rng[3]}–${rng[4]}`:'',{a:left?'end':'start',c:C.dim,f:'C5'})}));
+    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+98,66,val,{c:hot?C.red:C.text})+T(cx,y+124,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
+    if(rng)o+=rbar(bx,y+14,h-28,rng[0],rng[1],rng[2],rng[3],rng[4],val,{left});
+}));
   if(q.get('pick')){o+=`<rect width="1024" height="600" fill="#000" opacity=".72"/>`;
     o+=`<rect x="92" y="44" width="840" height="512" rx="18" fill="#0b131d" stroke="${CY2}" stroke-width="2"/>`;
     o+=T(124,96,30,'Show in the center',{a:'start',f:'C6'})+T(124,126,20,'Press and hold any reading to change it',{a:'start',c:C.dim,f:'C5'});
