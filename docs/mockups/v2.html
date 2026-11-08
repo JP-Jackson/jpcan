@@ -336,7 +336,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
   function limitMark(r,an,out){const[x0,y0]=P(CX,CY,r+(out?16:-16),an),[x1,y1]=P(CX,CY,r+(out?4:-4),an),[a1,b1]=P(CX,CY,r+(out?16:-16),an-2.2),[a2,b2]=P(CX,CY,r+(out?16:-16),an+2.2);
     return `<polygon points="${n1(a1)},${n1(b1)} ${n1(x1)},${n1(y1)} ${n1(a2)},${n1(b2)}" fill="${C.red}" stroke="#fff" stroke-width="1.5"/>`}
   o+=limitMark(RO+12,ar(RMAX/1000),true);
-  o+=wedge(RO-12,RO+12,ar(rpm/1000),2.0,rHot?hotC(1):ACC[0],rHot?(OFF?'#5a1a20':'#ffd0d4'):ACC[1]);
+  o+=wedge(182,RO+12,ar(rpm/1000),1.3,rHot?hotC(1):ACC[0],rHot?(OFF?'#5a1a20':'#ffd0d4'):ACC[1]);
   // inner scale: BOOST with its own needle
   const RI=172,ab=v=>A0+SW*v/40;
   o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
@@ -344,7 +344,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
   for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=BMAX?'#ff8a94':SEC}" stroke-width="${maj?3:1.6}"/>`}
   for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=BMAX?'#ff8a94':SEC,f:'C6'})}
   o+=limitMark(RI-8,ab(BMAX),false);
-  o+=wedge(RI-10,RI+10,ab(bst),2.8,bHot?hotC(1):SEC,bHot?(OFF?'#5a1a20':'#ffd0d4'):'#fff3d6');
+  o+=wedge(104,RI+8,ab(bst),2.1,bHot?hotC(1):SEC,bHot?(OFF?'#5a1a20':'#ffd0d4'):'#fff3d6');
   // speed, big; RPM digits with boost under them
   o+=sk(CX-6,CY+20,156,V.mph)+T(CX,CY+48,22,'MPH',{c:C.dim,ls:4,f:'C5'});
   o+=`<rect x="${CX-96}" y="${CY+60}" width="192" height="88" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX,CY+168,15,'RPM ×1000  ·  BOOST psi',{c:C.dim,f:'C5'});
