@@ -30,7 +30,8 @@ if [ "$GW_QT" = "system" ]; then
     echo "== Qt: Raspberry Pi OS PySide6 (GPU)"
     for p in python3-pyside6.qtcore python3-pyside6.qtgui python3-pyside6.qtqml python3-pyside6.qtquick \
              qml6-module-qtquick qml6-module-qtquick-shapes qml6-module-qtquick-window \
-             qml6-module-qtqml-workerscript qml6-module-qtqml-models qt6-qpa-plugins libqt6gui6; do
+             qml6-module-qtqml-workerscript qml6-module-qtqml-models qt6-qpa-plugins libqt6gui6 \
+             qt6-svg-plugins; do
         echo "   apt: $p"
         apt-get install -y -q --no-install-recommends "$p" >/dev/null 2>&1 || echo "WARNING: apt couldn't install $p"
     done
@@ -54,7 +55,7 @@ if [ -n "$QTINFO" ]; then
     PLUG="${QTINFO#* }"
     echo "   PySide6 ${QTINFO%% *}, plugins in $PLUG"
     for f in platforms/libqeglfs.so egldeviceintegrations/libqeglfs-kms-integration.so \
-             platforms/libqlinuxfb.so generic/libqevdevtouchplugin.so; do
+             platforms/libqlinuxfb.so generic/libqevdevtouchplugin.so imageformats/libqsvg.so; do
         if [ ! -e "$PLUG/$f" ]; then echo "WARNING: missing Qt plugin $f"; continue; fi
         MISSING="$(ldd "$PLUG/$f" 2>/dev/null | grep 'not found' | sort -u || true)"
         if [ -n "$MISSING" ]; then echo "WARNING: $f is missing libraries:"; echo "$MISSING"; fi
@@ -64,7 +65,7 @@ if [ -n "$QTINFO" ]; then
             --demo cruise --theme oem --screenshot /tmp/gaugeworks-check.png >/tmp/gaugeworks-check.log 2>&1; then
         echo "   GaugeWorks render check OK"
     else
-        echo "WARNING: GaugeWorks render check failed; see /tmp/gaugeworks-check.log"
+        echo "WARNING: GaugeWorks render check failed:"; tail -5 /tmp/gaugeworks-check.log | sed 's/^/   /'
     fi
 fi
 
