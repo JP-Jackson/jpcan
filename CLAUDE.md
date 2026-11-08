@@ -95,7 +95,9 @@ against FORScan or the dash.
   GaugeWorks on the HDMI screen is also done: pages, press-and-hold slot
   picker, USB export, CEL banner and themes. The Premium theme is an
   OEM-style skin with chrome dials, a centre economy/engine card, long date
-  and time, and telltales. First drive 2026-11-07 showed RPM lag, so polling
+  and time, and telltales. The Towing page is the v2 P3 design (D31): speed
+  center, RPM and boost rings with split scales, eight panels with range
+  bars, settable red lines that blink at 3 Hz, background and color settings. First drive 2026-11-07 showed RPM lag, so polling
   now uses tiers (D23); retest on the next drive.
 - 1.5: Phone web dashboard (view-only) over mosquitto websockets plus a Pi
   hotspot on the road.
@@ -141,6 +143,12 @@ against FORScan or the dash.
   2026-11-08. EGLFS starts, and GaugeWorks uses 10-20% CPU in sim. Needs
   `qt6-svg-plugins` (theme SVGs); Qt packages install without recommends.
 - Truck/Simulator switch is in Settings (D26).
+- Theme rework (v2 mockups, `docs/mockups/v2/KEY.md`): P3 is built (D31).
+  Next pages to finish with JP: P1 Daily, P2 Sport, P4 Economy, P5 Trend
+  (keeper; needs a value history in GaugeWorks), and Classic C1-C4. Then drop
+  the other themes (keep Premium and Classic).
+- Check P3 on the Pi: blink rate, touch on the panels, the red-line control
+  and the color picker, and the CPU load with the trails moving.
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
 ## Working style

@@ -248,3 +248,27 @@ Confirmed on the Pi on 2026-11-08: EGLFS starts and GaugeWorks uses 10-20% CPU.
 The Qt packages install with `--no-install-recommends`, which skips GTK and
 friends. That makes `qt6-svg-plugins` an explicit package, because the themes
 draw their faces and needles from SVGs.
+
+## D31. Towing page (P3), settable red lines, split scales, appearance settings
+Built from the v2 mockup P3 (`docs/mockups/v2/`), as a new page template,
+`towing` (`gaugeworks/qml/PageTowing.qml`, with `TowGauge`, `TowPanel` and
+`RangeBar`). It's a standard page, so every theme uses it until a theme ships
+its own skin.
+- Slots: `center` (speed), `ring` (RPM), `inner` (boost), `box1`/`box2` (RPM
+  and boost digits), `l1`-`l4` and `r1`-`r4` (panels; `r4` is the VGT dual).
+  Gear comes from the profile's `gaugeworks.gear`. Every slot can be swapped
+  with press and hold.
+- Red lines are per reading. The default is the profile's `display.<key>.alarm`.
+  JP can override it from the picker (press and hold), and it's saved per
+  vehicle in settings `limits`, in imperial display units like the profile. At
+  or over the red line, that reading's trail, pointer, digits and bar blink at
+  3 Hz. Defaults on the F-250: 3,000 rpm and 20 psi.
+- Split scales: `display.<key>.split` puts min..split on 7/8 of the sweep and
+  squeezes split..max into the last 1/8. That's 3,000 rpm and 20 psi on the F-250.
+- GaugeWorks tracks each reading's min and max since it started (this drive),
+  shown as a bracket on the bars and as text under the value.
+- Settings: Background (carbon, expanded metal, diamond plate, brushed,
+  honeycomb, black; default carbon; textures in `gaugeworks/assets/bg/`) and
+  Colors (two accents from a hue-ring picker; red, amber and green stay fixed).
+- No new Qt modules: shadows and glow are drawn, not effects, and static art is
+  painted once with Canvas.
