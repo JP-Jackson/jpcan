@@ -22,14 +22,24 @@ CARD="/dev/dri/${CONN%%-*}"          # card1-HDMI-A-1 -> /dev/dri/card1
 OUTPUT="${CONN#*-}"                  # -> HDMI-A-1
 echo "GaugeWorks: $OUTPUT on $CARD"
 
+find_touch() {
+    for ev in /dev/input/event*; do
+        name="$(cat "/sys/class/input/$(basename "$ev")/device/name" 2>/dev/null)"
+        case "$name" in *ADS7846*) continue ;; esac
+        if udevadm info -q property -n "$ev" 2>/dev/null | grep -q '^ID_INPUT_TOUCHSCREEN=1'; then
+            echo "$ev ($name)"; return 0
+        fi
+    done
+    return 1
+}
+
+# The HDMI screen's USB touch can enumerate after the HDMI output; give it ~20 s.
 TOUCH=""
-for ev in /dev/input/event*; do
-    name="$(cat "/sys/class/input/$(basename "$ev")/device/name" 2>/dev/null)"
-    case "$name" in *ADS7846*) continue ;; esac
-    if udevadm info -q property -n "$ev" 2>/dev/null | grep -q '^ID_INPUT_TOUCHSCREEN=1'; then
-        TOUCH="$ev"; echo "GaugeWorks: touch $ev ($name)"; break
-    fi
+for _ in $(seq 1 10); do
+    if T="$(find_touch)"; then TOUCH="${T%% *}"; echo "GaugeWorks: touch $T"; break; fi
+    echo "GaugeWorks: waiting for a USB touchscreen..."; sleep 2
 done
+[ -z "$TOUCH" ] && echo "GaugeWorks: no USB touchscreen found; Qt will auto-detect input"
 
 cat > "$RUNDIR/gaugeworks-kms.json" <<EOF
 { "device": "$CARD", "hwcursor": false,

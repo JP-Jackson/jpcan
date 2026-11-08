@@ -121,3 +121,25 @@ def test_rolling_reset_and_handle_reset():
     trip.handle_reset("trip")
     assert trip.trip.dist_km == 0 and trip.tank.dist_km > 0
     assert bus.latest()["econ_trip"].value is None
+
+
+def test_log_stats_rates_and_gaps(tmp_path):
+    import sqlite3, json
+    from core.export import format_log_stats, log_stats
+
+    p = tmp_path / "d.sqlite"
+    with sqlite3.connect(p) as db:
+        db.execute("CREATE TABLE meta (k TEXT PRIMARY KEY, v TEXT)")
+        db.execute("CREATE TABLE readings (ts REAL, key TEXT, value REAL, err TEXT)")
+        db.executemany("INSERT INTO meta VALUES (?, ?)",
+                       [("started", json.dumps(100.0)), ("ended", json.dumps(110.0)), ("profile", '"t"')])
+        rows = [(100 + i * 0.25, "rpm", 1000.0, None) for i in range(20)]  # 4 Hz
+        rows += [(105.0, "rpm", 1000.0, None), (107.0, "rpm", 1000.0, None)]  # a 2 s hole
+        rows += [(100 + i * 5.0, "coolant", 80.0, "NO DATA" if i else None) for i in range(3)]
+        db.executemany("INSERT INTO readings VALUES (?, ?, ?, ?)", rows)
+    s = log_stats(p)
+    assert s["keys"]["rpm"]["max_gap"] == 2.0
+    assert s["keys"]["coolant"]["errors"] == 2
+    assert 2.9 < s["keys"]["rpm"]["hz"] < 4.0
+    txt = format_log_stats(s)
+    assert "rpm" in txt and "coolant" in txt

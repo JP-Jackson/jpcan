@@ -125,6 +125,7 @@ journalctl -u gaugeworks -n 50
 ```
 ```bash
 ~/jpcan/.venv/bin/jpcan logs
+~/jpcan/.venv/bin/jpcan logstats          # per-PID Hz and gaps for the latest drive
 ```
 ```bash
 ~/jpcan/.venv/bin/jpcan export <file>.sqlite

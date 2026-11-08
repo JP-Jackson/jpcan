@@ -434,6 +434,26 @@ def cmd_logs(args) -> int:
     return 0
 
 
+def cmd_logstats(args) -> int:
+    from .export import format_log_stats, log_stats
+    from .logger import default_log_dir
+
+    d = Path(args.dir) if args.dir else default_log_dir()
+    if args.log:
+        src = Path(args.log)
+        if not src.exists():
+            src = d / args.log
+    else:
+        files = sorted(f for f in d.glob("*.sqlite") if f.name != "fuel.sqlite")
+        if not files:
+            print(f"No drive logs in {d}")
+            return 1
+        src = files[-1]
+    print(src)
+    print(format_log_stats(log_stats(src)))
+    return 0
+
+
 def cmd_export(args) -> int:
     from .export import export_csv
     from .logger import default_log_dir
@@ -585,6 +605,10 @@ def build_parser() -> argparse.ArgumentParser:
     lp = sub.add_parser("logs", help="list drive logs")
     lp.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
     lp.set_defaults(func=cmd_logs)
+    ls_ = sub.add_parser("logstats", help="per-PID sample rate and gaps for a drive log (default: latest)")
+    ls_.add_argument("log", nargs="?", help="log file name or path")
+    ls_.add_argument("--dir", help="log directory (default ~/jpcan-logs)")
+    ls_.set_defaults(func=cmd_logstats)
     ep = sub.add_parser("export", help="export a drive log to CSV")
     ep.add_argument("log", help="log file name or path")
     ep.add_argument("--out", help="CSV path (default: next to the log)")
