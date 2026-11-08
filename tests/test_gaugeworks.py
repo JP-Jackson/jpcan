@@ -144,4 +144,28 @@ def test_theme_skin_pages_override_and_fallback(tmp_path):
     src = page_sources("skinny", tmp_path)
     assert src["dash"].endswith("/skinny/qml/PageDash.qml")          # theme's own layout
     assert src["quad"].endswith(str(QML_DIR / "PageQuad.qml"))       # standard fallback
-    assert set(src) == {"dash", "quad", "economy", "list"}
+    assert set(src) == {"dash", "quad", "economy", "list", "towing"}
+
+
+def test_towing_page_limits_and_split():
+    from gaugeworks.backend import build_pages, limit_info, to_imperial
+
+    meta = _meta()
+    tow = build_pages(meta, True, 10, {})[1]
+    assert tow["template"] == "towing"
+    s = tow["slots"]
+    assert s["center"]["key"] == "speed" and s["ring"]["key"] == "rpm" and s["inner"]["key"] == "boost"
+    assert s["ring"]["alarm"] == 3000 and s["ring"]["split"] == 3000
+    assert s["inner"]["alarm"] == 20 and s["inner"]["split"] == 20
+    assert s["r4"]["dual"] is True                                   # VGT: commanded and actual
+    # a red line JP set overrides the profile, per reading
+    tow = build_pages(meta, True, 10, {}, {"trans_temp": 225, "rpm": 2800})[1]["slots"]
+    assert tow["l2"]["alarm"] == 225 and tow["ring"]["alarm"] == 2800 and tow["box1"]["alarm"] == 2800
+    li = limit_info(meta, "boost", True, {})
+    assert li["value"] == 20 and li["step"] > 0 and li["custom"] is False
+    assert limit_info(meta, "rpm", True, {"rpm": 2800})["custom"] is True
+    # metric: limits are stored in imperial; a typed °C value converts back to °F
+    assert abs(to_imperial(100.0, "°C", False) - 212.0) < 1e-9
+    assert to_imperial(212.0, "°C", True) == 212.0
+    met = build_pages(meta, False, 10, {}, {"trans_temp": 212})[1]["slots"]
+    assert abs(met["l2"]["alarm"] - 100.0) < 1e-6

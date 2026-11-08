@@ -54,9 +54,10 @@ def gauge_config(g: dict, native: str, imperial: bool) -> dict:
         "major": float(g.get("major", 0)) or 0.0, "minor": int(g.get("minor", 5)),
         "warn": g.get("warn"), "alarm": g.get("alarm"),
         "scale": float(g.get("scale", 1)), "scaleLabel": g.get("scale_label", ""),
+        "split": g.get("split"),
     }
     if not imperial and native in IMPERIAL:
-        for k in ("min", "max", "warn", "alarm"):
+        for k in ("min", "max", "warn", "alarm", "split"):
             c[k] = _imperial_to_metric(c[k], native)
         step = nice_step(c["max"] - c["min"])
         c["min"] = math.floor(c["min"] / step + 1e-9) * step
@@ -65,7 +66,7 @@ def gauge_config(g: dict, native: str, imperial: bool) -> dict:
     if not c["major"]:
         c["major"] = nice_step(c["max"] - c["min"])
     c["decimals"] = 0 if (c["max"] - c["min"]) * c["scale"] >= 100 or c["scale"] != 1 else 1
-    for k in ("warn", "alarm"):
+    for k in ("warn", "alarm", "split"):
         c[k] = float("nan") if c[k] is None else float(c[k])
     return c
 
@@ -98,8 +99,10 @@ def auto_display(key: str, info: dict) -> dict:
             "label": (info.get("short") or key).upper()}
 
 
-def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict) -> list[dict]:
-    """Profile pages + JP's per-slot picks -> concrete config for QML."""
+def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict,
+                limits: dict | None = None) -> list[dict]:
+    """Profile pages + JP's per-slot picks and red lines -> concrete config for QML."""
+    limits = limits or {}
     ch = meta.get("channels", {})
     gw = meta.get("gaugeworks") or {}
     disp = gw.get("display") or {}
@@ -113,6 +116,8 @@ def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict) -> 
         if key not in ch:
             return {"key": key, "missing": True}
         g = {**(disp.get(key) or auto_display(key, ch[key])), "key": key}
+        if key in limits:
+            g["alarm"] = limits[key]
         return {**gauge_config(g, ch[key].get("units", ""), imperial), "verified": ch[key].get("verified", True)}
 
     def tile_cfg(key: str) -> dict:
@@ -159,7 +164,34 @@ def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
 
 QML_DIR = Path(__file__).resolve().parent / "qml"
 TEMPLATES = {"dash": "PageDash.qml", "quad": "PageQuad.qml", "economy": "PageEconomy.qml",
-             "list": "PageList.qml"}
+             "list": "PageList.qml", "towing": "PageTowing.qml"}
+BACKGROUNDS = ["carbon", "expanded", "diamond", "brushed", "honeycomb", "black"]
+DEFAULT_ACCENTS = ("#29c4ff", "#ffb340")
+
+
+def limit_info(meta: dict, key: str, imperial: bool, limits: dict) -> dict:
+    """Red line for one reading in display units, with a sensible +/- step."""
+    ch = (meta.get("channels") or {}).get(key)
+    if not ch:
+        return {}
+    disp = ((meta.get("gaugeworks") or {}).get("display") or {})
+    g = {**(disp.get(key) or auto_display(key, ch)), "key": key}
+    if key in limits:
+        g["alarm"] = limits[key]
+    c = gauge_config(g, ch.get("units", ""), imperial)
+    step = c["major"] / max(1, c["minor"])
+    if step * c["scale"] >= 1 and c["max"] - c["min"] >= 1000:
+        step = max(step / 2, 50.0)
+    alarm = c["alarm"]
+    return {"key": key, "value": None if math.isnan(alarm) else alarm, "step": step, "min": c["min"],
+            "max": c["max"], "units": c["units"], "custom": key in limits, "label": c["label"] or key}
+
+
+def to_imperial(v: float, native: str, imperial: bool) -> float:
+    """A value typed in the current display units -> imperial display units (how limits are stored)."""
+    if imperial or native not in IMPERIAL:
+        return v
+    return IMPERIAL[native][1](v)
 
 
 def page_sources(theme_id: str, themes_dir: Path = THEMES_DIR, qml_dir: Path = QML_DIR) -> dict:
@@ -221,6 +253,8 @@ class Backend(QObject):
         self._settings = settings if settings is not None else settings_mod.load()
         self._values = QQmlPropertyMap(self)
         self._fresh = QQmlPropertyMap(self)
+        self._lo = QQmlPropertyMap(self)   # lowest value seen this drive (display units)
+        self._hi = QQmlPropertyMap(self)   # highest value seen this drive
         self._config: dict = {"gauges": {}, "tiles": []}
         self._theme = load_theme(self._settings.get("theme", "classic"))
         self._status = {"state": "offline", "text": "Starting...", "mode": ""}
@@ -249,6 +283,23 @@ class Backend(QObject):
 
     values = Property(QObject, _get_values, constant=True)
     fresh = Property(QObject, _get_fresh, constant=True)
+    lo = Property(QObject, lambda self: self._lo, constant=True)
+    hi = Property(QObject, lambda self: self._hi, constant=True)
+
+    # -- appearance: background texture and the two accent colors
+    def _bg(self) -> str:
+        b = self._settings.get("background", "carbon")
+        return b if b in BACKGROUNDS else "carbon"
+
+    def _bg_url(self) -> str:
+        f = ASSETS_DIR / "bg" / f"{self._bg()}.png"
+        return QUrl.fromLocalFile(str(f)).toString() if f.exists() else ""
+
+    background = Property(str, _bg, notify=settingsChanged)
+    backgroundUrl = Property(str, _bg_url, notify=settingsChanged)
+    backgrounds = Property("QVariantList", lambda self: list(BACKGROUNDS), constant=True)
+    accent = Property(str, lambda self: self._settings.get("accent") or DEFAULT_ACCENTS[0], notify=settingsChanged)
+    accent2 = Property(str, lambda self: self._settings.get("accent2") or DEFAULT_ACCENTS[1], notify=settingsChanged)
     config = Property("QVariantMap", lambda self: self._config, notify=configChanged)
     theme = Property("QVariantMap", lambda self: self._theme, notify=themeChanged)
     status = Property("QVariantMap", lambda self: self._status, notify=statusChanged)
@@ -283,6 +334,7 @@ class Backend(QObject):
         sig = (meta.get("profile"), json.dumps(meta.get("gaugeworks", {}), sort_keys=True),
                self._settings.get("units"), json.dumps(self._settings.get("shift_rpm", {})),
                self._settings.get("econ_window_mi"), json.dumps(self._settings.get("slots", {})),
+               json.dumps(self._settings.get("limits", {}), sort_keys=True),
                len(meta.get("channels", {})))
         if sig != self._meta_sig and meta:
             self._meta_sig = sig
@@ -304,7 +356,7 @@ class Backend(QObject):
         win = int(self._settings.get("econ_window_mi", 10))
         prof = meta.get("profile", "")
         overrides = (self._settings.get("slots") or {}).get(prof, {})
-        pages = build_pages(meta, imp, win, overrides)
+        pages = build_pages(meta, imp, win, overrides, self._limits(meta))
         status_keys = (meta.get("layouts") or {}).get("status") or []
         diag = status_keys + sorted(k for k in ch if k not in status_keys)
         rpm_cfg = (gauge_config({**(gw.get("display") or {}).get("rpm", auto_display("rpm", ch["rpm"])),
@@ -360,6 +412,12 @@ class Backend(QObject):
             v = display(raw, r.units, imp)[0] if raw is not None else 0.0
             if self._values.value(k) != v:
                 self._values.insert(k, v)
+            if ok:
+                lo, hi = self._lo.value(k), self._hi.value(k)
+                if lo is None or v < lo:
+                    self._lo.insert(k, v)
+                if hi is None or v > hi:
+                    self._hi.insert(k, v)
             if self._fresh.value(k) != ok:
                 self._fresh.insert(k, ok)
 
@@ -488,6 +546,56 @@ class Backend(QObject):
         if hasattr(self.feed, "trip_reset"):
             self.feed.trip_reset()
             self.message.emit("Trip reset")
+
+    # -- red lines (per vehicle; stored in imperial display units like the profile)
+    def _limits(self, meta: dict | None = None) -> dict:
+        prof = (meta or self.feed.meta or {}).get("profile", "")
+        return dict((self._settings.get("limits") or {}).get(prof, {}))
+
+    @Slot(str, result="QVariantMap")
+    def limitFor(self, key: str) -> dict:
+        imp = self._settings.get("units", "imperial") == "imperial"
+        return limit_info(self.feed.meta or {}, key, imp, self._limits())
+
+    @Slot(str, float)
+    def setLimit(self, key: str, value: float) -> None:
+        meta = self.feed.meta or {}
+        native = ((meta.get("channels") or {}).get(key) or {}).get("units", "")
+        imp = self._settings.get("units", "imperial") == "imperial"
+        prof = meta.get("profile", "")
+        self._settings.setdefault("limits", {}).setdefault(prof, {})[key] = round(to_imperial(value, native, imp), 3)
+        self._save()
+
+    @Slot(str)
+    def resetLimit(self, key: str) -> None:
+        prof = (self.feed.meta or {}).get("profile", "")
+        (self._settings.get("limits") or {}).get(prof, {}).pop(key, None)
+        self._save()
+
+    @Slot()
+    def resetDriveMinMax(self) -> None:
+        for m in (self._lo, self._hi):
+            for k in list(m.keys()):
+                m.clear(k)
+
+    # -- appearance
+    @Slot(str)
+    def setBackground(self, name: str) -> None:
+        if name in BACKGROUNDS:
+            self._settings["background"] = name
+            self._save()
+
+    @Slot(int, str)
+    def setAccent(self, which: int, color: str) -> None:
+        if isinstance(color, str) and len(color) == 7 and color.startswith("#"):
+            self._settings["accent2" if which else "accent"] = color.lower()
+            self._save()
+
+    @Slot()
+    def resetColors(self) -> None:
+        self._settings.pop("accent", None)
+        self._settings.pop("accent2", None)
+        self._save()
 
     @Slot(str)
     def setSource(self, mode: str) -> None:

@@ -76,7 +76,7 @@ Rectangle {
                     source: {  // theme "skin" page if the theme ships one, else the standard page
                         var t = pageItem.modelData.template
                         var src = (root.theme.pages || {})[t]
-                        return src ? src : (t === "quad" ? "PageQuad.qml" : t === "economy" ? "PageEconomy.qml"
+                        return src ? src : (t === "quad" ? "PageQuad.qml" : t === "towing" ? "PageTowing.qml" : t === "economy" ? "PageEconomy.qml"
                                             : t === "list" ? "PageList.qml" : "PageDash.qml")
                     }
                     onLoaded: {
@@ -202,16 +202,16 @@ Rectangle {
             // ---- OEM-style bar (Premium theme): long date + time, telltales, outside temp
             Row {
                 visible: root.oemBar
-                x: 30; y: 12; spacing: 14
+                x: 20; y: 4; spacing: 14
                 Text {
                     id: oemTime
-                    color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 22
+                    color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 32
                     Timer { interval: 1000; running: root.oemBar; repeat: true; triggeredOnStart: true
                             onTriggered: { var n = new Date(); oemTime.text = Qt.formatTime(n, "h:mm AP")
                                            oemDate.text = Qt.formatDate(n, "dddd, MMMM d, yyyy") } }
                 }
                 Text { id: oemDate; anchors.baseline: oemTime.baseline; color: colors.dim
-                       font.family: theme.fonts.label; font.pixelSize: 15; font.letterSpacing: 0.5 }
+                       font.family: theme.fonts.label; font.pixelSize: 20; font.letterSpacing: 0.5 }
                 Text {  // only when the core isn't running normally
                     anchors.baseline: oemTime.baseline
                     visible: backend.status.state !== "running"
@@ -230,17 +230,17 @@ Rectangle {
             }
             Row {
                 visible: root.oemBar && backend.values["ambient"] !== undefined
-                anchors.right: gearIcon.left; anchors.rightMargin: 26; y: 12; spacing: 8
+                anchors.right: gearIcon.left; anchors.rightMargin: 22; y: 4; spacing: 8
                 Text { anchors.baseline: outT.baseline; text: "OUTSIDE"; color: colors.dim
-                       font.family: theme.fonts.label; font.pixelSize: 11; font.letterSpacing: 1.5 }
-                Text { id: outT; color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 22
+                       font.family: theme.fonts.label; font.pixelSize: 14; font.letterSpacing: 1.5 }
+                Text { id: outT; color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 32
                        text: backend.fresh["ambient"] === true ? backend.values["ambient"].toFixed(0) + "°" : "--" }
             }
             Text {
                 id: gearIcon
                 anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                 text: "⚙"
-                color: colors.text; font.pixelSize: 32
+                color: colors.text; font.pixelSize: root.oemBar ? 42 : 32
                 MouseArea { anchors.fill: parent; anchors.margins: -12; onClicked: settings.visible = true }
             }
         }

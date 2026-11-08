@@ -18,7 +18,7 @@ QML_DIR = Path(__file__).resolve().parent / "qml"
 
 # Demo scenes in native units (km/h, °C, kPa...). Used for screenshots/review.
 DEMO_SCENES = {
-    "cruise": {"gear": 6, "rpm": 1650, "speed": 104.6, "boost": 55, "baro": 99, "coolant": 88, "trans_temp": 77,
+    "cruise": {"gear": 6, "rpm": 1650, "speed": 104.6, "boost": 55, "load": 42, "rail_actual": 1827, "baro": 99, "coolant": 88, "trans_temp": 77,
                "vgt_desired": 45, "vgt_actual": 48, "econ_inst": 7.2, "econ_tank": 6.6, "econ_trip": 6.4, "econ_last10": 7.0,
                "ambient": 32, "oil_temp_std": 96, "battery": 14.2, "fuel_level": 70, "mil": 0,
                "trip_dist": 52.3, "map": 155, "iat": 30, "dpf_dp": 1.2},
