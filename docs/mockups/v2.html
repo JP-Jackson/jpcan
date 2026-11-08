@@ -277,26 +277,40 @@ pages.classic_trend=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>
 
 
 // Premium Towing: aftermarket diesel-monitor look (carbon, segmented EGT arc, side data panels)
-pages.premium_towing=()=>{const CX=512,CY=280;const CY2='#29c4ff';
-  let o=`<rect width="1024" height="600" fill="url(#carbon)"/><rect width="1024" height="600" fill="url(#sheen)"/><circle cx="512" cy="290" r="300" fill="#29c4ff" opacity=".10" filter="url(#bloomBig)"/>`;GL.push([CX,CY,232]);
+pages.premium_towing=()=>{const CX=512,CY=304,RD=258;const CY2='#29c4ff';
+  let o=`<rect width="1024" height="600" fill="url(#carbon)"/><rect width="1024" height="600" fill="url(#sheen)"/><circle cx="512" cy="300" r="310" fill="#29c4ff" opacity=".10" filter="url(#bloomBig)"/>`;GL.push([CX,CY,RD]);
   const sk=(x,y,sz,t,op={})=>`<g transform="translate(${x},${y}) skewX(-9)">`+T(0,0,sz,t,{f:'C6',...op})+`</g>`;
+  // top bar: time, date, TOWING, outside temp, settings
+  o+=`<rect x="0" y="0" width="1024" height="46" fill="#05080b" opacity=".85"/><line x1="0" y1="46" x2="1024" y2="46" stroke="${CY2}" stroke-opacity=".5"/>`;
+  o+=T(16,35,32,'10:10 PM',{a:'start',f:'C6'})+T(180,35,22,'Sun Nov 8',{a:'start',c:C.dim,f:'C5'})+T(CX,33,22,'TOWING',{c:C.amber,ls:6,f:'C6'});
+  o+=T(940,35,32,'90°F',{a:'end',f:'C6'});
+  {let g='';const x=990,y=23;for(let i=0;i<8;i++){const an=i*45,[a1,b1]=P(x,y,17,an-11),[a2,b2]=P(x,y,17,an+11);g+=`<line x1="${n1(a1)}" y1="${n1(b1)}" x2="${n1(a2)}" y2="${n1(b2)}" stroke="#dbe7f2" stroke-width="7"/>`}
+   o+=g+`<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="#dbe7f2" stroke-width="5"/>`}
   // center disc
-  o+=`<circle cx="${CX}" cy="${CY}" r="232" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="214" fill="none" stroke="#2a3340" stroke-width="2"/>`;
-  // smooth RPM arc (like P4-1)
-  const R=186,A0=140,SW=260,a=v=>A0+SW*v/5;
-  o+=`<path d="${arc(CX,CY,R,A0,A0+SW)}" stroke="#13263b" stroke-width="34" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,R,A0,a(V.rpm/1000))}" stroke="url(#blue)" stroke-width="34" fill="none"/>`;
-  o+=`<path d="${arc(CX,CY,R,a(4),a(5))}" stroke="${C.red}" stroke-width="34" fill="none" opacity=".55"/>`;
-  {const[x1,y1]=P(CX,CY,R-20,a(V.rpm/1000)),[x2,y2]=P(CX,CY,R+20,a(V.rpm/1000));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="#bfe6ff" stroke-width="7" stroke-linecap="round"/>`}
-  o+=`<path d="${arc(CX,CY,R-19,A0,A0+SW)}" stroke="#dfe6ee" stroke-width="2.5" fill="none"/>`;
-  for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,R-44,a(v));o+=T(x,y,30,v,{db:'central',c:v>=4?C.red:C.text,f:'C6'})}
-  // boost, big
-  o+=T(CX,CY-78,26,'BOOST',{f:'C6',ls:3});o+=sk(CX-8,CY+22,124,V.boost.toFixed(1));o+=T(CX+104,CY+20,22,'psi',{a:'start',c:C.dim,f:'C5'});
-  // RPM box (like P4-6)
-  o+=`<rect x="434" y="${CY+44}" width="156" height="68" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(446,CY+66,18,'RPM',{a:'start',c:C.dim,f:'C5'})+T(578,CY+102,40,fmt(V.rpm),{a:'end',f:'C6'});
-  o+=T(CX,CY+172,22,'TOWING',{c:C.amber,ls:6,f:'C6'});
-  o+=T(CX-40,588,22,'10:10 PM',{a:'end',f:'C6'})+T(CX+40,588,22,'90°F',{a:'start',f:'C6'})+cog(CX+150,578);
-  // side panels with a range bar on the straight edge: normal range, red zone, this drive's min-max, and now
+  o+=`<circle cx="${CX}" cy="${CY}" r="${RD}" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="${RD-14}" fill="none" stroke="#2a3340" stroke-width="2"/>`;
+  const A0=140,SW=260;
+  // outer scale: RPM with a needle
+  const RO=230,ar=v=>A0+SW*v/5;
+  o+=`<path d="${arc(CX,CY,RO,A0,A0+SW)}" stroke="#13263b" stroke-width="22" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RO,ar(4),ar(5))}" stroke="${C.red}" stroke-width="22" fill="none" opacity=".6"/>`;
+  for(let v=0;v<=5;v+=.25){const maj=v%1==0,[x1,y1]=P(CX,CY,RO+11,ar(v)),[x2,y2]=P(CX,CY,RO-(maj?11:2),ar(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=4?C.red:'#e9f1f8'}" stroke-width="${maj?4:2}"/>`}
+  for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,RO-32,ar(v));o+=T(x,y,26,v,{db:'central',c:v>=4?C.red:C.text,f:'C6'})}
+  o+=needle(CX,CY,RO-46,RO+12,ar(V.rpm/1000),'#8fe3ff',6);
+  // inner scale: BOOST with its own needle
+  const RI=172,ab=v=>A0+SW*v/40;
+  o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RI,ab(35),ab(40))}" stroke="${C.red}" stroke-width="12" fill="none" opacity=".6"/>`;
+  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=35?C.red:C.amber}" stroke-width="${maj?3:1.6}"/>`}
+  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=35?C.red:C.amber,f:'C6'})}
+  o+=needle(CX,CY,RI-30,RI+8,ab(V.boost),C.amber,5);
+  // speed, big; RPM digits with boost under them
+  o+=sk(CX-6,CY+20,156,V.mph)+T(CX,CY+48,22,'MPH',{c:C.dim,ls:4,f:'C5'});
+  o+=`<rect x="${CX-96}" y="${CY+60}" width="192" height="88" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX,CY+176,16,'RPM ×1000  ·  BOOST psi',{c:C.dim,f:'C5'});
+  o+=T(CX-84,CY+86,17,'RPM',{a:'start',c:C.dim,f:'C5'})+T(CX+84,CY+96,38,fmt(V.rpm),{a:'end',f:'C6'});
+  o+=`<line x1="${CX-84}" y1="${CY+106}" x2="${CX+84}" y2="${CY+106}" stroke="#22364d"/>`;
+  o+=T(CX-84,CY+134,17,'BOOST',{a:'start',c:C.amber,f:'C5'})+T(CX+84,CY+138,30,V.boost.toFixed(1)+' psi',{a:'end',f:'C6',c:C.amber});
+  // gear below the circle
+  o+=T(CX-30,594,20,'GEAR',{a:'end',c:C.dim,f:'C5',ls:2})+T(CX-8,597,44,V.gear,{a:'start',f:'C6'});
   // Premium vertical bar: outline frame, red zone fading down, fill fading down from a bright top edge, pointer wedge,
   // dividers, tube shading, scale numbers, and this drive's min-max as a bracket outside the frame.
   let RB=0;
@@ -327,22 +341,22 @@ pages.premium_towing=()=>{const CX=512,CY=280;const CY2='#29c4ff';
     if(lo!=null){const bxx=left?fx-8:fx+8,yh=Y(hi),yl=Y(lo);g+=`<path d="M${bxx+(left?5:-5)},${n1(yh)} H${bxx} V${n1(yl)} H${bxx+(left?5:-5)}" fill="none" stroke="#bfe9ff" stroke-width="2.5"/>`}
     return g}
   const L=[['INTAKE',V.iat,'°F',[0,200,150,70,118]],['TRANS',V.trans,'°F',[100,280,230,150,212]],['COOLANT',V.cool,'°F',[100,260,230,180,204]],['OIL',V.oil,'°F',[100,300,260,190,221]]];
-  const Rr=[['SPEED',V.mph,'MPH',[0,120,null,0,74]],['GEAR',V.gear,'',null],['RAIL',26.5,'KPSI',[0,30,null,5,29]],['VGT',null,'',null]];
-  [[L,true],[Rr,false]].forEach(([items,left])=>items.forEach(([lab,val,u,rng],i)=>{const y=12+i*146,x=left?8:772,w=244,h=134;
+  const Rr=[['FUEL',70,'%',[0,100,null,68,81]],['LOAD',42,'%',[0,100,null,18,96]],['RAIL',26.5,'KPSI',[0,30,null,5,29]],['VGT',null,'',null]];
+  [[L,true],[Rr,false]].forEach(([items,left])=>items.forEach(([lab,val,u,rng],i)=>{const w=228,h=126,y=56+i*(h+9),x=left?6:1018-w;
     const pts=left?`${x},${y} ${x+w-24},${y} ${x+w},${y+h/2} ${x+w-24},${y+h} ${x},${y+h}`:`${x+24},${y} ${x+w},${y} ${x+w},${y+h} ${x+24},${y+h} ${x},${y+h/2}`;
     o+=`<polygon points="${pts}" fill="#06080bcc" stroke="${CY2}" stroke-width="2"/>`;
-    const bx=left?x+20:x+w-44,cx=x+w/2+(left?30:-30);
+    const bx=left?x+20:x+w-44,cx=x+w/2+(left?28:-28);
     if(lab=='VGT'){const cmd=45,act=V.vgt,diff=act-cmd,dc=Math.abs(diff)>=10?C.red:Math.abs(diff)>=5?C.amber:C.green;
-      o+=T(x+110,y+28,22,'VGT VANE',{f:'C6',c:'#dbe7f2',ls:2});
-      o+=T(x+36,y+70,17,'CMD',{a:'start',c:C.dim,f:'C5'})+sk(x+104,y+72,34,cmd,{a:'end'});
-      o+=T(x+114,y+70,17,'ACT',{a:'start',c:C.dim,f:'C5'})+sk(x+184,y+72,34,act,{a:'end'});
-      o+=`<line x1="${x+36}" y1="${y+84}" x2="${x+186}" y2="${y+84}" stroke="#22364d"/>`;
-      o+=T(x+38,y+116,17,'DIFF',{a:'start',c:C.dim,f:'C5'})+sk(x+184,y+122,46,(diff>0?'+':'')+diff+'%',{a:'end',c:dc});
+      o+=T(x+100,y+28,22,'VGT VANE',{f:'C6',c:'#dbe7f2',ls:2});
+      o+=T(x+34,y+68,17,'CMD',{a:'start',c:C.dim,f:'C5'})+sk(x+96,y+70,32,cmd,{a:'end'});
+      o+=T(x+106,y+68,17,'ACT',{a:'start',c:C.dim,f:'C5'})+sk(x+170,y+70,32,act,{a:'end'});
+      o+=`<line x1="${x+36}" y1="${y+82}" x2="${x+172}" y2="${y+82}" stroke="#22364d"/>`;
+      o+=T(x+36,y+112,17,'DIFF',{a:'start',c:C.dim,f:'C5'})+sk(x+170,y+116,44,(diff>0?'+':'')+diff+'%',{a:'end',c:dc});
       o+=rbar(bx,y+14,h-28,0,100,null,null,null,act,{cmd,left,nolab:1});return}
     if(lab=='GEAR'){o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+106,74,val);
       for(let g=1;g<=6;g++){const py=y+h-14-g*17;o+=`<rect x="${bx}" y="${py}" width="12" height="12" rx="3" fill="${g<=+val?CY2:'#16202b'}"${g==+val?' filter="url(#glow2)"':''}/>`}return}
     const hot=rng&&rng[2]!=null&&val>=rng[2];
-    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+98,66,val,{c:hot?C.red:C.text})+T(cx,y+124,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
+    o+=T(cx,y+32,24,lab,{f:'C6',c:'#dbe7f2',ls:2})+sk(cx,y+94,62,val,{c:hot?C.red:C.text})+T(cx,y+118,17,[u,rng&&rng[3]!=null?rng[3]+'–'+rng[4]:''].filter(Boolean).join('  ·  '),{c:C.dim,f:'C5'});
     if(rng)o+=rbar(bx,y+14,h-28,rng[0],rng[1],rng[2],rng[3],rng[4],val,{left});
 }));
   if(q.get('pick')){o+=`<rect width="1024" height="600" fill="#000" opacity=".72"/>`;
@@ -415,7 +429,7 @@ s+='<rect width="1024" height="600" fill="url(#vign)" pointer-events="none"/>';
 // ?n=1: numbered callouts so feedback can say "P2-4" or "C3-6"
 const CALL={premium_daily:[[118,262],[262,250],[512,222],[690,170],[48,560],[400,560],[740,560],[60,8]],
  premium_sport:[[312,128],[600,180],[600,370],[690,280],[48,96],[48,420],[976,96],[976,420]],
- premium_towing:[[440,196],[330,150],[600,346],[226,40],[798,40],[22,92],[960,470]],
+ premium_towing:[[440,250],[300,120],[620,190],[600,370],[470,560],[216,80],[806,80],[22,134],[960,530],[600,24]],
  premium_economy:[[420,110],[640,250],[580,450],[96,330],[260,150],[340,330],[980,330],[800,150],[512,548]],
  premium_trend:[[248,62],[440,80],[620,330],[716,165],[790,96],[262,540]],
  classic_daily:[[52,112],[300,92],[620,278],[992,112],[170,350],[546,350],[40,488]],
