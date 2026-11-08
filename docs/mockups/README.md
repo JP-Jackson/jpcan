@@ -40,6 +40,14 @@ overview is `v2/sheet.png`.
 | Classic | Economy | big analog MPG gauge with a tank-average marker, fuel gauge, tank/trip/last-10 boxes |
 | Classic | Trend | paper strip-chart recorder with two pens |
 
+Depth pass (after JP said v1 looked flat next to the examples): lit graphics
+bloom, bezels have a bevel and drop shadow, faces sit recessed, glass glare on
+every dial and window, needles have a lit side, a shaded side and a shadow,
+bars shade like tubes, panels float with a gloss, real carbon weave and brushed
+panel, light spill around the dials, and a vignette. On the Pi, the static
+layers (bezel, face, glass) get baked once, and only needles and numbers
+animate, with Qt Quick Effects for the shadows and glow.
+
 EGT isn't used: the truck's EGT reads a fixed placeholder (deleted), so boost,
 oil and intake temperature take its place.
 
