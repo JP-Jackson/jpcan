@@ -56,7 +56,7 @@ if [ -n "$QTINFO" ]; then
     for f in platforms/libqeglfs.so egldeviceintegrations/libqeglfs-kms-integration.so \
              platforms/libqlinuxfb.so generic/libqevdevtouchplugin.so; do
         if [ ! -e "$PLUG/$f" ]; then echo "WARNING: missing Qt plugin $f"; continue; fi
-        MISSING="$(ldd "$PLUG/$f" 2>/dev/null | grep 'not found' | sort -u)"
+        MISSING="$(ldd "$PLUG/$f" 2>/dev/null | grep 'not found' | sort -u || true)"
         if [ -n "$MISSING" ]; then echo "WARNING: $f is missing libraries:"; echo "$MISSING"; fi
     done
     # End to end: render the Premium theme offscreen; QML errors make it exit non-zero.
