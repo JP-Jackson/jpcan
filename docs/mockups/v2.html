@@ -308,7 +308,7 @@ pages.premium_towing=()=>{const CX=512,CY=306,RD=246;
   const sk=(x,y,sz,t,op={})=>`<g transform="translate(${x},${y}) skewX(-9)" filter="url(#tshadow)">`+T(0,0,sz,t,{f:'C6',...op})+`</g>`;
   // top bar: time, date, TOWING, outside temp, settings
   o+=`<defs><linearGradient id="tbar" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a2532"/><stop offset=".5" stop-color="#0a1018"/><stop offset="1" stop-color="#04070a"/></linearGradient><linearGradient id="tsh" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".7"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient></defs><rect x="0" y="46" width="1024" height="12" fill="url(#tsh)"/><rect x="0" y="0" width="1024" height="46" fill="url(#tbar)"/><line x1="0" y1="1" x2="1024" y2="1" stroke="#fff" stroke-opacity=".12"/><line x1="0" y1="46" x2="1024" y2="46" stroke="${CY2}" stroke-opacity=".5"/>`;
-  o+=T(16,35,32,'10:10 PM',{a:'start',f:'C6'})+T(180,35,22,'Sun Nov 8',{a:'start',c:C.dim,f:'C5'})+T(CX,33,22,'TOWING',{c:C.amber,ls:6,f:'C6'});
+  o+=T(16,35,32,'10:10 PM',{a:'start',f:'C6'})+T(180,35,22,'Sun Nov 8',{a:'start',c:C.dim,f:'C5'});for(let k=0;k<5;k++)o+=`<rect x="${CX-58+k*24}" y="19" width="${k==2?28:10}" height="8" rx="4" fill="${k==2?CY2:'#2a3a4f'}"/>`;
   o+=T(940,35,32,'90°F',{a:'end',f:'C6'});
   {let g='';const x=990,y=23;for(let i=0;i<8;i++){const an=i*45,[a1,b1]=P(x,y,17,an-11),[a2,b2]=P(x,y,17,an+11);g+=`<line x1="${n1(a1)}" y1="${n1(b1)}" x2="${n1(a2)}" y2="${n1(b2)}" stroke="#dbe7f2" stroke-width="7"/>`}
    o+=g+`<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="#dbe7f2" stroke-width="5"/>`}
@@ -327,7 +327,8 @@ pages.premium_towing=()=>{const CX=512,CY=306,RD=246;
   o+=`<circle cx="${CX}" cy="${CY}" r="${RD+14}" fill="none" stroke="${CY2}" stroke-width="3" opacity=".5" filter="url(#glowU)"/><circle cx="${CX}" cy="${CY}" r="${RD}" fill="url(#face)"/><circle cx="${CX}" cy="${CY}" r="${RD}" fill="url(#faceIn)"/>`+bezel(CX,CY,RD+6,12)+`<circle cx="${CX}" cy="${CY}" r="${RD+13}" fill="none" stroke="${CY2}" stroke-width="2"/>`;
   const A0=140,SW=260;
   // light trails behind both needles (drawn on the face, under the scales)
-  o+=trail(176,RD-12,A0,A0+SW*rpm/5000,rHot?C.red:ACC[0],rHot?(OFF?.12:.95):.75,'trO')+trail(100,160,A0,A0+SW*bst/40,bHot?C.red:SEC,bHot?(OFF?.12:.95):.7,'trI');
+  const RI=166,ab=v=>A0+SW*(v<=20?.875*v/20:.875+.125*(Math.min(v,40)-20)/20);
+  o+=trail(176,RD-12,A0,A0+SW*rpm/5000,rHot?C.red:ACC[0],rHot?(OFF?.12:.95):.75,'trO')+trail(100,160,A0,ab(bst),bHot?C.red:SEC,bHot?(OFF?.12:.95):.7,'trI');
   // outer scale: RPM with a needle
   const RO=220,ar=v=>A0+SW*v/5;
   o+=`<path d="${arc(CX,CY,RO+10,A0,A0+SW)}" stroke="${ACC[0]}" stroke-opacity=".35" stroke-width="2" fill="none"/>`;
@@ -346,11 +347,11 @@ pages.premium_towing=()=>{const CX=512,CY=306,RD=246;
   o+=limitMark(RO+12,ar(RMAX/1000),true);
   o+=wedge(176,RO+12,ar(rpm/1000),1.35,rHot?hotC(1):ACC[0],rHot?(OFF?'#5a1a20':'#ffd0d4'):ACC[1]);
   // inner scale: BOOST with its own needle
-  const RI=166,ab=v=>A0+SW*v/40;
   o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
   o+=`<path d="${arc(CX,CY,RI+4,ab(BMAX),ab(40))}" stroke="${C.red}" stroke-width="4" fill="none" opacity=".45"/>`;
-  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=BMAX?'#ff8a94':SEC}" stroke-width="${maj?3:1.6}"/>`}
-  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=BMAX?'#ff8a94':SEC,f:'C6'})}
+  {const tk=[];for(let v=0;v<=20;v+=1)tk.push([v,v%5==0]);[25,30,35,40].forEach(v=>tk.push([v,v==30||v==40]));
+   tk.forEach(([v,maj])=>{const[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=BMAX?'#ff8a94':SEC}" stroke-width="${maj?3:1.4}"/>`});
+   [0,5,10,15,20,30,40].forEach(v=>{const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,v>20?16:19,v,{db:'central',c:v>=BMAX?'#ff8a94':SEC,f:'C6'})});}
   o+=limitMark(RI+8,ab(BMAX),true);
   o+=wedge(100,RI+8,ab(bst),2.1,bHot?hotC(1):SEC,bHot?(OFF?'#5a1a20':'#ffd0d4'):'#fff3d6');
   // speed, big; RPM digits with boost under them
