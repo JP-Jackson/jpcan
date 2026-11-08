@@ -108,18 +108,15 @@ against FORScan or the dash.
 
 - Touch lockups: fixed (D27), confirmed on the Pi bench 2026-11-08. The D25
   watchdog and persistent journal stay as backstops.
-- Touch USB drops: the 7" touch board (wch.cn USB2IIC_CTP_CONTROL, 1A86:E5E3)
-  disconnected about a dozen times on the bench with clean disconnects, and
-  the Pi's own power was fine. The screen was powered from its
-  "Touch & Power" port only. A separate 5 V supply on the "Power Only" port
-  and a different Pi USB port did NOT stop the drops (31 by then), so suspect
-  the micro-USB cable or the touch board. The watchdog now follows the touch
-  by name and restarts GaugeWorks when it comes back (D30). On the GPU path
-  (2026-11-08, 16:02 on), touch tested fine with no watchdog restarts. The
-  earlier "taps never reached GaugeWorks" restarts all came while drawing on
-  the CPU, so a busy GUI thread is the likely cause. Still to do: swap the
-  touch cable if drops continue; maybe Qt udev hotplug so a drop needs no
-  restart.
+- Touch USB drops (7" touch board wch.cn USB2IIC_CTP_CONTROL, 1A86:E5E3):
+  nearly every drop on 2026-11-08 came 1-3 s after a GaugeWorks restart on
+  the old linuxfb/CPU path, which suggests the screen board resets its touch
+  chip when HDMI is re-driven. Missed taps (busy CPU) caused a watchdog
+  restart, which caused a drop, which caused another restart. There were no
+  drops after the GPU switch (two GPU starts, none since 15:33), so the cable
+  is probably fine. The screen now also has its own 5 V on the "Power Only"
+  port. The watchdog follows the touch by name (D30). Watch for a
+  restart/drop loop. If one shows up, add restart backoff or Qt udev hotplug.
 - Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
   Pi bench 2026-11-08.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
