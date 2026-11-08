@@ -108,6 +108,13 @@ against FORScan or the dash.
 
 - Touch lockups: fixed (D27), confirmed on the Pi bench 2026-11-08. The D25
   watchdog and persistent journal stay as backstops.
+- Touch USB drops: the 7" touch board (wch.cn USB2IIC_CTP_CONTROL, 1A86:E5E3)
+  disconnected about a dozen times on the bench with clean disconnects, and
+  the Pi's own power was fine. The screen was powered from its
+  "Touch & Power" port only. Fix being tried: a separate 5 V supply on the
+  screen's "Power Only" port (in the truck, from the Phase 4 buck converter).
+  Next software step: let touch survive reconnects without a restart (Qt udev
+  hotplug), after the GPU switch is confirmed.
 - Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
   Pi bench 2026-11-08.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
