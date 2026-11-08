@@ -17,6 +17,9 @@ EFI dashes. None of them use any brand's artwork or trade dress.
 Re-render (Playwright): open `designs.html?d=<name>` or `steampunk.html`.
 Fonts come from Google Fonts (all OFL); the Pi themes will bundle them.
 
+`current_themes.png` (2026-11-08) shows Premium, Classic and Classic refined
+on all four pages before the theme rework. Only Daily differs between themes.
+
 ## Reference styles JP liked (for later themes)
 
 Saved 2026-11-07 for detail and feel only. Any theme built from these must be
