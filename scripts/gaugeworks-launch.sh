@@ -34,9 +34,12 @@ find_touch() {
 }
 
 # The HDMI screen's USB touch can enumerate after the HDMI output; give it ~20 s.
-TOUCH=""
+TOUCH=""; TOUCH_NAME=""
 for _ in $(seq 1 10); do
-    if T="$(find_touch)"; then TOUCH="${T%% *}"; echo "GaugeWorks: touch $T"; break; fi
+    if T="$(find_touch)"; then
+        TOUCH="${T%% *}"; TOUCH_NAME="${T#* (}"; TOUCH_NAME="${TOUCH_NAME%)}"
+        echo "GaugeWorks: touch $T"; break
+    fi
     echo "GaugeWorks: waiting for a USB touchscreen..."; sleep 2
 done
 [ -z "$TOUCH" ] && echo "GaugeWorks: no USB touchscreen found; Qt will auto-detect input"
@@ -59,15 +62,17 @@ if [ -n "$TOUCH" ]; then
     export QT_QPA_FB_DISABLE_INPUT=1         # same for the linuxfb fallback
     export QT_QPA_GENERIC_PLUGINS="evdevtouch:${TOUCH}"
     export GAUGEWORKS_TOUCH="${TOUCH}"       # touch watchdog (restarts us if touch dies)
+    export GAUGEWORKS_TOUCH_NAME="${TOUCH_NAME}"   # ...and follows it by name if it re-enumerates
 else
     # No USB touch: let Qt find whatever input there is.
-    unset QT_QPA_EGLFS_DISABLE_INPUT QT_QPA_FB_DISABLE_INPUT QT_QPA_GENERIC_PLUGINS GAUGEWORKS_TOUCH
+    unset QT_QPA_EGLFS_DISABLE_INPUT QT_QPA_FB_DISABLE_INPUT QT_QPA_GENERIC_PLUGINS GAUGEWORKS_TOUCH GAUGEWORKS_TOUCH_NAME
 fi
 
 start=$(date +%s)
 QT_QPA_PLATFORM=eglfs "$GW" "$@"
 rc=$?
-if [ $rc -ne 0 ] && [ $(( $(date +%s) - start )) -lt 15 ]; then
+# rc 3 = touch watchdog restart, not an EGLFS failure: let systemd restart us.
+if [ $rc -ne 0 ] && [ $rc -ne 3 ] && [ $(( $(date +%s) - start )) -lt 15 ]; then
     echo "GaugeWorks: EGLFS failed (rc=$rc); falling back to linuxfb + software rendering"
     FB="$(grep -l . /sys/class/graphics/fb*/name 2>/dev/null | while read -r n; do
           d=$(dirname "$n"); grep -qv fb_ili9486 "$n" && echo "/dev/$(basename "$d")"; done | head -1)"

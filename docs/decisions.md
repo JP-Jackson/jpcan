@@ -230,3 +230,12 @@ every theme were checked on PySide6 6.8.2. The install script checks the
 EGLFS, KMS, linuxfb and evdevtouch plugins and does an offscreen render of the
 Premium theme. `GW_QT=pip` goes back to the wheel. The linuxfb fallback in the
 launcher stays as a safety net.
+
+## D30. Touch watchdog follows the touch by name
+The 7" touch board keeps dropping off USB and re-enumerating as a new
+`eventN`, even with the screen on its own supply. Qt's evdevtouch can't follow
+it, so the watchdog now tracks the device by name (`GAUGEWORKS_TOUCH_NAME`).
+While the touch is off the bus, the gauges keep running. When it's back on a
+new node, or on a re-created one, GaugeWorks exits with code 3 and systemd
+restarts it, about 8 s blank. It exits with `os._exit` to skip a Qt teardown
+that crashed. The launcher doesn't treat rc 3 as an EGLFS failure.

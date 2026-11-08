@@ -223,7 +223,8 @@ def main(argv=None) -> int:
         import os
 
         from .touchwatch import install as install_touchwatch
-        install_touchwatch(app, view, os.environ.get("GAUGEWORKS_TOUCH"))
+        install_touchwatch(app, view, os.environ.get("GAUGEWORKS_TOUCH"),
+                           os.environ.get("GAUGEWORKS_TOUCH_NAME", ""))
 
     if args.screenshot:
         QTimer.singleShot(2600, lambda: (view.grabWindow().save(args.screenshot), app.quit()))

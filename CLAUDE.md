@@ -111,10 +111,11 @@ against FORScan or the dash.
 - Touch USB drops: the 7" touch board (wch.cn USB2IIC_CTP_CONTROL, 1A86:E5E3)
   disconnected about a dozen times on the bench with clean disconnects, and
   the Pi's own power was fine. The screen was powered from its
-  "Touch & Power" port only. Fix being tried: a separate 5 V supply on the
-  screen's "Power Only" port (in the truck, from the Phase 4 buck converter).
-  Next software step: let touch survive reconnects without a restart (Qt udev
-  hotplug), after the GPU switch is confirmed.
+  "Touch & Power" port only. A separate 5 V supply on the "Power Only" port
+  and a different Pi USB port did NOT stop the drops (31 by then), so suspect
+  the micro-USB cable or the touch board. The watchdog now follows the touch
+  by name and restarts GaugeWorks when it comes back (D30). Still to do: Qt
+  udev hotplug, so a drop doesn't need a restart (after the GPU switch).
 - Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
   Pi bench 2026-11-08.
 - The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
