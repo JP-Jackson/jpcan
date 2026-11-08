@@ -12,22 +12,54 @@ def fake_stat(state):
     return stat
 
 
+class Clock:
+    def __init__(self):
+        self.t = 0.0
+
+    def __call__(self):
+        return self.t
+
+
 def test_normal_taps_are_fine():
     st = {"ino": 7}
-    wd = TouchWatchdog("/dev/input/event5", stat=fake_stat(st))
+    clk = Clock()
+    wd = TouchWatchdog("/dev/input/event5", stat=fake_stat(st), clock=clk)
     for _ in range(20):
         wd.on_qt_press()   # press reaches Qt first...
         wd.on_raw_tap()    # ...raw tap is counted on release
+        clk.t += 1
+    assert wd.check() == ""
+    for _ in range(5):     # a busy GUI thread: Qt sees the presses after the releases
+        wd.on_raw_tap()
+        wd.on_qt_press()
+        clk.t += 10
     assert wd.check() == ""
 
 
 def test_taps_that_never_reach_qt_trip_it():
-    wd = TouchWatchdog("/dev/input/event5", stat=fake_stat({"ino": 7}))
+    clk = Clock()
+    wd = TouchWatchdog("/dev/input/event5", stat=fake_stat({"ino": 7}), clock=clk)
     wd.on_qt_press(); wd.on_raw_tap()
-    wd.on_raw_tap(); wd.on_raw_tap()
+    for _ in range(3):
+        wd.on_raw_tap()
+    assert wd.check() == ""          # within the grace period: Qt may just be busy
+    clk.t += 1
     assert wd.check() == ""
-    wd.on_raw_tap()
-    assert "never reached" in wd.check()
+    clk.t += 3
+    wd.on_qt_event("update")
+    msg = wd.check()
+    assert "never reached" in msg and "update=1" in msg
+
+
+def test_late_qt_press_clears_the_backlog():
+    clk = Clock()
+    wd = TouchWatchdog("/dev/input/event5", stat=fake_stat({"ino": 7}), clock=clk)
+    for _ in range(3):
+        wd.on_raw_tap()
+    clk.t += 2
+    wd.on_qt_press()                 # Qt caught up
+    clk.t += 5
+    assert wd.check() == ""
 
 
 def test_device_gone_or_recreated():

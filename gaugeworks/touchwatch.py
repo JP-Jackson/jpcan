@@ -38,17 +38,23 @@ class TouchWatchdog:
     new eventN) check() asks for a restart so Qt opens the new node.
     """
 
-    def __init__(self, path: str, name: str = "", stuck_taps: int = 3, stat=os.stat,
-                 locate_fn=locate):
+    def __init__(self, path: str, name: str = "", stuck_taps: int = 3, grace_s: float = 3.0,
+                 stat=os.stat, locate_fn=locate, clock=None):
+        import time
+
         self.path = path
         self.name = name
         self.stuck_taps = stuck_taps
+        self.grace_s = grace_s    # a busy GUI thread may handle taps late; only count older ones
         self._stat = stat
         self._locate = locate_fn
+        self._clock = clock or time.monotonic
         self._id = self._ident()
-        self.raw = 0          # taps seen on the device (released)
-        self.qt = 0           # presses seen by the Qt window
-        self._raw_at_qt = 0   # raw count expected after the last Qt press
+        self.raw = 0              # taps seen on the device (released)
+        self.qt = 0               # presses seen by the Qt window
+        self._pending: list[float] = []   # raw tap times since the last Qt press
+        self._skip = 0            # releases still owed by presses Qt already saw
+        self.events: dict[str, int] = {}  # Qt touch/mouse event counts, for the log
 
     def _ident(self):
         try:
@@ -57,12 +63,23 @@ class TouchWatchdog:
             return None
         return (st.st_ino, st.st_rdev)
 
-    def on_raw_tap(self) -> None:
+    def on_raw_tap(self, ts: float | None = None) -> None:
         self.raw += 1
+        if self._skip:
+            self._skip -= 1      # the release of a press Qt already saw
+        else:
+            self._pending.append(self._clock() if ts is None else ts)
 
     def on_qt_press(self) -> None:
         self.qt += 1
-        self._raw_at_qt = self.raw + 1  # this press's own release is counted later
+        if self._pending:
+            self._pending.pop()  # this press matches a tap already released
+        else:
+            self._skip += 1      # its release comes later
+        self._pending.clear()    # Qt is getting touches: anything older was handled
+
+    def on_qt_event(self, kind: str) -> None:
+        self.events[kind] = self.events.get(kind, 0) + 1
 
     def check(self) -> str:
         if self.name:
@@ -76,9 +93,12 @@ class TouchWatchdog:
             if cur is None:
                 return "" if self.name else f"touch device {self.path} is gone"
             return f"touch device {self.path} was re-created"
-        missed = self.raw - self._raw_at_qt
+        now = self._clock()
+        missed = sum(1 for t in self._pending if now - t >= self.grace_s)
         if missed >= self.stuck_taps:
-            return f"{missed} taps on {self.path} never reached GaugeWorks"
+            seen = " ".join(f"{k}={v}" for k, v in sorted(self.events.items())) or "none"
+            return (f"{missed} taps on {self.path} never reached GaugeWorks "
+                    f"(Qt events so far: {seen})")
         return ""
 
 
@@ -106,10 +126,15 @@ def install(app, view, path: str | None, name: str = "", interval_ms: int = 2000
         return None  # nothing to watch and nothing to follow
 
     presses = (QEvent.TouchBegin, QEvent.MouseButtonPress)
+    kinds = {QEvent.TouchBegin: "begin", QEvent.TouchUpdate: "update", QEvent.TouchEnd: "end",
+             QEvent.TouchCancel: "cancel", QEvent.MouseButtonPress: "mouse"}
 
     class _Filter(QObject):
         def eventFilter(self, obj, ev):  # noqa: N802 (Qt name)
-            if ev.type() in presses:
+            t = ev.type()
+            if t in kinds:
+                wd.on_qt_event(kinds[t])
+            if t in presses:
                 wd.on_qt_press()
             return False
 

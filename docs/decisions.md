@@ -239,3 +239,8 @@ While the touch is off the bus, the gauges keep running. When it's back on a
 new node, or on a re-created one, GaugeWorks exits with code 3 and systemd
 restarts it, about 8 s blank. It exits with `os._exit` to skip a Qt teardown
 that crashed. The launcher doesn't treat rc 3 as an EGLFS failure.
+Taps get a 3 s grace period before they count as missed, because with CPU
+drawing a busy GUI thread can handle them late. When the watchdog fires, it
+logs the Qt touch events it saw (begin/update/end/cancel). A burst of `update`
+with no `begin` means Qt has a stuck contact. No events at all means touch
+isn't reaching Qt.
