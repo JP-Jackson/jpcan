@@ -47,6 +47,12 @@ echo "$USER_NAME ALL=(root) NOPASSWD: /usr/local/sbin/jpcan-usb" > "$SUDOERS_USB
 chmod 0440 "$SUDOERS_USB.tmp"
 visudo -cf "$SUDOERS_USB.tmp" >/dev/null && mv "$SUDOERS_USB.tmp" "$SUDOERS_USB"
 mkdir -p /media/jpcan-usb
+# Truck/Simulator switch in Settings: same pattern, a root-owned helper and one rule.
+install -o root -g root -m 0755 "$REPO/scripts/jpcan-mode" /usr/local/sbin/jpcan-mode
+SUDOERS_MODE=/etc/sudoers.d/jpcan-mode
+echo "$USER_NAME ALL=(root) NOPASSWD: /usr/local/sbin/jpcan-mode truck, /usr/local/sbin/jpcan-mode sim, /usr/local/sbin/jpcan-mode status" > "$SUDOERS_MODE.tmp"
+chmod 0440 "$SUDOERS_MODE.tmp"
+visudo -cf "$SUDOERS_MODE.tmp" >/dev/null && mv "$SUDOERS_MODE.tmp" "$SUDOERS_MODE"
 for grp in video render input dialout systemd-journal; do usermod -aG "$grp" "$USER_NAME" 2>/dev/null || true; done
 
 echo "== persistent journal (service logs survive a reboot, capped at 64 MB)"
@@ -61,9 +67,13 @@ grep -q 'consoleblank=0' "$CMDLINE" || sed -i '1 s/$/ consoleblank=0/' "$CMDLINE
 
 [ -f /etc/default/jpcan ] || cat > /etc/default/jpcan <<'EOF'
 # Extra arguments for the core service ('jpcan run').
-# Bench demo without the truck: JPCAN_ARGS="--sim"
+# Truck vs simulator is the Settings switch now (/etc/default/jpcan-mode).
 JPCAN_ARGS=""
 EOF
+[ -f /etc/default/jpcan-mode ] || printf 'JPCAN_MODE_ARGS=""\n' > /etc/default/jpcan-mode
+if grep -q '^JPCAN_ARGS=.*--sim' /etc/default/jpcan; then
+    echo "NOTE: /etc/default/jpcan still has --sim, so the Settings switch can't pick Truck. Remove it there."
+fi
 
 echo "== services"
 cat > /etc/systemd/system/jpcan-core.service <<EOF
@@ -76,8 +86,9 @@ Wants=mosquitto.service
 User=$USER_NAME
 WorkingDirectory=$REPO
 EnvironmentFile=-/etc/default/jpcan
+EnvironmentFile=-/etc/default/jpcan-mode
 Environment=PYTHONUNBUFFERED=1
-ExecStart=$VENV/bin/jpcan run \$JPCAN_ARGS
+ExecStart=$VENV/bin/jpcan run \$JPCAN_ARGS \$JPCAN_MODE_ARGS
 Restart=always
 RestartSec=3
 TimeoutStopSec=15

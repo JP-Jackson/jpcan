@@ -188,3 +188,14 @@ drops and re-enumerates (vibration, a power dip) leaves touch dead. Now:
 - `install-services.sh` makes the journal persistent, capped at 64 MB.
 Not covered: touch that reaches Qt but gets stuck inside Qt Quick. If it
 happens again, check `journalctl -u gaugeworks -b -1` for a watchdog line.
+
+## D26. Truck/Simulator switch in Settings
+Settings has a "Data from: Truck | Simulator" row (two taps to confirm). It runs
+the root-owned helper `/usr/local/sbin/jpcan-mode truck|sim`, which a sudoers
+rule allows with exactly those arguments. The helper writes
+`/etc/default/jpcan-mode` (`JPCAN_MODE_ARGS`) and restarts `jpcan-core`. It
+doesn't go through MQTT and never reaches the adapter. In truck mode the guard
+still covers every byte. In sim mode, a yellow SIMULATOR badge stays on screen
+in every theme, so sim numbers can't pass for real ones. `JPCAN_ARGS` in
+`/etc/default/jpcan` is for other flags and should no longer carry `--sim`.
+The Settings rows now scroll, because they no longer fit the panel.

@@ -1,0 +1,28 @@
+#!/bin/sh
+# jpcan-mode: switch the core between the truck (real adapter) and the simulator.
+# Installed root-owned to /usr/local/sbin by install-services.sh, with a sudoers
+# rule that allows exactly this command (no other root access).
+#   jpcan-mode truck    -> core reads the OBDLink (normal)
+#   jpcan-mode sim      -> core runs the built-in simulator (bench, no adapter)
+#   jpcan-mode status   -> prints "truck" or "sim"
+# It only writes /etc/default/jpcan-mode and restarts jpcan-core. It never
+# talks to the adapter; the guard still covers every byte in truck mode.
+set -eu
+MODE_FILE=/etc/default/jpcan-mode
+SYSTEMCTL=/usr/bin/systemctl
+
+case "${1:-}" in
+    truck) ARGS="" ;;
+    sim)   ARGS="--sim" ;;
+    status)
+        if [ -f "$MODE_FILE" ] && grep -q '^JPCAN_MODE_ARGS="--sim"' "$MODE_FILE"; then echo sim; else echo truck; fi
+        exit 0 ;;
+    *) echo "usage: jpcan-mode truck|sim|status" >&2; exit 64 ;;
+esac
+
+TMP="$MODE_FILE.tmp"
+printf '# Written by jpcan-mode (GaugeWorks Settings). truck: "" / sim: "--sim"\nJPCAN_MODE_ARGS="%s"\n' "$ARGS" > "$TMP"
+chmod 0644 "$TMP"
+mv "$TMP" "$MODE_FILE"
+"$SYSTEMCTL" restart jpcan-core.service
+echo "$1"

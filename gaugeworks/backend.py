@@ -489,6 +489,26 @@ class Backend(QObject):
             self.feed.trip_reset()
             self.message.emit("Trip reset")
 
+    @Slot(str)
+    def setSource(self, mode: str) -> None:
+        """Settings: Truck or Simulator. A root-owned helper rewrites the mode and restarts
+        the core; GaugeWorks itself never touches the adapter."""
+        if mode not in ("truck", "sim"):
+            return
+        self.message.emit("Switching to " + ("the simulator" if mode == "sim" else "the truck") + "...")
+
+        def run():
+            try:
+                r = subprocess.run(["sudo", "-n", "/usr/local/sbin/jpcan-mode", mode],
+                                   capture_output=True, text=True, timeout=30)
+                ok = r.returncode == 0
+            except (OSError, subprocess.TimeoutExpired):
+                ok = False
+            if not ok:
+                self.message.emit("Mode switch not permitted here")
+
+        threading.Thread(target=run, daemon=True).start()
+
     @Slot()
     def shutdown(self) -> None:
         r = subprocess.run(["sudo", "-n", "/usr/bin/systemctl", "poweroff"],

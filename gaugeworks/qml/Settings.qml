@@ -7,6 +7,7 @@ Rectangle {
     property var theme
     property var gw
     property bool confirmShutdown: false
+    property string confirmSource: ""   // "truck" / "sim" while waiting for the second tap
     signal close()
     signal openFillup()
     signal openHistory()
@@ -30,8 +31,15 @@ Rectangle {
         }
         Btn { theme: s.theme; text: "Close"; x: panel.width - width - 24; y: 18; onClicked: s.close() }
 
+        Flickable {  // rows scroll when they don't fit; the bottom buttons stay put
+            id: rows
+            x: 28; y: 84; width: panel.width - 40; height: panel.height - 84 - 96
+            clip: true
+            contentHeight: col.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
         Column {
-            x: 28; y: 84; spacing: 10
+            id: col
+            spacing: 10
 
             Row {
                 spacing: 12
@@ -87,12 +95,42 @@ Rectangle {
                 }
             }
             Row {
+                id: sourceRow
+                spacing: 12
+                property bool isSim: s.gw.status.mode === "SIM"
+                Text { width: 150; text: "Data from"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
+                Repeater {
+                    model: [["truck", "Truck"], ["sim", "Simulator"]]
+                    Btn {
+                        theme: s.theme; width: 170
+                        property bool current: (modelData[0] === "sim") === sourceRow.isSim
+                        text: s.confirmSource === modelData[0] ? "Tap to confirm" : modelData[1]
+                        active: current
+                        fill: s.confirmSource === modelData[0] ? s.theme.colors.alarm : s.theme.colors.panel
+                        onClicked: {
+                            if (current) return
+                            if (s.confirmSource === modelData[0]) { s.confirmSource = ""; s.gw.setSource(modelData[0]) }
+                            else { s.confirmSource = modelData[0]; sourceTimer.restart() }
+                        }
+                    }
+                }
+            }
+            Row {
                 spacing: 12
                 Text { width: 150; text: "Fuel"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                 Btn { theme: s.theme; text: "Fill-up"; width: 150; onClicked: s.openFillup() }
                 Btn { theme: s.theme; text: "History"; width: 150; onClicked: s.openHistory() }
                 Btn { theme: s.theme; text: "Reset trip"; width: 170; onClicked: s.gw.tripReset() }
             }
+        }
+
+        }
+        Rectangle {  // scroll hint: a thin bar on the right when there's more below/above
+            visible: rows.contentHeight > rows.height
+            x: panel.width - 10; width: 4; radius: 2
+            color: s.theme.colors.dim; opacity: 0.6
+            height: rows.height * rows.height / rows.contentHeight
+            y: rows.y + (rows.height - height) * (rows.contentY / Math.max(1, rows.contentHeight - rows.height))
         }
 
         Row {
@@ -114,5 +152,6 @@ Rectangle {
             }
         }
         Timer { id: confirmTimer; interval: 4000; onTriggered: s.confirmShutdown = false }
+        Timer { id: sourceTimer; interval: 4000; onTriggered: s.confirmSource = "" }
     }
 }

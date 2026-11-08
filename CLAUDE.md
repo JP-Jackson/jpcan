@@ -120,14 +120,16 @@ against FORScan or the dash.
   until then.
 - Premium theme: check the direction of the light-trail fade on the real
   screen.
-- Offered, not built: a Truck/Simulator switch in Settings, which needs a
-  scoped sudo rule to restart `jpcan-core`.
 - A screen upgrade is under consideration: 10.1" 1280x800 IPS HDMI with
   capacitive touch, ideally ~900 nits for daylight. GaugeWorks scales to it.
 - The Pi 5 clock needs the RTC coin battery to keep time off Wi-Fi. Without
   it, the 2026-11-08 drive booted on the 11-07 clock and jumped +6.3 h mid-log
   (`jpcan logstats` flags and skips such jumps).
 - Phone page (Phase 1.5) comes later.
+- GPU: the PySide6 wheel lacks `libQt6EglFsKmsGbmSupport.so.6`, so EGLFS
+  probably can't load on the Pi and GaugeWorks falls back to linuxfb with
+  software rendering. Confirm in the journal, then pick a fix with JP.
+- Truck/Simulator switch is in Settings (D26).
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
 ## Working style
