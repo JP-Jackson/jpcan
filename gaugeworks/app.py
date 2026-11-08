@@ -219,6 +219,12 @@ def main(argv=None) -> int:
         if panel is not None:
             panel.setProperty("visible", True)
 
+    if not (args.screenshot or args.demo or args.windowed):
+        import os
+
+        from .touchwatch import install as install_touchwatch
+        install_touchwatch(app, view, os.environ.get("GAUGEWORKS_TOUCH"))
+
     if args.screenshot:
         QTimer.singleShot(2600, lambda: (view.grabWindow().save(args.screenshot), app.quit()))
 

@@ -173,3 +173,18 @@ tile channels (`gauges`), so a skin can draw a tile as a dial or bar (fuel
 sub-dial, oil bar). The OEM top bar (`style.topBar: "oem"`) shows the time
 with the long date, telltales and outside temp, and moves the page dots to the
 bottom. All designs are original: no OEM or aftermarket logos or trade dress.
+
+## D25. Touch watchdog, one touch handler, persistent journal
+On the 2026-11-08 drive, touch died while the gauges kept updating, and the
+journal was RAM-only, so the reboot lost the evidence. Qt's evdev handler opens
+one `/dev/input/eventN` at startup and never reopens it, so a USB touch that
+drops and re-enumerates (vibration, a power dip) leaves touch dead. Now:
+- The launcher waits up to ~20 s for the USB touch, and loads ONE evdev touch
+  handler. The `evdevtouch` generic plugin was a second handler on the same
+  device, and it's gone.
+- GaugeWorks watches the touch device (`gaugeworks/touchwatch.py`). If the node
+  is removed or re-created, or if 3+ taps reach the device but none reach the
+  Qt window, it logs why and exits, and systemd restarts it (~8 s blank).
+- `install-services.sh` makes the journal persistent, capped at 64 MB.
+Not covered: touch that reaches Qt but gets stuck inside Qt Quick. If it
+happens again, check `journalctl -u gaugeworks -b -1` for a watchdog line.

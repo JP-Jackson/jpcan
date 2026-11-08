@@ -105,6 +105,11 @@ against FORScan or the dash.
 
 ## Open items
 
+- Touch died on the 2026-11-08 drive while the gauges kept running (D25).
+  The touch watchdog and the persistent journal are in. If it happens again,
+  read `journalctl -u gaugeworks -b -1` and the kernel USB log.
+- The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
+  there was the old poller.
 - Retest RPM smoothness on the truck with the D23 polling tiers. If it's still
   slow, try STN multi-PID Mode 01 batching (up to 6 PIDs per request).
 - Find the 6R140 TCM gear DID with `jpcan didscan`/`didwatch` on a drive.

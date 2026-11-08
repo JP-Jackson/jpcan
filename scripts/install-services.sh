@@ -49,6 +49,12 @@ visudo -cf "$SUDOERS_USB.tmp" >/dev/null && mv "$SUDOERS_USB.tmp" "$SUDOERS_USB"
 mkdir -p /media/jpcan-usb
 for grp in video render input dialout systemd-journal; do usermod -aG "$grp" "$USER_NAME" 2>/dev/null || true; done
 
+echo "== persistent journal (service logs survive a reboot, capped at 64 MB)"
+mkdir -p /var/log/journal /etc/systemd/journald.conf.d
+printf '[Journal]\nStorage=persistent\nSystemMaxUse=64M\n' > /etc/systemd/journald.conf.d/jpcan.conf
+systemd-tmpfiles --create --prefix /var/log/journal >/dev/null 2>&1 || true
+systemctl restart systemd-journald
+
 echo "== 3.5in screen + console"
 grep -q '^dtoverlay=piscreen' "$CONFIG" || echo "dtoverlay=piscreen,speed=24000000,rotate=270" >> "$CONFIG"
 grep -q 'consoleblank=0' "$CMDLINE" || sed -i '1 s/$/ consoleblank=0/' "$CMDLINE"

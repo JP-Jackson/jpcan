@@ -122,6 +122,7 @@ journalctl -u jpcan-core -f
 ```
 ```bash
 journalctl -u gaugeworks -n 50
+journalctl -u gaugeworks -b -1     # previous boot (persistent journal, D25)
 ```
 ```bash
 ~/jpcan/.venv/bin/jpcan logs

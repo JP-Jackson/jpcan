@@ -50,10 +50,13 @@ export QT_QPA_EGLFS_KMS_CONFIG="$RUNDIR/gaugeworks-kms.json"
 export QT_QPA_EGLFS_ALWAYS_SET_MODE=1
 export QT_QPA_EGLFS_HIDECURSOR=1
 export QT_QPA_EGLFS_NO_LIBINPUT=1            # evdev: lets us pick ONE touch device
+export QT_QPA_FB_NO_LIBINPUT=1               # same for the linuxfb fallback
+# One handler only: eglfs/linuxfb read this themselves. (Also loading the
+# evdevtouch generic plugin gave a second handler on the same device.)
 export QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS="${TOUCH}"
-export QT_QPA_GENERIC_PLUGINS="evdevtouch:${TOUCH}"
 export QT_QPA_EVDEV_MOUSE_PARAMETERS="/dev/null"
-[ -z "$TOUCH" ] && unset QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS QT_QPA_GENERIC_PLUGINS
+export GAUGEWORKS_TOUCH="${TOUCH}"           # touch watchdog (restarts us if touch dies)
+[ -z "$TOUCH" ] && unset QT_QPA_EVDEV_TOUCHSCREEN_PARAMETERS GAUGEWORKS_TOUCH
 
 start=$(date +%s)
 QT_QPA_PLATFORM=eglfs "$GW" "$@"
