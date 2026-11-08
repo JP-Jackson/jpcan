@@ -51,6 +51,16 @@ s+=`<defs>
 <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="2"/></filter>
 <radialGradient id="hub" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9aa2ad"/><stop offset=".5" stop-color="#2b2f35"/><stop offset="1" stop-color="#08090a"/></radialGradient>
 <pattern id="carbon" width="12" height="12" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#07090c"/><rect width="6" height="6" fill="url(#cw1)"/><rect x="6" y="6" width="6" height="6" fill="url(#cw1)"/><rect x="6" width="6" height="6" fill="url(#cw2)"/><rect y="6" width="6" height="6" fill="url(#cw2)"/></pattern>
+<pattern id="xmetal" width="34" height="18" patternUnits="userSpaceOnUse"><rect width="34" height="18" fill="#020304"/>
+  <path d="M0,9 L17,0 L34,9 L17,18 Z" fill="none" stroke="#3b424b" stroke-width="5"/><path d="M0,9 L17,0 L34,9" fill="none" stroke="#7a838e" stroke-width="1.4"/><path d="M0,9 L17,18 L34,9" fill="none" stroke="#14181d" stroke-width="1.4"/></pattern>
+<linearGradient id="lozG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa3ad"/><stop offset=".5" stop-color="#4a525c"/><stop offset="1" stop-color="#1c2126"/></linearGradient>
+<pattern id="dplate" width="44" height="44" patternUnits="userSpaceOnUse"><rect width="44" height="44" fill="#262a30"/>
+  <ellipse cx="11" cy="11" rx="10" ry="2.8" transform="rotate(-45 11 11)" fill="url(#lozG)"/><ellipse cx="33" cy="33" rx="10" ry="2.8" transform="rotate(-45 33 33)" fill="url(#lozG)"/>
+  <ellipse cx="33" cy="11" rx="10" ry="2.8" transform="rotate(45 33 11)" fill="url(#lozG)"/><ellipse cx="11" cy="33" rx="10" ry="2.8" transform="rotate(45 11 33)" fill="url(#lozG)"/></pattern>
+<linearGradient id="bal" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c3036"/><stop offset=".45" stop-color="#4a5058"/><stop offset=".55" stop-color="#3a3f46"/><stop offset="1" stop-color="#1f2226"/></linearGradient>
+<pattern id="honey" width="24" height="41.6" patternUnits="userSpaceOnUse"><rect width="24" height="41.6" fill="#07090b"/>
+  <path d="M12,0 L24,6.9 L24,20.8 L12,27.7 L0,20.8 L0,6.9 Z M12,27.7 L12,41.6 M0,20.8 L0,34.7 M24,20.8 L24,34.7" fill="none" stroke="#2a3038" stroke-width="2.4"/>
+  <path d="M0,6.9 L12,0 L24,6.9" fill="none" stroke="#4a525c" stroke-width="1"/></pattern>
 <pattern id="paper" width="20" height="20" patternUnits="userSpaceOnUse"><rect width="20" height="20" fill="#efe6cf"/><path d="M20,0 V20 M0,20 H20" stroke="#d9a49a" stroke-width=".8"/></pattern>
 </defs><rect width="1024" height="600" fill="url(#bg)"/><!--SPILL-->`;
 const GL=[],GLR=[];
@@ -277,8 +287,17 @@ pages.classic_trend=()=>{let o=`<rect width="1024" height="600" fill="#0d0d0f"/>
 
 
 // Premium Towing: aftermarket diesel-monitor look (carbon, segmented EGT arc, side data panels)
-pages.premium_towing=()=>{const CX=512,CY=304,RD=258;const CY2='#29c4ff';
-  let o=`<rect width="1024" height="600" fill="url(#carbon)"/><rect width="1024" height="600" fill="url(#sheen)"/><circle cx="512" cy="300" r="310" fill="#29c4ff" opacity=".10" filter="url(#bloomBig)"/>`;GL.push([CX,CY,RD]);
+pages.premium_towing=()=>{const CX=512,CY=304,RD=258;
+  const ACCS={cyan:['#29c4ff','#8fe3ff','#1b78c8','#0d3d73','#5fd4ff'],green:['#2fe37a','#9dffc4','#169a4e','#0a4424','#6af2a2'],
+    orange:['#ff8a1e','#ffc48a','#c4560a','#5a2604','#ffab5c'],red:['#ff3b4f','#ff9aa5','#b0182a','#4d0912','#ff6b7a'],
+    purple:['#a66bff','#d6bdff','#6b33c4','#2e1557','#c09bff'],white:['#e8eef5','#ffffff','#8c96a3','#353b43','#f4f8fb']};
+  const SECS={amber:'#ffb340',cyan:'#29c4ff',green:'#2fe37a',orange:'#ff8a1e',purple:'#c09bff',white:'#e8eef5'};
+  const ACC=ACCS[q.get('acc')||'cyan'],SEC=SECS[q.get('sec')||'amber'],CY2=ACC[0];
+  const BGS={carbon:'url(#carbon)',expanded:'url(#xmetal)',diamond:'url(#dplate)',brushed:'url(#bal)',honeycomb:'url(#honey)',black:'#040506'};
+  const bgk=q.get('bg')||'carbon';
+  let o=`<rect width="1024" height="600" fill="${BGS[bgk]}"/>`+(bgk=='brushed'?'<rect width="1024" height="600" fill="url(#brushed)"/>':'')+
+    (bgk=='black'?'':'<rect width="1024" height="600" fill="url(#sheen)"/>')+`<rect width="1024" height="600" fill="#000" opacity="${bgk=='carbon'||bgk=='black'?0:.35}"/>`+
+    `<circle cx="512" cy="300" r="310" fill="${ACC[0]}" opacity=".10" filter="url(#bloomBig)"/>`;GL.push([CX,CY,RD]);
   const sk=(x,y,sz,t,op={})=>`<g transform="translate(${x},${y}) skewX(-9)">`+T(0,0,sz,t,{f:'C6',...op})+`</g>`;
   // top bar: time, date, TOWING, outside temp, settings
   o+=`<rect x="0" y="0" width="1024" height="46" fill="#05080b" opacity=".85"/><line x1="0" y1="46" x2="1024" y2="46" stroke="${CY2}" stroke-opacity=".5"/>`;
@@ -286,37 +305,41 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;const CY2='#29c4ff';
   o+=T(940,35,32,'90°F',{a:'end',f:'C6'});
   {let g='';const x=990,y=23;for(let i=0;i<8;i++){const an=i*45,[a1,b1]=P(x,y,17,an-11),[a2,b2]=P(x,y,17,an+11);g+=`<line x1="${n1(a1)}" y1="${n1(b1)}" x2="${n1(a2)}" y2="${n1(b2)}" stroke="#dbe7f2" stroke-width="7"/>`}
    o+=g+`<circle cx="${x}" cy="${y}" r="13" fill="none" stroke="#dbe7f2" stroke-width="5"/>`}
+  o+=`<defs><linearGradient id="ofill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${ACC[0]}" stop-opacity=".06"/><stop offset="1" stop-color="${ACC[0]}" stop-opacity=".32"/></linearGradient>
+    <linearGradient id="ifill" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="${SEC}" stop-opacity=".06"/><stop offset="1" stop-color="${SEC}" stop-opacity=".36"/></linearGradient></defs>`;
   // center disc
   o+=`<circle cx="${CX}" cy="${CY}" r="${RD}" fill="#06080b" stroke="${CY2}" stroke-width="3"/><circle cx="${CX}" cy="${CY}" r="${RD-14}" fill="none" stroke="#2a3340" stroke-width="2"/>`;
   const A0=140,SW=260;
   // outer scale: RPM with a needle
   const RO=230,ar=v=>A0+SW*v/5;
-  o+=`<path d="${arc(CX,CY,RO,A0,A0+SW)}" stroke="#13263b" stroke-width="22" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RO,A0,A0+SW)}" stroke="${ACC[3]}" stroke-opacity=".7" stroke-width="22" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RO,A0,ar(V.rpm/1000))}" stroke="url(#ofill)" stroke-width="22" fill="none"/>`;
   o+=`<path d="${arc(CX,CY,RO,ar(4),ar(5))}" stroke="${C.red}" stroke-width="22" fill="none" opacity=".6"/>`;
   for(let v=0;v<=5;v+=.25){const maj=v%1==0,[x1,y1]=P(CX,CY,RO+11,ar(v)),[x2,y2]=P(CX,CY,RO-(maj?11:2),ar(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=4?C.red:'#e9f1f8'}" stroke-width="${maj?4:2}"/>`}
   for(let v=0;v<=5;v++){const[x,y]=P(CX,CY,RO-32,ar(v));o+=T(x,y,26,v,{db:'central',c:v>=4?C.red:C.text,f:'C6'})}
-  o+=needle(CX,CY,RO-46,RO+12,ar(V.rpm/1000),'#8fe3ff',6);
+  o+=needle(CX,CY,RO-46,RO+12,ar(V.rpm/1000),ACC[1],6);
   // inner scale: BOOST with its own needle
   const RI=172,ab=v=>A0+SW*v/40;
   o+=`<path d="${arc(CX,CY,RI,A0,A0+SW)}" stroke="#2a1d0a" stroke-width="12" fill="none"/>`;
+  o+=`<path d="${arc(CX,CY,RI,A0,ab(V.boost))}" stroke="url(#ifill)" stroke-width="12" fill="none"/>`;
   o+=`<path d="${arc(CX,CY,RI,ab(35),ab(40))}" stroke="${C.red}" stroke-width="12" fill="none" opacity=".6"/>`;
-  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=35?C.red:C.amber}" stroke-width="${maj?3:1.6}"/>`}
-  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=35?C.red:C.amber,f:'C6'})}
-  o+=needle(CX,CY,RI-30,RI+8,ab(V.boost),C.amber,5);
+  for(let v=0;v<=40;v+=5){const maj=v%10==0,[x1,y1]=P(CX,CY,RI+6,ab(v)),[x2,y2]=P(CX,CY,RI-(maj?9:3),ab(v));o+=`<line x1="${n1(x1)}" y1="${n1(y1)}" x2="${n1(x2)}" y2="${n1(y2)}" stroke="${v>=35?C.red:SEC}" stroke-width="${maj?3:1.6}"/>`}
+  for(let v=0;v<=40;v+=10){const[x,y]=P(CX,CY,RI-24,ab(v));o+=T(x,y,19,v,{db:'central',c:v>=35?C.red:SEC,f:'C6'})}
+  o+=needle(CX,CY,RI-30,RI+8,ab(V.boost),SEC,5);
   // speed, big; RPM digits with boost under them
   o+=sk(CX-6,CY+20,156,V.mph)+T(CX,CY+48,22,'MPH',{c:C.dim,ls:4,f:'C5'});
-  o+=`<rect x="${CX-96}" y="${CY+60}" width="192" height="88" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX,CY+176,16,'RPM ×1000  ·  BOOST psi',{c:C.dim,f:'C5'});
+  o+=`<rect x="${CX-96}" y="${CY+60}" width="192" height="88" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX,CY+168,15,'RPM ×1000  ·  BOOST psi',{c:C.dim,f:'C5'});
   o+=T(CX-84,CY+86,17,'RPM',{a:'start',c:C.dim,f:'C5'})+T(CX+84,CY+96,38,fmt(V.rpm),{a:'end',f:'C6'});
   o+=`<line x1="${CX-84}" y1="${CY+106}" x2="${CX+84}" y2="${CY+106}" stroke="#22364d"/>`;
-  o+=T(CX-84,CY+134,17,'BOOST',{a:'start',c:C.amber,f:'C5'})+T(CX+84,CY+138,30,V.boost.toFixed(1)+' psi',{a:'end',f:'C6',c:C.amber});
+  o+=T(CX-84,CY+134,17,'BOOST',{a:'start',c:SEC,f:'C5'})+T(CX+84,CY+138,30,V.boost.toFixed(1)+' psi',{a:'end',f:'C6',c:SEC});
   // gear below the circle
-  o+=T(CX-30,594,20,'GEAR',{a:'end',c:C.dim,f:'C5',ls:2})+T(CX-8,597,44,V.gear,{a:'start',f:'C6'});
+  o+=`<rect x="${CX-62}" y="${CY+182}" width="124" height="60" rx="10" fill="#0f1b2a" stroke="#22364d"/>`+T(CX-48,CY+219,18,'GEAR',{a:'start',c:C.dim,f:'C5',ls:2})+T(CX+46,CY+229,48,V.gear,{a:'end',f:'C6'});
   // Premium vertical bar: outline frame, red zone fading down, fill fading down from a bright top edge, pointer wedge,
   // dividers, tube shading, scale numbers, and this drive's min-max as a bracket outside the frame.
   let RB=0;
   function rbar(x,y,h,mn,mx,red,lo,hi,now,o2={}){const W=24,left=o2.left!==false,Y=v=>y+h-h*(Math.min(Math.max(v,mn),mx)-mn)/(mx-mn);
     const id='rb'+(RB++),hot=red!=null&&now>=red,col=hot?C.red:CY2,yn=Y(now);let g='';
-    g+=`<defs><linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hot?'#ff5a6e':'#5fd4ff'}"/><stop offset=".12" stop-color="${col}"/><stop offset=".6" stop-color="${hot?'#a8152a':'#1b78c8'}" stop-opacity=".9"/><stop offset="1" stop-color="${hot?'#4a0a14':'#0d3d73'}" stop-opacity=".75"/></linearGradient>
+    g+=`<defs><linearGradient id="${id}f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${hot?'#ff5a6e':ACC[4]}"/><stop offset=".12" stop-color="${col}"/><stop offset=".6" stop-color="${hot?'#a8152a':ACC[2]}" stop-opacity=".9"/><stop offset="1" stop-color="${hot?'#4a0a14':ACC[3]}" stop-opacity=".75"/></linearGradient>
       <linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff3b5c" stop-opacity=".85"/><stop offset="1" stop-color="#ff3b5c" stop-opacity="0"/></linearGradient>
       <linearGradient id="${id}t" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".32" stop-color="#fff" stop-opacity=".18"/><stop offset=".45" stop-color="#fff" stop-opacity=".04"/><stop offset="1" stop-color="#000" stop-opacity=".5"/></linearGradient></defs>`;
     g+=`<rect x="${x}" y="${y}" width="${W}" height="${h}" fill="#05080c"/>`;
@@ -329,7 +352,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;const CY2='#29c4ff';
     if(o2.cmd!=null){const yc=Y(o2.cmd);g+=`<line x1="${x-3}" y1="${n1(yc)}" x2="${x+W+3}" y2="${n1(yc)}" stroke="#fff" stroke-width="2.5" stroke-dasharray="4 3"/>`}
     // pointer wedge toward the scale
     const tip=left?x+W+12:x-12,base=left?x+2:x+W-2;
-    g+=`<polygon points="${base},${n1(yn-5)} ${tip},${n1(yn-1)} ${tip},${n1(yn+1)} ${base},${n1(yn+5)}" fill="${hot?'#ff6b6b':'#8fe3ff'}" filter="url(#glow2)"/><polygon points="${base},${n1(yn-4)} ${tip},${n1(yn)} ${base},${n1(yn+4)}" fill="${hot?'#ff8a8a':'#c9f1ff'}"/>`;
+    g+=`<polygon points="${base},${n1(yn-5)} ${tip},${n1(yn-1)} ${tip},${n1(yn+1)} ${base},${n1(yn+5)}" fill="${hot?'#ff6b6b':ACC[1]}" filter="url(#glow2)"/><polygon points="${base},${n1(yn-4)} ${tip},${n1(yn)} ${base},${n1(yn+4)}" fill="${hot?'#ff8a8a':ACC[1]}"/>`;
     // outline frame on the outer side, rounded, with a top cap and bottom foot
     const fx=left?x-5:x+W+5,cap=left?x+W+6:x-6;
     g+=`<path d="M${cap},${y-5} H${fx+(left?8:-8)} Q${fx},${y-5} ${fx},${y+3} V${y+h-3} Q${fx},${y+h+5} ${fx+(left?8:-8)},${y+h+5} H${cap}" fill="none" stroke="#e9f1f8" stroke-width="2.5" stroke-linecap="round" filter="url(#glow2)" opacity=".6"/>`+
@@ -338,7 +361,7 @@ pages.premium_towing=()=>{const CX=512,CY=304,RD=258;const CY2='#29c4ff';
     const lx=left?x+W+16:x-16,an=left?'start':'end',fm=v=>Number.isInteger(v)?v:v.toFixed(0);
     if(!o2.nolab)g+=T(lx,y+6,17,fm(mx),{a:an,f:'C5',c:'#dbe7f2'})+T(lx,y+h+4,17,fm(mn),{a:an,f:'C5',c:'#dbe7f2'});
     // this drive's min-max bracket outside the frame
-    if(lo!=null){const bxx=left?fx-8:fx+8,yh=Y(hi),yl=Y(lo);g+=`<path d="M${bxx+(left?5:-5)},${n1(yh)} H${bxx} V${n1(yl)} H${bxx+(left?5:-5)}" fill="none" stroke="#bfe9ff" stroke-width="2.5"/>`}
+    if(lo!=null){const bxx=left?fx-8:fx+8,yh=Y(hi),yl=Y(lo);g+=`<path d="M${bxx+(left?5:-5)},${n1(yh)} H${bxx} V${n1(yl)} H${bxx+(left?5:-5)}" fill="none" stroke="${ACC[1]}" stroke-width="2.5"/>`}
     return g}
   const L=[['INTAKE',V.iat,'°F',[0,200,150,70,118]],['TRANS',V.trans,'°F',[100,280,230,150,212]],['COOLANT',V.cool,'°F',[100,260,230,180,204]],['OIL',V.oil,'°F',[100,300,260,190,221]]];
   const Rr=[['FUEL',70,'%',[0,100,null,68,81]],['LOAD',42,'%',[0,100,null,18,96]],['RAIL',26.5,'KPSI',[0,30,null,5,29]],['VGT',null,'',null]];
