@@ -107,12 +107,27 @@ Rectangle {
                         property bool current: (modelData[0] === "sim") === sourceRow.isSim
                         text: s.confirmSource === modelData[0] ? "Tap to confirm" : modelData[1]
                         active: current
-                        fill: s.confirmSource === modelData[0] ? s.theme.colors.alarm : s.theme.colors.panel
+                        fill: s.confirmSource === modelData[0] ? s.theme.colors.alarm : (current ? s.theme.colors.accent : s.theme.colors.panel)
                         onClicked: {
                             if (current) return
                             if (s.confirmSource === modelData[0]) { s.confirmSource = ""; s.gw.setSource(modelData[0]) }
                             else { s.confirmSource = modelData[0]; sourceTimer.restart() }
                         }
+                    }
+                }
+            }
+            Row {
+                spacing: 12
+                visible: s.gw.sourceMode === "sim"
+                Text { width: 150; text: "Sim drive"; color: s.theme.colors.dim; font.pixelSize: 22 }
+                Flow {
+                    width: 560; spacing: 8
+                    Repeater {
+                        model: s.gw.simScenarios
+                        Btn { theme: s.theme; width: 176; height: 48; text: modelData.label
+                              active: s.gw.simScenario === modelData.key
+                              fill: active ? s.theme.colors.accent : (modelData.problem ? "#3a1a1e" : s.theme.colors.panel)
+                              onClicked: s.gw.setSimScenario(modelData.key) }
                     }
                 }
             }

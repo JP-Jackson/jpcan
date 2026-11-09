@@ -256,3 +256,24 @@ def test_edit_mode_flag(tmp_path, monkeypatch):
     b.setEditMode(False)
     assert seen == [True, False]
     assert "editMode" not in settings_mod.load()   # not saved: always off after a restart
+
+
+def test_sim_scenario_pick_is_saved(tmp_path, monkeypatch):
+    monkeypatch.setenv("JPCAN_CONFIG", str(tmp_path))
+    monkeypatch.setenv("QT_QPA_PLATFORM", os.environ.get("QT_QPA_PLATFORM", "offscreen"))
+    from PySide6.QtGui import QGuiApplication
+
+    app = QGuiApplication.instance() or QGuiApplication([])  # noqa: F841
+    from core import settings as settings_mod
+    from gaugeworks.app import DemoFeed
+    from gaugeworks.backend import Backend
+
+    b = Backend(DemoFeed("cruise", "ford_f250_67_2014"), {**settings_mod.DEFAULTS}, poll_ms=10_000)
+    keys = [s["key"] for s in b.simScenarios]
+    assert {"cycle", "normal", "hard", "overheat", "signal"} <= set(keys)
+    started = []
+    monkeypatch.setattr(b, "setSource", lambda mode: started.append(mode))
+    b.setSimScenario("overheat")
+    assert settings_mod.load()["sim_scenario"] == "overheat" and started == ["sim"]
+    b.setSimScenario("nope")                         # not a scenario: ignored
+    assert settings_mod.load()["sim_scenario"] == "overheat" and started == ["sim"]

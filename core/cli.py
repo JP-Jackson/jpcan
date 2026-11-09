@@ -578,6 +578,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     def conn(p):
         p.add_argument("--sim", action="store_true", help="use the simulated adapter")
+        p.add_argument("--scenario", help="sim drive scenario (default: the Settings pick, else 'cycle')")
         p.add_argument("--port", default=DEFAULT_PORT, help=f"serial port (default {DEFAULT_PORT})")
         p.add_argument("--baud", type=int, default=115200)
         p.add_argument("--profile", help="force a profile (default: pick by VIN)")

@@ -182,6 +182,12 @@ def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
 QML_DIR = Path(__file__).resolve().parent / "qml"
 TEMPLATES = {"dash": "PageDash.qml", "quad": "PageQuad.qml", "economy": "PageEconomy.qml",
              "list": "PageList.qml", "towing": "PageTowing.qml"}
+def _sim_scenarios() -> list[dict]:
+    from core.sim import SCENARIOS
+    return [{"key": k, "label": v["label"], "desc": v["desc"], "problem": bool(v.get("problem"))}
+            for k, v in SCENARIOS.items()]
+
+
 MODE_FILE = Path("/etc/default/jpcan-mode")   # written by jpcan-mode (Truck/Simulator switch)
 
 
@@ -343,6 +349,19 @@ class Backend(QObject):
 
     sourceMode = Property(str, _source_mode, notify=sourceChanged)
 
+    # Simulator drive scenarios (core/sim.py). Picking one saves it and restarts the core in sim mode.
+    simScenarios = Property("QVariantList", lambda self: _sim_scenarios(), constant=True)
+    simScenario = Property(str, lambda self: (self.feed.meta or {}).get("scenario")
+                           or self._settings.get("sim_scenario") or "cycle", notify=configChanged)
+
+    @Slot(str)
+    def setSimScenario(self, name: str) -> None:
+        if name not in {s["key"] for s in _sim_scenarios()}:
+            return
+        self._settings["sim_scenario"] = name
+        self._save()
+        self.setSource("sim")
+
     # Edit mode: a single tap on any reading opens the picker. The 7" screen's touch
     # controller drops a still finger after ~0.1 s, so press-and-hold can't work on it.
     editMode = Property(bool, lambda self: self._edit, notify=editModeChanged)
@@ -354,9 +373,10 @@ class Backend(QObject):
             self.editModeChanged.emit()
 
     def _refresh_source(self) -> None:
-        m = read_source_mode()
-        if m != self._source:
-            self._source = m
+        self._source = read_source_mode()
+        m = self._source_mode()          # no switch file (laptop): follows the core's meta
+        if m != getattr(self, "_source_seen", None):
+            self._source_seen = m
             self.sourceChanged.emit()
 
     background = Property(str, _bg, notify=settingsChanged)

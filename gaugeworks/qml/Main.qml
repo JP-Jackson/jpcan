@@ -426,7 +426,10 @@ Rectangle {
             anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 10
             width: simText.implicitWidth + 28; height: 36; radius: 18
             color: "#e0a000"; border.color: "#000000"; border.width: 2
-            Text { id: simText; anchors.centerIn: parent; text: "SIMULATOR"; color: "#000000"
+            Text { id: simText; anchors.centerIn: parent; color: "#000000"
+                   text: "SIMULATOR" + (function() { var k = backend.simScenario, l = backend.simScenarios
+                       for (var i = 0; i < l.length; i++) if (l[i].key === k && k !== "cycle") return "  ·  " + l[i].label.toUpperCase()
+                       return "" })()
                    font.pixelSize: 18; font.bold: true }
         }
 

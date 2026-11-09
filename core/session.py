@@ -28,6 +28,7 @@ class Session:
     supported: set[int]
     sim: bool
     trace: TextIO | None = None
+    scenario: str = ""
 
     def close(self):
         self.port.close()
@@ -38,9 +39,15 @@ class Session:
 def connect(args, log=print) -> Session:
     guard = RequestGuard()
     trace = open(args.trace, "a", encoding="utf-8") if args.trace else None
+    scenario = ""
     if args.sim:
-        from .sim import SimTransport
-        raw, log_src = SimTransport(), "simulator"
+        from .sim import SCENARIOS, SimTransport
+        scenario = getattr(args, "scenario", None) or ""
+        if not scenario:
+            from . import settings as settings_mod
+            scenario = settings_mod.load().get("sim_scenario") or "cycle"
+        scenario = scenario if scenario in SCENARIOS else "cycle"
+        raw, log_src = SimTransport(scenario=scenario), f"simulator ({SCENARIOS[scenario]['label']})"
     else:
         raw, log_src = SerialTransport(args.port, args.baud), f"{args.port} @ {args.baud}"
     port = GuardedPort(raw, guard, min_gap=args.min_gap, trace=trace)
@@ -58,7 +65,7 @@ def connect(args, log=print) -> Session:
         if trace:
             trace.close()
         raise
-    return Session(elm, port, guard, info, vin, profile, supported, args.sim, trace)
+    return Session(elm, port, guard, info, vin, profile, supported, args.sim, trace, scenario)
 
 
 def why(e: BaseException, port: str) -> list[str]:

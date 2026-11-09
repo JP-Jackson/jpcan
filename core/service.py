@@ -51,7 +51,7 @@ def channel_info(profile: Profile) -> dict:
 def build_meta(s: Session, poller: Poller) -> dict:
     p = s.profile
     return {
-        "profile": p.id, "name": p.name, "vin": s.vin, "sim": s.sim,
+        "profile": p.id, "name": p.name, "vin": s.vin, "sim": s.sim, "scenario": s.scenario,
         "shift": p.shift, "layouts": p.layouts, "gaugeworks": p.gaugeworks,
         "adapter": {"elm": s.info.elm, "stn": s.info.stn, "protocol": s.info.protocol},
         "channels": channel_info(p),

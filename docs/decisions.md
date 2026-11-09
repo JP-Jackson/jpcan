@@ -314,3 +314,15 @@ drifting finger isn't taken by the page swipe.
   and an 18 px even step down to the boost floor. Same wall and shadow all the
   way around. The RPM trail color glows on the RPM step wall from 0 up to the
   needle. Scale numbers 25% bigger (RPM 30 px, boost 24 px).
+
+## D33. Simulator drive scenarios
+Settings > Simulator shows a "Sim drive" row. Normal drives: Loop (the
+original cold-start cycle), Normal to 75, Hard to 105, and Towing a hill.
+Problem drives, tinted red: Overheat, Overboost, VGT sticking, Check engine,
+Sensor dropout and Signal loss. Each loops (`core/sim.py` `SCENARIOS`). The pick
+is saved as `sim_scenario` in settings. GaugeWorks restarts the core in sim
+mode through the existing `jpcan-mode sim` helper, and the core reads the pick
+at startup. No new MQTT input. `jpcan run --sim --scenario <name>` works too.
+The SIMULATOR badge names the scenario. Also fixed: the sim put trans temp in
+the coolant byte of PID 67, and the Truck/Simulator buttons never showed which
+one was active.
