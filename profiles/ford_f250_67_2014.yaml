@@ -394,7 +394,7 @@ gaugeworks:
       tiles: [econ_inst, econ_tank, econ_trip, econ_last, ambient, fuel_level, oil_temp_std, trip_dist]
     - name: Towing
       template: towing   # P3: speed in the middle, RPM and boost rings, 8 panels with range bars
-      slots: {center: speed, ring: rpm, inner: boost, box1: rpm, box2: boost,
+      slots: {center: speed, ring: rpm, inner: boost, box1: rpm, box2: boost, fuel: fuel_level,
               l1: iat, l2: trans_temp, l3: coolant, l4: oil_temp_std,
               r1: fuel_level, r2: load, r3: rail_actual, r4: vgt}
     - name: Economy

@@ -49,7 +49,7 @@ Item {
     TowGauge {
         x: 512 - width / 2; y: 306 - height / 2
         ringCfg: p.sl.ring || ({}); innerCfg: p.sl.inner || ({}); centerCfg: p.sl.center || ({})
-        box1Cfg: p.sl.box1 || ({}); box2Cfg: p.sl.box2 || ({})
+        box1Cfg: p.sl.box1 || ({}); box2Cfg: p.sl.box2 || ({}); fuelCfg: p.sl.fuel || ({})
         gearKey: p.gearKey; acc: p.acc; acc2: p.acc2; blinkOn: p.blinkOn
         onHeld: function(slot) { p.pick(slot, (p.sl[slot] || {}).key || "") }
     }

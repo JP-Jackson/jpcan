@@ -326,3 +326,11 @@ at startup. No new MQTT input. `jpcan run --sim --scenario <name>` works too.
 The SIMULATOR badge names the scenario. Also fixed: the sim put trans temp in
 the coolant byte of PID 67, and the Truck/Simulator buttons never showed which
 one was active.
+- Center readings on one raised piece (P1, 2026-11-09): a speed puck with a
+  tongue below holding a fuel groove, RPM, boost and gear. The gear no longer
+  sits on the bezel. The piece has a drop shadow, a lit top edge and a dark
+  bottom edge. Fuel (slot `fuel`, default `fuel_level`) is a groove across the
+  top of the RPM row: it fills E to F in the theme's main accent, has 1/4, 1/2
+  and 3/4 marks that turn white once passed, and turns red at 1/8 and below.
+  In edit mode, a tap on the puck, groove, RPM row or boost row opens that slot.
+  Lockup and tow/haul icons were tried and dropped for now.

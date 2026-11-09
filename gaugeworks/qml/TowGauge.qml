@@ -16,6 +16,8 @@ Item {
     property var box1Cfg: ({})
     property var box2Cfg: ({})
     property string gearKey: ""
+    property var fuelCfg: ({})
+    property bool pod: true           // P1: speed, fuel, RPM, boost and gear on one raised piece (JP's pick 2026-11-09)
     property color acc: "#29c4ff"
     property color acc2: "#ffb340"
     property bool blinkOn: true
@@ -825,6 +827,7 @@ Item {
     // ---- big center reading (speed)
     readonly property bool cOk: ok(centerCfg.key)
     Item {
+        visible: !g.pod
         anchors.horizontalCenter: parent.horizontalCenter; y: g.cy - 128
         width: spd.implicitWidth; height: spd.implicitHeight
         transform: Matrix4x4 { matrix: Qt.matrix4x4(1, -0.158, 0, 0.158 * spd.height * 0.8, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1) }
@@ -832,7 +835,7 @@ Item {
         Text { id: spd; text: g.cOk ? g.v(g.centerCfg.key).toFixed(g.centerCfg.decimals || 0) : "--"
                color: "#eef3f8"; font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 156 }
     }
-    Text { anchors.horizontalCenter: parent.horizontalCenter; y: g.cy + 30
+    Text { visible: !g.pod; anchors.horizontalCenter: parent.horizontalCenter; y: g.cy + 30
            text: (g.centerCfg.units || "").toUpperCase(); color: "#8796a8"
            font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 22; font.letterSpacing: 4 }
 
@@ -849,6 +852,7 @@ Item {
     readonly property bool b2Hot: ok(box2Cfg.key) && v(box2Cfg.key) >= lim(box2Cfg)
     Recess {
         id: box
+        visible: !g.pod
         x: g.cx - 100; y: g.cy + 54; width: 200; height: 118
         Text { x: 12; y: 10; text: (g.box1Cfg.label || "").toUpperCase(); color: "#8796a8"
                font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18 }
@@ -870,12 +874,117 @@ Item {
     }
     Recess {
         x: g.cx - 62; y: g.cy + 182; width: 124; height: 60
-        visible: g.gearKey !== ""
+        visible: g.gearKey !== "" && !g.pod
         Text { x: 14; anchors.verticalCenter: parent.verticalCenter; text: "GEAR"; color: "#8796a8"
                font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18; font.letterSpacing: 2 }
         Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                text: g.ok(g.gearKey) ? g.v(g.gearKey).toFixed(0) : "–"; color: "#eef3f8"
                font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 48 }
+    }
+
+    // ---- P1 raised piece: speed puck with a tongue below for fuel, RPM, boost and gear
+    readonly property real podR: 94     // puck radius
+    readonly property real podW: 78     // half-width of the tongue
+    readonly property real podBot: 200  // tongue bottom, below the center
+    Canvas {
+        id: podArt
+        anchors.fill: parent
+        visible: g.pod
+        property var deps: [g.pod, g.width]
+        onDepsChanged: requestPaint()
+        onPaint: {
+            var c = getContext("2d"); c.reset(); if (!g.pod) return
+            var cx = g.cx, cy = g.cy
+            function shape(dy, grow) {
+                var R = g.podR + grow, w = g.podW + grow, bot = cy + g.podBot + grow, a = Math.asin(w / R)
+                c.beginPath()
+                c.arc(cx, cy + dy, R, Math.PI / 2 + a, Math.PI * 2.5 - a, false)
+                c.lineTo(cx + w, bot - 22 + dy); c.quadraticCurveTo(cx + w, bot + dy, cx + w - 22, bot + dy)
+                c.lineTo(cx - w + 22, bot + dy); c.quadraticCurveTo(cx - w, bot + dy, cx - w, bot - 22 + dy)
+                c.closePath()
+            }
+            for (var k = 4; k >= 1; k--) { shape(5 + k * 2, k * 2); c.fillStyle = "rgba(0,0,0," + (0.12 + 0.05 * (4 - k)) + ")"; c.fill() }
+            shape(0, 0)
+            var bg = c.createLinearGradient(0, cy - 120, 0, cy + 210)
+            bg.addColorStop(0, "#1f2a38"); bg.addColorStop(0.45, "#121a24"); bg.addColorStop(1, "#0a0f15")
+            c.fillStyle = bg; c.fill()
+            shape(0, 0); c.lineWidth = 2.5
+            var eg = c.createLinearGradient(0, cy - 120, 0, cy + 210)
+            eg.addColorStop(0, "rgba(220,235,255,0.75)"); eg.addColorStop(0.5, "rgba(120,140,165,0.35)"); eg.addColorStop(1, "rgba(0,0,0,0.9)")
+            c.strokeStyle = eg; c.stroke()
+            shape(0, -3); c.lineWidth = 1; c.strokeStyle = "rgba(255,255,255,0.10)"; c.stroke()
+            c.save(); shape(0, 0); c.clip()
+            var sh = c.createLinearGradient(0, cy - 120, 0, cy + 20)
+            sh.addColorStop(0, "rgba(255,255,255,0.08)"); sh.addColorStop(1, "rgba(255,255,255,0)")
+            c.fillStyle = sh; c.fillRect(0, 0, g.width, g.height); c.restore()
+            c.strokeStyle = "rgba(120,140,165,0.35)"; c.lineWidth = 1   // divider above the gear
+            c.beginPath(); c.moveTo(cx - 70, cy + 152); c.lineTo(cx + 70, cy + 152); c.stroke()
+        }
+    }
+    // fuel: a groove across the top of the RPM row, filling E -> F in the theme accent, red at 1/8 and below
+    readonly property bool fOk: ok(fuelCfg.key)
+    readonly property real fFrac: fOk ? Math.max(0, Math.min(1, (v(fuelCfg.key) - (fuelCfg.min || 0)) / (((fuelCfg.max || 100) - (fuelCfg.min || 0)) || 1))) : 0
+    readonly property bool fLow: fOk && fFrac <= 0.125
+    Canvas {
+        anchors.fill: parent
+        visible: g.pod && !!g.fuelCfg.key
+        property var deps: [g.fFrac, g.fOk, g.acc, g.pod]
+        onDepsChanged: requestPaint()
+        onPaint: {
+            var c = getContext("2d"); c.reset(); if (!g.pod) return
+            var x0 = g.cx - 70, x1 = g.cx + 70, y = g.cy + 56, w = x1 - x0, f = g.fFrac, xf = x0 + w * f
+            var col = g.acc, fc = g.fLow ? Qt.rgba(1, 0.23, 0.23, 1) : col
+            c.fillStyle = "#03060a"; c.fillRect(x0, y - 2.5, w, 5)                    // groove floor
+            c.fillStyle = "rgba(0,0,0,0.9)"; c.fillRect(x0, y - 2.5, w, 1.2)         // shaded upper wall
+            c.fillStyle = "rgba(170,190,215,0.35)"; c.fillRect(x0, y + 2.2, w, 0.9)  // lit lower lip
+            if (g.fOk && f > 0) {
+                var gr = c.createLinearGradient(x0, 0, xf, 0)
+                gr.addColorStop(0, Qt.rgba(fc.r, fc.g, fc.b, 0.25)); gr.addColorStop(0.85, Qt.rgba(fc.r, fc.g, fc.b, 0.95)); gr.addColorStop(1, Qt.rgba(fc.r, fc.g, fc.b, 1))
+                c.fillStyle = gr; c.fillRect(x0, y - 1.25, xf - x0, 2.5)
+            }
+            c.fillStyle = "rgba(158,31,42,0.85)"; c.fillRect(x0, y + 4, w * 0.125, 1.2)   // low zone
+            for (var k = 1; k < 4; k++) {   // 1/4, 1/2, 3/4 marks: white once passed
+                var tx = x0 + w * k / 4, passed = g.fOk && tx <= xf
+                c.fillStyle = passed ? "#ffffff" : Qt.rgba(col.r, col.g, col.b, 0.8); c.fillRect(tx - 0.6, y - (k === 2 ? 6 : 4.5), 1.2, k === 2 ? 12 : 9)
+            }
+            if (g.fOk) {   // level marker: small white blade pointing down onto the groove
+                c.fillStyle = "rgba(0,0,0,0.6)"; c.beginPath(); c.moveTo(xf - 2.5, y - 7.5); c.lineTo(xf + 4.5, y - 7.5); c.lineTo(xf + 1, y + 1.5); c.fill()
+                c.fillStyle = g.fLow ? "#ff8a8a" : "#ffffff"; c.beginPath(); c.moveTo(xf - 3.5, y - 9); c.lineTo(xf + 3.5, y - 9); c.lineTo(xf, y); c.fill()
+            }
+            c.font = "11px 'Barlow Semi Condensed SemiBold'"; c.textBaseline = "middle"
+            c.textAlign = "right"; c.fillStyle = "#c42a35"; c.fillText("E", x0 - 4, y)
+            c.textAlign = "left"; c.fillStyle = col.toString(); c.fillText("F", x1 + 4, y)
+        }
+    }
+    Item {
+        anchors.fill: parent
+        visible: g.pod
+        Text { anchors.horizontalCenter: parent.horizontalCenter; y: g.cy - 86
+               text: g.cOk ? g.v(g.centerCfg.key).toFixed(g.centerCfg.decimals || 0) : "--"; color: "#eef3f8"
+               font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 104
+               style: Text.Raised; styleColor: "#000000" }
+        Text { anchors.horizontalCenter: parent.horizontalCenter; y: g.cy + 24
+               text: (g.centerCfg.units || "").toUpperCase(); color: "#8796a8"
+               font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18; font.letterSpacing: 4 }
+        Row { x: g.cx - 72; y: g.cy + 60; width: 144
+              Text { width: 54; text: (g.box1Cfg.label || "").toUpperCase(); color: "#8796a8"
+                     font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 17; anchors.baseline: pr.baseline }
+              Text { id: pr; width: 90; horizontalAlignment: Text.AlignRight
+                     text: g.ok(g.box1Cfg.key) ? g.fmtBox(g.box1Cfg, g.v(g.box1Cfg.key)) : "--"
+                     color: g.b1Hot ? (g.blinkOn ? "#ff3b3b" : "#5a1a20") : "#eef3f8"
+                     font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 40 } }
+        Row { x: g.cx - 72; y: g.cy + 104; width: 144
+              Text { width: 54; text: (g.box2Cfg.label || "").toUpperCase(); color: g.acc2
+                     font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 17; anchors.baseline: pb.baseline }
+              Text { id: pb; width: 90; horizontalAlignment: Text.AlignRight
+                     text: g.ok(g.box2Cfg.key) ? g.fmtBox(g.box2Cfg, g.v(g.box2Cfg.key)) : "--"
+                     color: g.b2Hot ? (g.blinkOn ? "#ff3b3b" : "#5a1a20") : g.acc2
+                     font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 36 } }
+        Row { anchors.horizontalCenter: parent.horizontalCenter; y: g.cy + 152; spacing: 12; visible: g.gearKey !== ""
+              Text { text: "GEAR"; color: "#8796a8"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 17
+                     font.letterSpacing: 2; anchors.baseline: pg.baseline }
+              Text { id: pg; text: g.ok(g.gearKey) ? g.v(g.gearKey).toFixed(0) : "–"; color: "#eef3f8"
+                     font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 44 } }
     }
 
     // press and hold: center number, inner scale, outer scale, or a box row
@@ -885,7 +994,10 @@ Item {
         onClicked: function(m) { if (backend.editMode) pick(m) }
         onPressAndHold: function(m) { pick(m) }
         function pick(m) {
-            if (m.x >= box.x && m.x <= box.x + box.width && m.y >= box.y && m.y <= box.y + box.height) {
+            if (g.pod && Math.abs(m.x - g.cx) <= g.podW && m.y >= g.cy + 48 && m.y <= g.cy + g.podBot) {
+                g.held(m.y < g.cy + 64 && g.fuelCfg.key ? "fuel" : m.y < g.cy + 104 ? "box1" : "box2"); return
+            }
+            if (!g.pod && m.x >= box.x && m.x <= box.x + box.width && m.y >= box.y && m.y <= box.y + box.height) {
                 g.held(m.y < box.y + box.height / 2 ? "box1" : "box2"); return
             }
             var d = Math.sqrt((m.x - g.cx) * (m.x - g.cx) + (m.y - g.cy) * (m.y - g.cy))
