@@ -34,7 +34,9 @@ Item {
     property real pkTrailA: 0.75   // JP's pick: K4
     property color scaleRed: "#9e1f2a"   // red-zone ticks and numbers on the scales
     property int ringStyle: 0         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight;
-                                      // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished
+                                      // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished;
+                                      // 7-10 high-quality ring, glow from behind: 7 polished chrome, 8 satin, 9 gunmetal, 10 polished + inner bevel
+    property real haloA: 0.55        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -116,6 +118,53 @@ Item {
             var A = g.acc
             function ann(r0, r1, style) { c.beginPath(); c.arc(cx, cy, r1, 0, 2 * Math.PI, false); c.arc(cx, cy, r0, 2 * Math.PI, 0, true); c.fillStyle = style; c.fill() }
             function acc(a) { return Qt.rgba(A.r, A.g, A.b, a) }
+            if (st >= 7) {
+                W = 18
+                // backlight: light from behind the gauge spilling onto the background, strongest at the edge
+                var hl = c.createRadialGradient(cx, cy, R + W - 2, cx, cy, R + W + 70)
+                hl.addColorStop(0, acc(g.haloA)); hl.addColorStop(0.12, acc(g.haloA * 0.75)); hl.addColorStop(0.4, acc(g.haloA * 0.28)); hl.addColorStop(1, acc(0))
+                ann(R + W - 2, R + W + 70, hl)
+                // contact shadow the ring throws onto the face (heavier below)
+                ann(R - 16, R, (function() { var sg = c.createRadialGradient(cx, cy + 4, R - 16, cx, cy + 4, R)
+                    sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.9)"); return sg })())
+                var r0 = R
+                if (st === 10) {   // thin stepped bevel between face and tube
+                    var bv2 = c.createRadialGradient(cx, cy, R, cx, cy, R + 5)
+                    bv2.addColorStop(0, "#0b0d10"); bv2.addColorStop(0.5, "#8d96a2"); bv2.addColorStop(1, "#1a1e23")
+                    ann(R, R + 5, bv2); r0 = R + 5; W = 17
+                }
+                // cross-section profile: what the tube reflects from its inner edge (0) to its outer edge (1)
+                var prof = st === 8
+                    ? [[0, "#121519"], [0.12, "#4b525b"], [0.35, "#b9c0c8"], [0.5, "#d9dee3"], [0.62, "#b0b7bf"], [0.85, "#4e555e"], [1, "#101317"]]
+                    : st === 9
+                    ? [[0, "#040506"], [0.14, "#262b31"], [0.3, "#8f98a3"], [0.38, "#c4cbd3"], [0.46, "#3a4048"], [0.5, "#16191d"], [0.68, "#2e343b"], [0.86, "#6b737d"], [1, "#040506"]]
+                    : [[0, "#0b0d10"], [0.06, "#3a4048"], [0.15, "#c7ced6"], [0.3, "#ffffff"], [0.42, "#e3e8ee"], [0.47, "#5a616b"], [0.5, "#23282e"],
+                       [0.62, "#6f7782"], [0.78, "#bcc4cd"], [0.88, "#f4f7fa"], [0.95, "#5b626c"], [1, "#0b0d10"]]
+                var tg = c.createRadialGradient(cx, cy, r0, cx, cy, r0 + W)
+                for (var q = 0; q < prof.length; q++) tg.addColorStop(prof[q][0], prof[q][1])
+                ann(r0, r0 + W, tg)
+                // environment: brighter where it faces up toward the light, darker facing down
+                var env = c.createLinearGradient(0, cy - r0 - W, 0, cy + r0 + W)
+                env.addColorStop(0, "rgba(255,255,255,0.16)"); env.addColorStop(0.45, "rgba(255,255,255,0)")
+                env.addColorStop(0.6, "rgba(0,0,0,0.12)"); env.addColorStop(1, "rgba(0,0,0,0.45)")
+                ann(r0, r0 + W, env)
+                // cool tint in the reflections
+                ann(r0, r0 + W, "rgba(120,160,210,0.06)")
+                // crisp specular highlights on the bright band, upper left (and a softer one upper right)
+                var spA = st === 8 ? 0.45 : st === 9 ? 0.6 : 0.95
+                c.lineCap = "round"
+                c.lineWidth = st === 8 ? 4 : 2.2; c.strokeStyle = "rgba(255,255,255," + spA + ")"
+                c.beginPath(); c.arc(cx, cy, r0 + W * 0.27, Math.PI * 1.12, Math.PI * 1.38); c.stroke()
+                c.lineWidth = st === 8 ? 3 : 1.4; c.strokeStyle = "rgba(255,255,255," + (spA * 0.6) + ")"
+                c.beginPath(); c.arc(cx, cy, r0 + W * 0.27, Math.PI * 1.6, Math.PI * 1.75); c.stroke()
+                // hairline edges so it reads crisp
+                c.lineWidth = 1; c.strokeStyle = "rgba(0,0,0,0.9)"
+                c.beginPath(); c.arc(cx, cy, r0 + W - 0.5, 0, 2 * Math.PI); c.stroke()
+                c.beginPath(); c.arc(cx, cy, r0 + 0.5, 0, 2 * Math.PI); c.stroke()
+                c.strokeStyle = "rgba(255,255,255,0.35)"
+                c.beginPath(); c.arc(cx, cy, r0 + W - 2, Math.PI * 1.1, Math.PI * 1.9); c.stroke()
+                return
+            }
             // backlight bleeding out around the ring
             var bl = c.createRadialGradient(cx, cy, R + W - 4, cx, cy, R + W + glowW)
             bl.addColorStop(0, acc(glowA)); bl.addColorStop(0.35, acc(glowA * 0.35)); bl.addColorStop(1, acc(0))
