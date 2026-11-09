@@ -1,0 +1,101 @@
+<!doctype html><html><head><meta charset="utf-8">
+<!-- Stepped-dish lighting mockup for the Towing page center gauge (2026-11-09).
+     depth.html?r=1..4  RPM treatment. Light: cab light from above-front; trails are emissive. -->
+<style>html,body{margin:0;background:#05070a}canvas{display:block}</style></head><body>
+<canvas id="c" width="600" height="600"></canvas>
+<script>
+const q=new URLSearchParams(location.search), RV=+(q.get('r')||1);
+const c=document.getElementById('c').getContext('2d');
+const CX=300,CY=300, RD=246, RS=174;          // bezel inner edge, boost step
+const A0=140, SW=260, ACC=[41,196,255], AMB=[255,179,64];
+const rad=d=>d*Math.PI/180, rgba=(k,a)=>`rgba(${k[0]},${k[1]},${k[2]},${a})`;
+const rpmA=A0+SW*0.875*1.65/3, bstA=A0+SW*0.875*8/20;   // 1,650 rpm and 8 psi on the split scales
+// per-option RPM geometry
+const OPT={1:{edge:RD, wall:14, chamfer:0, ledge:0, glass:false},
+           2:{edge:RD, wall:0,  chamfer:14, ledge:0, glass:false},
+           3:{edge:RD-12, wall:14, chamfer:0, ledge:12, glass:false},
+           4:{edge:RD, wall:14, chamfer:0, ledge:0, glass:true}}[RV];
+const BW=26;    // boost wall: deeper than RPM
+
+function disc(r,y=0){c.beginPath();c.arc(CX,CY+y,r,0,2*Math.PI)}
+function ann(r0,r1,style){c.beginPath();c.arc(CX,CY,r1,0,2*Math.PI,false);c.arc(CX,CY,r0,2*Math.PI,0,true);c.fillStyle=style;c.fill('evenodd')}
+function sector(r0,r1,a0,a1){c.beginPath();c.arc(CX,CY,r1,rad(a0),rad(a1));c.arc(CX,CY,r0,rad(a1),rad(a0),true);c.closePath()}
+// emissive trail: bright at the needle, fading back to 0, with a small dark gap at the needle
+function conicTrail(col,end,peak,gapDeg){
+  const g=c.createConicGradient(rad(A0),CX,CY), span=(end-A0)/360, gp=gapDeg/360;
+  g.addColorStop(0,rgba(col,0));g.addColorStop(span*0.45,rgba(col,peak*0.35));
+  g.addColorStop(Math.max(0,span-gp),rgba(col,peak));g.addColorStop(Math.max(0,span-gp*0.3),rgba(col,peak*0.12));
+  g.addColorStop(span,rgba(col,0));g.addColorStop(Math.min(1,span+0.001),rgba(col,0));g.addColorStop(1,rgba(col,0));return g}
+function trail(r0,r1,end,col,peak){
+  sector(r0,r1,A0,end);c.fillStyle=conicTrail(col,end,peak,4);c.fill();
+  sector(r0,r1,A0,end);const f=c.createRadialGradient(CX,CY,r0,CX,CY,r1);f.addColorStop(0,'rgba(4,7,12,0.55)');f.addColorStop(0.6,'rgba(4,7,12,0.12)');f.addColorStop(1,'rgba(4,7,12,0)');c.fillStyle=f;c.fill()}
+// the visible (upper) wall of a step: crescent between the upper edge and the floor edge seen shifted down
+function crescent(r,w){c.beginPath();c.arc(CX,CY,r,0,2*Math.PI,false);c.arc(CX,CY+w,r,2*Math.PI,0,true)}
+function wall(r,w,glow){   // glow: [color, endAngle, strength] trail light thrown onto the wall
+  c.save();disc(r);c.clip();c.beginPath();c.rect(0,0,600,600);c.arc(CX,CY+w,r,0,2*Math.PI,true);c.clip('evenodd');
+  const g=c.createLinearGradient(0,CY-r,0,CY-r+w*1.6);g.addColorStop(0,'#030508');g.addColorStop(0.5,'#141c27');g.addColorStop(1,'#2c3a4c');
+  c.fillStyle=g;c.fillRect(0,0,600,600);
+  if(glow){const[col,end,s]=glow;c.beginPath();c.moveTo(CX,CY);c.arc(CX,CY,r+30,rad(A0),rad(end));c.closePath();c.fillStyle=conicTrail(col,end,s,2);c.fill()}
+  c.restore();
+  // crisp top edge of the upper level, and a faint lit lip along the bottom
+  c.lineWidth=1.2;c.strokeStyle='rgba(0,0,0,0.9)';disc(r);c.stroke();
+  const lg=c.createLinearGradient(0,CY-r,0,CY+r);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(0.7,'rgba(255,255,255,0)');lg.addColorStop(1,'rgba(200,220,240,0.35)');
+  c.lineWidth=1.5;c.strokeStyle=lg;disc(r+0.5);c.stroke()}
+// shadow the upper level casts on the floor below it (light from above: heavier near the top)
+function castShadow(r,w,s){c.save();disc(r);c.clip();
+  const g=c.createRadialGradient(CX,CY+w*1.5,r-26-w,CX,CY+w*1.5,r+w*1.5);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(0.6,`rgba(0,0,0,${s*0.4})`);g.addColorStop(1,`rgba(0,0,0,${s})`);
+  c.fillStyle=g;c.fillRect(0,0,600,600);c.restore()}
+
+// ---- background, halo, bezel
+c.fillStyle='#07090c';c.fillRect(0,0,600,600);
+let h=c.createRadialGradient(CX,CY,RD+14,CX,CY,RD+80);h.addColorStop(0,rgba(ACC,0.5));h.addColorStop(0.4,rgba(ACC,0.15));h.addColorStop(1,rgba(ACC,0));ann(RD+14,RD+80,h);
+// ---- floors (deeper = darker), lit from above
+function floor(r,dark){const g=c.createRadialGradient(CX,CY-r*0.45,0,CX,CY,r);g.addColorStop(0,`rgb(${18-dark*5},${28-dark*7},${42-dark*9})`);g.addColorStop(0.75,`rgb(${8-dark*2},${12-dark*3},${19-dark*4})`);g.addColorStop(1,'#03050a');c.fillStyle=g;disc(r);c.fill()}
+floor(RD,0);
+if(OPT.ledge){ // ledge: brushed dark metal at the bezel's level
+  const g=c.createLinearGradient(0,CY-RD,0,CY+RD);g.addColorStop(0,'#3a4350');g.addColorStop(0.5,'#1a2028');g.addColorStop(1,'#0c0f13');ann(OPT.edge,RD,g);
+  for(let i=0;i<5;i++){c.lineWidth=0.6;c.strokeStyle='rgba(255,255,255,0.05)';disc(OPT.edge+2+i*2);c.stroke()}}
+floor(OPT.edge-0.5,1);
+castShadow(OPT.edge,OPT.wall||OPT.chamfer*0.6,0.85);
+// RPM emissive trail (on the RPM floor)
+trail(176,OPT.edge-(OPT.chamfer?OPT.chamfer:4),rpmA,ACC,0.95);
+if(OPT.chamfer){ // beveled slope from the bezel down to the RPM floor: faces down at the top (dark), up at the bottom (lit)
+  const r0=OPT.edge-OPT.chamfer,r1=OPT.edge;
+  const g=c.createLinearGradient(0,CY-r1,0,CY+r1);g.addColorStop(0,'#04070a');g.addColorStop(0.45,'#1d2734');g.addColorStop(1,'#56677c');ann(r0,r1,g);
+  // trail light bouncing onto the slope next to it
+  c.save();c.beginPath();c.arc(CX,CY,r1,0,2*Math.PI,false);c.arc(CX,CY,r0,2*Math.PI,0,true);c.clip('evenodd');
+  sector(r0,r1,A0,rpmA);c.fillStyle=conicTrail(ACC,rpmA,0.6,2);c.fill();
+  sector(r0,r1,A0,rpmA);const gg=c.createRadialGradient(CX,CY,r0,CX,CY,r1);gg.addColorStop(0,'rgba(4,7,12,0)');gg.addColorStop(1,'rgba(4,7,12,0.85)');c.fillStyle=gg;c.fill()
+  c.restore();c.lineWidth=1;c.strokeStyle='rgba(0,0,0,0.9)';disc(r1);c.stroke();disc(r0);c.stroke()}
+else wall(OPT.edge,OPT.wall,[ACC,rpmA,0.55]);
+if(OPT.glass){ // smoked-glass sheen on the RPM floor: a soft diagonal reflection band
+  c.save();c.beginPath();c.arc(CX,CY,OPT.edge,0,2*Math.PI,false);c.arc(CX,CY,RS,2*Math.PI,0,true);c.clip('evenodd');
+  const g=c.createLinearGradient(CX-200,CY-260,CX+120,CY+60);g.addColorStop(0,'rgba(255,255,255,0)');g.addColorStop(0.42,'rgba(255,255,255,0)');g.addColorStop(0.5,'rgba(220,235,255,0.10)');g.addColorStop(0.58,'rgba(255,255,255,0)');g.addColorStop(1,'rgba(255,255,255,0)');
+  c.fillStyle=g;c.fillRect(0,0,600,600);c.restore()}
+// boost level: deeper still
+floor(RS,2);
+castShadow(RS,BW,0.95);
+trail(100,160,bstA,AMB,0.95);
+wall(RS,BW,[AMB,bstA,0.6]);
+// ---- scales (on top)
+function tick(r0,r1,a,col,w){c.strokeStyle=col;c.lineWidth=w;c.beginPath();c.moveTo(CX+r0*Math.cos(rad(a)),CY+r0*Math.sin(rad(a)));c.lineTo(CX+r1*Math.cos(rad(a)),CY+r1*Math.sin(rad(a)));c.stroke()}
+const ar=v=>A0+SW*(v<=3?0.875*v/3:0.875+0.125*(v-3)/2), ab=v=>A0+SW*(v<=20?0.875*v/20:0.875+0.125*(v-20)/20);
+c.font="24px sans-serif";c.textAlign='center';c.textBaseline='middle';
+for(let v=0;v<=5;v+=0.25){const a=ar(v),maj=v%1==0,red=v>=3,passed=v<=1.65;tick(231,maj?209:218,a,red?'#9e1f2a':passed?'#fff':'#e9f1f8',maj?4:2);
+  if(maj){c.fillStyle=red?'#9e1f2a':'#eef3f8';c.fillText(v,CX+198*Math.cos(rad(a)),CY+198*Math.sin(rad(a)))}}
+c.font="18px sans-serif";
+for(let v=0;v<=20;v++){const a=ab(v),maj=v%5==0;tick(172,maj?157:163,a,v<=8?'#fff':'#ffb340',maj?3:1.4);if(maj){c.fillStyle=v<=8?'#fff':'#ffb340';c.fillText(v,CX+142*Math.cos(rad(a)),CY+142*Math.sin(rad(a)))}}
+[30,40].forEach(v=>{const a=ab(v);tick(172,157,a,'#9e1f2a',3);c.fillStyle='#9e1f2a';c.fillText(v,CX+142*Math.cos(rad(a)),CY+142*Math.sin(rad(a)))});
+// ---- needles (blade, white core) with a drop shadow
+function blade(r0,r1,a,col){c.save();c.translate(CX,CY);c.rotate(rad(a));
+  c.fillStyle='rgba(0,0,0,0.55)';c.beginPath();c.moveTo(r0+3,1);c.lineTo(r1-9,1);c.lineTo(r1+3,5);c.lineTo(r1-9,9);c.lineTo(r0+3,9);c.fill();
+  const g=c.createLinearGradient(0,-3,0,3);g.addColorStop(0,'#fff');g.addColorStop(0.5,'#fff');g.addColorStop(0.51,'#c4ccd6');g.addColorStop(1,col);
+  c.fillStyle=g;c.beginPath();c.moveTo(r0,-3);c.lineTo(r1-12,-3);c.lineTo(r1,0);c.lineTo(r1-12,3);c.lineTo(r0,3);c.closePath();c.fill();c.restore()}
+blade(176,232,rpmA,'#1b78c8');blade(100,174,bstA,'#c4560a');
+// ---- gunmetal tube bezel with real-chrome bands
+const tb=c.createRadialGradient(CX,CY,RD,CX,CY,RD+18);[[0,'#040506'],[0.14,'#262b31'],[0.3,'#8f98a3'],[0.38,'#c4cbd3'],[0.46,'#3a4048'],[0.5,'#16191d'],[0.68,'#2e343b'],[0.86,'#6b737d'],[1,'#040506']].forEach(s=>tb.addColorStop(s[0],s[1]));
+ann(RD,RD+18,tb);const env=c.createLinearGradient(0,CY-RD,0,CY+RD);env.addColorStop(0,'rgba(255,255,255,0.16)');env.addColorStop(0.5,'rgba(0,0,0,0)');env.addColorStop(1,'rgba(0,0,0,0.45)');ann(RD,RD+18,env);
+c.lineWidth=2.2;c.strokeStyle='rgba(255,255,255,0.6)';c.beginPath();c.arc(CX,CY,RD+5,rad(205),rad(250));c.stroke();
+// ---- speed
+c.font="bold 150px sans-serif";c.fillStyle='rgba(0,0,0,0.7)';c.fillText('65',CX+2,CY-38);c.fillStyle='#eef3f8';c.fillText('65',CX,CY-42);
+</script></body></html>
