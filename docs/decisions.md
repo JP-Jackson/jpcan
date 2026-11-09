@@ -355,3 +355,19 @@ texture per distinct gradient and never frees them; the Towing trails' stop
 positions followed the needle exactly, so every frame made new ones. Stop
 positions are now rounded to whole degrees (`TowGauge.qa`), which bounds the
 cache. Rule: never bind a Shape gradient stop to a continuous value.
+
+## D34. Boot screen: only the logo on HDMI
+
+JP didn't want boot text on the 7" screen. Option A (no new packages) instead
+of Plymouth:
+- `disable_splash=1` (no rainbow); `fbcon=map:1 logo.nologo` in cmdline.txt so
+  the console never binds to the HDMI framebuffer (fb0); it goes to the 3.5"
+  SPI screen (fb1) when that registers.
+- `jpcan-bootlogo.service` (sysinit, no default deps) cats a pre-rendered raw
+  image of the GaugeWorks splash to the HDMI framebuffer. `install-services.sh`
+  renders it with `python -m gaugeworks.bootlogo` (16 and 32 bpp, 1024x600).
+  If the console still landed on HDMI (framebuffers in the other order), the
+  script moves ttys 1-6 to the SPI screen and redraws.
+- Expect black for a few seconds after power-on, then the logo, then GaugeWorks.
+  When GaugeWorks restarts, DRM restores the framebuffer, so the logo shows then too.
+- Without the 3.5" screen attached, boot text shows nowhere; use SSH.

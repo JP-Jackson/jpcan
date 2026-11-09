@@ -114,6 +114,36 @@ fi
 grep -o 'video=HDMI-A-1:[^ ]*' "$CMDLINE" | sed 's/^/   /'
 echo "   (takes effect after a reboot)"
 
+echo "== boot screen: only the jpCAN logo on HDMI until GaugeWorks is up"
+# No rainbow splash; console (boot text, login) never on the HDMI framebuffer
+# (fbcon=map:1 = the 3.5in SPI screen, which registers after HDMI); no Pi logo.
+# jpcan-bootlogo draws the GaugeWorks splash straight to the HDMI framebuffer.
+grep -q '^disable_splash=' "$CONFIG" || echo "disable_splash=1" >> "$CONFIG"
+for arg in fbcon=map:1 logo.nologo; do
+    grep -qw -- "$arg" "$CMDLINE" || sed -i "1 s/\$/ $arg/" "$CMDLINE"
+done
+mkdir -p /usr/local/share/jpcan
+if sudo -u "$USER_NAME" env QT_QPA_PLATFORM=offscreen "$VENV/bin/python" -m gaugeworks.bootlogo /tmp/jpcan-bootlogo >/dev/null; then
+    install -m 0644 /tmp/jpcan-bootlogo/bootlogo-*.raw /usr/local/share/jpcan/
+    echo "   logo images: $(ls /usr/local/share/jpcan | tr '\n' ' ')"
+else
+    echo "WARNING: couldn't render the boot logo"
+fi
+install -o root -g root -m 0755 "$REPO/scripts/jpcan-bootlogo" /usr/local/sbin/jpcan-bootlogo
+cat > /etc/systemd/system/jpcan-bootlogo.service <<'UNIT'
+[Unit]
+Description=JpCAN boot logo on the HDMI screen
+DefaultDependencies=no
+After=systemd-udevd.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/jpcan-bootlogo
+
+[Install]
+WantedBy=sysinit.target
+UNIT
+
 [ -f /etc/default/jpcan ] || cat > /etc/default/jpcan <<'EOF'
 # Extra arguments for the core service ('jpcan run').
 # Truck vs simulator is the Settings switch now (/etc/default/jpcan-mode).
@@ -191,6 +221,6 @@ UNIT
 
 systemctl daemon-reload
 systemctl disable getty@tty1.service >/dev/null 2>&1 || true
-systemctl enable jpcan-core.service jpcan-status.service gaugeworks.service >/dev/null
+systemctl enable jpcan-bootlogo.service jpcan-core.service jpcan-status.service gaugeworks.service >/dev/null
 systemctl restart jpcan-core.service jpcan-status.service gaugeworks.service
 echo "Done. Logs: journalctl -u jpcan-core -f  /  journalctl -u gaugeworks -f   Drives: ~/jpcan-logs"

@@ -1,0 +1,36 @@
+#!/bin/sh
+# Early-boot logo on the 7" HDMI screen (installed to /usr/local/sbin, run by
+# jpcan-bootlogo.service). The console is kept off HDMI (fbcon=map:1 in
+# cmdline.txt), so after this draws the logo nothing else writes to that screen
+# until GaugeWorks takes over. If the framebuffers came up in the other order and
+# the console landed on HDMI anyway, move it to the 3.5" SPI screen and redraw.
+DIR=/usr/local/share/jpcan
+
+hdmi_fb() { for f in /sys/class/graphics/fb*; do [ -e "$f/name" ] || continue
+            grep -q ili9486 "$f/name" || { echo "${f##*/fb}"; return; }; done; }
+spi_fb()  { for f in /sys/class/graphics/fb*; do grep -q ili9486 "$f/name" 2>/dev/null && { echo "${f##*/fb}"; return; }; done; }
+
+draw() {
+    n="$1"; s=/sys/class/graphics/fb$n
+    bpp=$(cat "$s/bits_per_pixel"); size=$(cat "$s/virtual_size"); stride=$(cat "$s/stride")
+    w=${size%,*}; h=${size#*,}
+    img="$DIR/bootlogo-${w}x${h}-${bpp}.raw"
+    if [ -f "$img" ] && [ "$stride" -eq $((w * bpp / 8)) ]; then
+        cat "$img" > "/dev/fb$n" 2>/dev/null
+    else
+        echo "no boot logo for fb$n (${w}x${h}, ${bpp} bpp, stride $stride)"
+    fi
+}
+
+i=0; while [ -z "$(hdmi_fb)" ] && [ $i -lt 100 ]; do sleep 0.1; i=$((i + 1)); done
+H=$(hdmi_fb); [ -n "$H" ] || exit 0
+draw "$H"
+
+# safety net: the console must not be on the HDMI screen
+i=0; while [ -z "$(spi_fb)" ] && [ $i -lt 200 ]; do sleep 0.1; i=$((i + 1)); done
+S=$(spi_fb)
+if [ -n "$S" ] && [ "$(con2fbmap 1 2>/dev/null | grep -o '[0-9]*$')" = "$H" ]; then
+    for t in 1 2 3 4 5 6; do con2fbmap "$t" "$S" 2>/dev/null; done
+    draw "$H"
+fi
+exit 0
