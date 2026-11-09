@@ -882,6 +882,18 @@ Item {
                font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 48 }
     }
 
+    // ---- ring labels in the open bottom of the dial, so it's always clear what each ring shows
+    Text {
+        x: g.cx - 150 - width / 2; y: g.cy + 168
+        text: (g.innerCfg.label || "") + (g.innerCfg.units ? " " + g.innerCfg.units : "")
+        color: g.acc2; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 15; font.letterSpacing: 1
+    }
+    Text {
+        x: g.cx + 150 - width / 2; y: g.cy + 168
+        text: (g.ringCfg.label || "") + (g.ringCfg.scaleLabel ? " " + g.ringCfg.scaleLabel.replace("x", "×") : "")
+        color: "#aab6c6"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 15; font.letterSpacing: 1
+    }
+
     // ---- P1 raised piece: speed puck with a tongue below for fuel, RPM, boost and gear
     readonly property real podR: 94     // puck radius
     readonly property real podW: 78     // half-width of the tongue
