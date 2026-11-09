@@ -26,7 +26,7 @@ Item {
     // light trail: dark gap behind the needle (degrees), strength at its peak, and how much it fades toward the center
     property real gapDeg: 4          // JP's pick: T3
     property real trailPeak: 1.0
-    property real trailFade: 0.45
+    property real trailFade: 0.0    // JP's pick L5: full brightness rim to inner edge
     // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
     property int ghostStyle: 2        // 1 thin line, 2 needle copy (JP: same as the dial, orange), 3 rim marker, 4 line + value
     property color ghostColor: "#ff6a00"   // JP's pick: O3 deep orange
@@ -38,7 +38,7 @@ Item {
     property int ringStyle: 9         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight;
                                       // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished;
                                       // 7-10 high-quality ring, glow from behind: 7 polished chrome, 8 satin, 9 gunmetal, 10 polished + inner bevel
-    property real haloA: 0.55
+    property real haloA: 0.9
     // stepped dish: the RPM band sits one step below the bezel, the boost band a step lower still.
     // 0 flat; 1 shallow; 2 medium; 3 deep with a chrome step ring; 4 deep with an accent-lit step edge
     property int depthStyle: 2        // JP's pick V4: R3-style even steps for RPM and boost
@@ -58,7 +58,7 @@ Item {
     property real rpmLedge: 12           // flat ledge (px) inside the bezel at the upper level; the RPM step drops off its inner edge
     readonly property real rpmStepR: rd - rpmLedge
     property bool wallRefl: true       // RPM trail color reflected on the RPM step wall (0 up to the needle)
-    property real bezelRefl: 0.8     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
+    property real bezelRefl: 1.0     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -880,18 +880,6 @@ Item {
         Text { anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
                text: g.ok(g.gearKey) ? g.v(g.gearKey).toFixed(0) : "–"; color: "#eef3f8"
                font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 48 }
-    }
-
-    // ---- ring labels in the open bottom of the dial, so it's always clear what each ring shows
-    Text {
-        x: g.cx - 150 - width / 2; y: g.cy + 168
-        text: (g.innerCfg.label || "") + (g.innerCfg.units ? " " + g.innerCfg.units : "")
-        color: g.acc2; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 15; font.letterSpacing: 1
-    }
-    Text {
-        x: g.cx + 150 - width / 2; y: g.cy + 168
-        text: (g.ringCfg.label || "") + (g.ringCfg.scaleLabel ? " " + g.ringCfg.scaleLabel.replace("x", "×") : "")
-        color: "#aab6c6"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 15; font.letterSpacing: 1
     }
 
     // ---- P1 raised piece: speed puck with a tongue below for fuel, RPM, boost and gear

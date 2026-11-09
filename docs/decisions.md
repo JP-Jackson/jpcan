@@ -345,3 +345,6 @@ one was active.
 overrides for them are ignored. The inner ring had been swapped to CEL (0-1
 scale) by a touch bounce in edit mode, so the picker also ignores taps for
 0.5 s after it opens.
+Towing gauge light, JP's pick L5 (2026-11-09): trails at full brightness from the
+rim to the inner edge (`trailFade` 0), halo 0.9, bezel reflection 1.0. Ring
+labels removed now that the rings are locked.
