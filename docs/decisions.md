@@ -288,3 +288,7 @@ its own skin.
   backlight spilling onto the background from behind the gauge. The RPM light
   trail reflects only in the bezel's inner lip (the part curving down toward
   the dial) as a thin sliver fading outward, with a glint where the needle is. Also K4 peak trail (32°, 75%), panel outlines at 35%, deep red scale zone.
+- Peak needle only shows once it's 4° of sweep above the needle (fades in and
+  out over 0.15 s), so steady cruising and small wiggles show nothing. Its glow
+  trail shows only while it falls back, on the high side, and is longer when
+  it falls faster.

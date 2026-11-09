@@ -88,16 +88,30 @@ Item {
     onRShownChanged: if (rShown >= rHold) { rHold = rShown; rHoldT = Date.now() }
     onIShownChanged: if (iShown >= iHold) { iHold = iShown; iHoldT = Date.now() }
     Timer {
-        interval: 50; repeat: true; running: g.ghostStyle > 0
+        interval: 50; repeat: true; running: g.ghostStyle > 0 && !g.demoFalling
         onTriggered: {
             var now = Date.now()
             // ease back: close ~8% of the gap every 50 ms (about 2.5 s to reach the needle), with a small floor
-            if (g.rHold > g.rShown && now - g.rHoldT > g.holdMs)
+            if (g.rHold > g.rShown && now - g.rHoldT > g.holdMs) {
+                var ra = g.ang(g.ringCfg, g.rHold)
                 g.rHold = Math.max(g.rShown, g.rHold - Math.max((g.rHold - g.rShown) * 0.08, ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.001))
-            if (g.iHold > g.iShown && now - g.iHoldT > g.holdMs)
+                g.rFallLen = Math.min(g.pkTrailDeg, Math.max(4, (ra - g.ang(g.ringCfg, g.rHold)) * 10))
+                g.rFalling = g.rHold > g.rShown
+            } else g.rFalling = false
+            if (g.iHold > g.iShown && now - g.iHoldT > g.holdMs) {
+                var ia = g.ang(g.innerCfg, g.iHold)
                 g.iHold = Math.max(g.iShown, g.iHold - Math.max((g.iHold - g.iShown) * 0.08, ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.001))
+                g.iFallLen = Math.min(g.pkTrailDeg, Math.max(4, (ia - g.ang(g.innerCfg, g.iHold)) * 10))
+                g.iFalling = g.iHold > g.iShown
+            } else g.iFalling = false
         }
     }
+    property real pkDead: 4           // degrees: the peak only shows once it's this far above the needle
+    property bool rFalling: false
+    property bool iFalling: false
+    property real rFallLen: 0          // trail length (degrees), longer when it falls faster
+    property real iFallLen: 0
+    property bool demoFalling: false   // screenshots only
     readonly property real rPeak: isNaN(demoRPeak) ? rHold : demoRPeak
     readonly property real iPeak: isNaN(demoIPeak) ? iHold : demoIPeak
     readonly property real rAng: ang(ringCfg, rShown)
@@ -428,9 +442,11 @@ Item {
         property color lite
         property real angle
         property real dim: 1
+        property int fadeMs: 0
         x: g.cx; y: g.cy
         rotation: angle
         opacity: dim
+        Behavior on opacity { enabled: pt.fadeMs > 0; NumberAnimation { duration: pt.fadeMs } }
         readonly property real hw: r0 * Math.sin(halfDeg * Math.PI / 180)
         readonly property int st: g.pointerStyle
         // ---- 1: straight bar, same width end to end, rounded ends
@@ -537,22 +553,30 @@ Item {
         property var cfg
         property color col
         property bool show: true
+        property bool falling: false
+        property real fallLen: 0
         // opacity, not visible: the Pi's GPU renderer skips Shapes that start hidden
         opacity: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5 ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 150 } }
         x: g.cx; y: g.cy
         rotation: angle
         Shape {   // soft light trail fading back from the peak
             id: gtr
-            opacity: g.ghostStyle === 1 || g.ghostStyle === 4 || (g.ghostStyle === 2 && g.ghostTrail) ? 1 : 0
+            // only while the peak is falling back, on the high side (where it's coming from)
+            opacity: (g.ghostStyle === 1 || g.ghostStyle === 4 || (g.ghostStyle === 2 && g.ghostTrail)) && gh.falling ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: 150 } }
+            readonly property real len: Math.max(1, gh.fallLen)
             readonly property color tc: g.ghostStyle === 2 ? g.ghostColor : "#ffffff"
             ShapePath { strokeColor: "transparent"
                 fillGradient: ConicalGradient { centerX: 0; centerY: 0; angle: 0
                     GradientStop { position: 0; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) }
-                    GradientStop { position: g.pkTrailDeg / 360 * 0.5; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA * 0.4) }
-                    GradientStop { position: g.pkTrailDeg / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
-                    GradientStop { position: 1; color: "transparent" } }
-                PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: -g.pkTrailDeg; sweepAngle: g.pkTrailDeg }
-                PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: 0; sweepAngle: -g.pkTrailDeg } }
+                    GradientStop { position: 0.001; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
+                    GradientStop { position: 1 - gtr.len / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
+                    GradientStop { position: 1 - gtr.len / 360 * 0.5; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA * 0.4) }
+                    GradientStop { position: 0.9999; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) }
+                    GradientStop { position: 1; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) } }
+                PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: 0; sweepAngle: gtr.len }
+                PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: gtr.len; sweepAngle: -gtr.len } }
         }
         Rectangle {   // shadow
             visible: g.ghostStyle === 1 || g.ghostStyle === 4
@@ -578,14 +602,16 @@ Item {
         }
     }
     Ghost { r0: 176; r1: g.ro + 12; angle: g.ang(g.ringCfg, g.rPeak); peak: g.rPeak; cfg: g.ringCfg; col: g.acc
-            show: g.rOk && g.rPeak > g.rShown + 1e-6 }
+            show: g.rOk && g.ang(g.ringCfg, g.rPeak) - g.rAng >= g.pkDead
+            falling: g.rFalling || g.demoFalling; fallLen: g.demoFalling ? g.pkTrailDeg * 0.7 : g.rFallLen }
     Ghost { r0: 100; r1: g.ri + 8; angle: g.ang(g.innerCfg, g.iPeak); peak: g.iPeak; cfg: g.innerCfg; col: g.acc2
-            show: g.iOk && g.iPeak > g.iShown + 1e-6 }
+            show: g.iOk && g.ang(g.innerCfg, g.iPeak) - g.iAng >= g.pkDead
+            falling: g.iFalling || g.demoFalling; fallLen: g.demoFalling ? g.pkTrailDeg * 0.7 : g.iFallLen }
     // 2: ghost needle, a faint copy of the needle at the peak
     Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.ang(g.ringCfg, g.rPeak); col: g.ghostColor; lite: Qt.lighter(g.ghostColor, 1.6)
-              dim: g.ghostStyle === 2 && g.rOk && g.rPeak > g.rShown + 1e-6 ? g.ghostAlpha : 0 }
+              dim: g.ghostStyle === 2 && g.rOk && g.ang(g.ringCfg, g.rPeak) - g.rAng >= g.pkDead ? g.ghostAlpha : 0; fadeMs: 150 }
     Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.ang(g.innerCfg, g.iPeak); col: g.ghostColor; lite: Qt.lighter(g.ghostColor, 1.6)
-              dim: g.ghostStyle === 2 && g.iOk && g.iPeak > g.iShown + 1e-6 ? g.ghostAlpha : 0 }
+              dim: g.ghostStyle === 2 && g.iOk && g.ang(g.innerCfg, g.iPeak) - g.iAng >= g.pkDead ? g.ghostAlpha : 0; fadeMs: 150 }
     // 4: the peak value next to the rim
     Text {
         visible: g.ghostStyle === 4 && g.rOk && g.rPeak > g.rShown + 1e-6
