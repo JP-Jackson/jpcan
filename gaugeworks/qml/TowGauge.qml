@@ -39,11 +39,14 @@ Item {
     property real haloA: 0.55
     // stepped dish: the RPM band sits one step below the bezel, the boost band a step lower still.
     // 0 flat; 1 shallow; 2 medium; 3 deep with a chrome step ring; 4 deep with an accent-lit step edge
-    property int depthStyle: 0
-    property real depthPx: 0          // >0 overrides the step depth (px); deeper also widens the wall and shadow
+    property int depthStyle: 2        // JP's pick: E3 (18 px, plain walls)
+    property real depthPx: 18          // >0 overrides the step depth (px); deeper also widens the wall and shadow
     property bool depthChrome: false  // chrome step wall
     property bool depthAccent: false  // accent light along the foot of each wall
     readonly property real stepR: 174   // radius of the step between the RPM and boost levels
+    property real rpmLedge: 0           // flat ledge (px) inside the bezel at the upper level; the RPM step drops off its inner edge
+    readonly property real rpmStepR: rd - rpmLedge
+    property bool wallRefl: false       // RPM trail color reflected on the RPM step wall (0 up to the needle)
     property real bezelRefl: 0.8     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
@@ -292,8 +295,9 @@ Item {
         property real o1
         property real k
         anchors.fill: parent
-        readonly property real r0: g.rd + o0
-        readonly property real r1: g.rd + o1
+        property real base: g.rd
+        readonly property real r0: base + o0
+        readonly property real r1: base + o1
         readonly property real swp: Math.max(0.01, g.rAng - g.a0)
         readonly property color col: g.rHot ? "#ff3b3b" : g.acc
         opacity: g.ringStyle >= 7 && g.rOk && g.bezelRefl > 0 ? 1 : 0
@@ -312,6 +316,11 @@ Item {
         }
     }
     Repeater { model: g.reflBands; ReflBand { o0: modelData[0]; o1: modelData[1]; k: modelData[2] } }
+    // on the RPM step wall: a band on the wall itself plus a softer one just below its foot
+    Repeater {
+        model: g.wallRefl && g.depthStyle > 0 ? [[-g.depthStyle * 0 - Math.max(4, (g.depthPx || 7) * 0.6), 0, 0.9], [-Math.max(4, (g.depthPx || 7) * 0.6) - 5, -Math.max(4, (g.depthPx || 7) * 0.6), 0.35]] : []
+        ReflBand { base: g.rpmStepR; o0: modelData[0]; o1: modelData[1]; k: modelData[2] }
+    }
     Item {   // glint on the inner lip right where the needle points
         x: g.cx; y: g.cy; rotation: g.rAng
         readonly property color col: g.rHot ? "#ff3b3b" : g.acc
@@ -368,7 +377,7 @@ Item {
     Canvas {
         anchors.fill: parent
         visible: g.depthStyle > 0
-        property var deps: [g.depthStyle, g.depthPx, g.depthChrome, g.depthAccent, g.acc, g.width]
+        property var deps: [g.depthStyle, g.depthPx, g.depthChrome, g.depthAccent, g.acc, g.width, g.rpmLedge]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
@@ -404,7 +413,16 @@ Item {
                         c.beginPath(); c.arc(cx, cy, r - depth * 0.6 - 1, Math.PI * 0.1, Math.PI * 0.9); c.stroke() }
                 }
             }
-            step(g.rd, d, 1)          // bezel -> RPM level
+            if (g.rpmLedge > 0) {   // flat ledge at the bezel's level, lit a little from above (stroked: never fills the middle)
+                var lr0 = g.rpmStepR, lr1 = g.rd, lw = lr1 - lr0
+                var lgd = c.createLinearGradient(0, cy - lr1, 0, cy + lr1)
+                lgd.addColorStop(0, "#1c2633"); lgd.addColorStop(0.5, "#0d131b"); lgd.addColorStop(1, "#080c12")
+                c.lineWidth = lw; c.strokeStyle = lgd; c.beginPath(); c.arc(cx, cy, lr0 + lw / 2, 0, 2 * Math.PI); c.stroke()
+                var lsh = c.createRadialGradient(cx, cy, lr1 - 6, cx, cy, lr1)   // bezel's own shadow on the ledge
+                lsh.addColorStop(0, "rgba(0,0,0,0)"); lsh.addColorStop(1, "rgba(0,0,0,0.7)")
+                c.lineWidth = 6; c.strokeStyle = lsh; c.beginPath(); c.arc(cx, cy, lr1 - 3, 0, 2 * Math.PI); c.stroke()
+            }
+            step(g.rpmStepR, d, 1)    // bezel (or ledge) -> RPM level
             step(g.stepR, d, 2)       // RPM level -> boost level
         }
     }
