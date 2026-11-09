@@ -364,7 +364,8 @@ Item {
         property var cfg
         property color col
         property bool show: true
-        visible: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5
+        // opacity, not visible: the Pi's GPU renderer skips Shapes that start hidden
+        opacity: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5 ? 1 : 0
         x: g.cx; y: g.cy
         rotation: angle
         Shape {   // 1 and 4: soft light trail fading back from the peak line

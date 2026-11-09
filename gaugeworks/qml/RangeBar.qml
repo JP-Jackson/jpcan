@@ -106,16 +106,15 @@ Item {
         Rectangle { y: parent.height - 2.5; width: 6; height: 2.5; color: Qt.lighter(b.acc, 1.5) }
     }
     // pointer: white wedge from the inner edge of the bar, pointing out (toward the screen edge).
-    // One fixed shape per side (no geometry changes at runtime; the Pi's GPU renderer
-    // didn't redraw a flipped path).
+    // One shape, always visible, mirrored for the right side. A Shape that starts hidden
+    // with fixed geometry is never drawn by the Pi's GPU renderer, so don't toggle it.
     Item {
-        visible: b.valid
         y: b.yOf(b.shown) - 5
         x: b.leftSide ? b.width - 2 - (b.width + 10) : 2
         width: b.width + 10; height: 10
-        opacity: b.hot && !b.blinkOn ? 0.25 : 1
+        opacity: !b.valid ? 0 : (b.hot && !b.blinkOn ? 0.25 : 1)
+        transform: Scale { origin.x: (b.width + 10) / 2; xScale: b.leftSide ? 1 : -1 }
         Shape {
-            visible: b.leftSide
             anchors.fill: parent
             ShapePath {
                 strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
@@ -124,18 +123,6 @@ Item {
                 PathLine { x: 0; y: 5 }
                 PathLine { x: b.width + 10; y: 10 }
                 PathLine { x: b.width + 10; y: 0 }
-            }
-        }
-        Shape {
-            visible: !b.leftSide
-            anchors.fill: parent
-            ShapePath {
-                strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
-                fillColor: b.hot ? "#ff5a5a" : "#ffffff"
-                startX: 0; startY: 0
-                PathLine { x: b.width + 10; y: 5 }
-                PathLine { x: 0; y: 10 }
-                PathLine { x: 0; y: 0 }
             }
         }
     }
