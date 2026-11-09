@@ -260,7 +260,7 @@ Item {
 
     // ---- the RPM light trail reflected in the bezel's inner lip (the part curving down toward the dial).
     // Concentric bands from the inner edge outward, each fainter: a thin sliver, brightest at the edge.
-    property int reflStyle: 2         // 1 hairline sliver, 2 soft inner edge, 3 sliver + bloom onto the face edge, 4 wide soft edge, no glint
+    property int reflStyle: 3         // 1 hairline sliver, 2 soft inner edge, 3 sliver + bloom onto the face edge, 4 wide soft edge, no glint
     readonly property var reflBands: reflStyle === 1 ? [[0, 1.5, 1.0], [1.5, 3, 0.45]]
                                    : reflStyle === 3 ? [[-4, -1.5, 0.18], [-1.5, 0, 0.4], [0, 1.5, 1.0], [1.5, 3, 0.45]]
                                    : reflStyle === 4 ? [[0, 2, 0.75], [2, 4, 0.45], [4, 6, 0.22], [6, 8, 0.08]]

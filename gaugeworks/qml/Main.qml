@@ -195,17 +195,17 @@ Rectangle {
                 id: clock
                 visible: !root.oemBar
                 anchors.right: gearIcon.left; anchors.rightMargin: 20; anchors.verticalCenter: parent.verticalCenter
-                color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 20
+                color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 42; font.bold: true
                 Timer { interval: 1000; running: true; repeat: true; triggeredOnStart: true
                         onTriggered: clock.text = Qt.formatTime(new Date(), "h:mm AP") }
             }
             // ---- OEM-style bar (Premium theme): long date + time, telltales, outside temp
             Row {
                 visible: root.oemBar
-                x: 20; y: 4; spacing: 14
+                x: 16; y: -3; spacing: 14
                 Text {
                     id: oemTime
-                    color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 32
+                    color: colors.text; font.family: theme.fonts.digits; font.pixelSize: 44
                     Timer { interval: 1000; running: root.oemBar; repeat: true; triggeredOnStart: true
                             onTriggered: { var n = new Date(); oemTime.text = Qt.formatTime(n, "h:mm AP")
                                            oemDate.text = Qt.formatDate(n, "dddd, MMMM d, yyyy") } }
