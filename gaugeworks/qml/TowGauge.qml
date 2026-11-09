@@ -39,11 +39,19 @@ Item {
     property real haloA: 0.55
     // stepped dish: the RPM band sits one step below the bezel, the boost band a step lower still.
     // 0 flat; 1 shallow; 2 medium; 3 deep with a chrome step ring; 4 deep with an accent-lit step edge
-    property int depthStyle: 2        // JP's pick: E3 (18 px, plain walls)
+    property int depthStyle: 0        // old step shading (replaced by the M2 dish below)
     property real depthPx: 18          // >0 overrides the step depth (px); deeper also widens the wall and shadow
     property bool depthChrome: false  // chrome step wall
     property bool depthAccent: false  // accent light along the foot of each wall
     readonly property real stepR: 174   // radius of the step between the RPM and boost levels
+    // M2 dish (JP's pick 2026-11-09): angled slope from the bezel down to the RPM floor, then a deeper
+    // straight wall down to the boost floor. Cab light from above: the slope faces down at the top (dark)
+    // and up at the bottom (lit); the boost wall you see is the top one, in shadow. The trails give off
+    // light, so they sit above the cast shadows and wash color onto the slope and the wall.
+    property bool dish: true
+    property real chamfer: 14
+    property real boostWall: 26
+    readonly property real slopeR0: rd - chamfer
     property real rpmLedge: 0           // flat ledge (px) inside the bezel at the upper level; the RPM step drops off its inner edge
     readonly property real rpmStepR: rd - rpmLedge
     property bool wallRefl: false       // RPM trail color reflected on the RPM step wall (0 up to the needle)
@@ -329,6 +337,28 @@ Item {
         Rectangle { x: g.rd; y: -5; width: 2.5; height: 10; radius: 1.2; color: "#ffffff"; opacity: 0.85 }
     }
 
+    // ---- M2 dish, under the trails: floors and cast shadows (painted once)
+    Canvas {
+        anchors.fill: parent
+        visible: g.dish
+        property var deps: [g.dish, g.width, g.chamfer, g.boostWall]
+        onDepsChanged: requestPaint()
+        onPaint: {
+            var c = getContext("2d"); c.reset(); if (!g.dish) return
+            var cx = g.cx, cy = g.cy
+            function shadow(r, w, s) {
+                c.save(); c.beginPath(); c.arc(cx, cy, r, 0, 2 * Math.PI); c.clip()
+                var y = cy + w * 1.5, sg = c.createRadialGradient(cx, y, r - 26 - w, cx, y, r + w * 1.5)
+                sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(0.6, "rgba(0,0,0," + (s * 0.4) + ")"); sg.addColorStop(1, "rgba(0,0,0," + s + ")")
+                c.fillStyle = sg; c.fillRect(0, 0, g.width, g.height); c.restore()
+            }
+            c.beginPath(); c.arc(cx, cy, g.slopeR0, 0, 2 * Math.PI); c.fillStyle = "rgba(0,0,0,0.08)"; c.fill()   // RPM floor
+            shadow(g.slopeR0, g.chamfer * 0.6, 0.85)
+            c.beginPath(); c.arc(cx, cy, g.stepR, 0, 2 * Math.PI); c.fillStyle = "rgba(0,0,0,0.18)"; c.fill()     // boost floor, deeper
+            shadow(g.stepR, g.boostWall, 0.95)
+        }
+    }
+
     // ---- light trails (behind the scales)
     component Trail: Shape {
         id: tr
@@ -368,10 +398,95 @@ Item {
                            startAngle: tr.endAng; sweepAngle: -tr.swp }
         }
     }
-    Trail { r0: 176; r1: g.rd - 12; endAng: g.rAng; col: g.rHot ? "#ff3b3b" : g.acc
+    Trail { r0: 176; r1: g.dish ? g.slopeR0 : g.rd - 12; endAng: g.rAng; col: g.rHot ? "#ff3b3b" : g.acc
             peak: g.rHot ? (g.blinkOn ? 0.95 : 0.12) : g.trailPeak }
     Trail { r0: 100; r1: 160; endAng: g.iAng; col: g.iHot ? "#ff3b3b" : g.acc2
             peak: g.iHot ? (g.blinkOn ? 0.95 : 0.12) : g.trailPeak }
+
+    // ---- M2 dish, over the trails: the slope and the boost wall (painted once)
+    Canvas {
+        anchors.fill: parent
+        visible: g.dish
+        property var deps: [g.dish, g.width, g.chamfer, g.boostWall]
+        onDepsChanged: requestPaint()
+        onPaint: {
+            var c = getContext("2d"); c.reset(); if (!g.dish) return
+            var cx = g.cx, cy = g.cy
+            // slope: faces down at the top (dark), up at the bottom (lit); stroked so it never fills the middle
+            var r0 = g.slopeR0, r1 = g.rd, sl = c.createLinearGradient(0, cy - r1, 0, cy + r1)
+            sl.addColorStop(0, "#04070a"); sl.addColorStop(0.45, "#1d2734"); sl.addColorStop(1, "#56677c")
+            c.lineWidth = r1 - r0; c.strokeStyle = sl; c.beginPath(); c.arc(cx, cy, (r0 + r1) / 2, 0, 2 * Math.PI); c.stroke()
+            c.lineWidth = 1; c.strokeStyle = "rgba(0,0,0,0.9)"
+            c.beginPath(); c.arc(cx, cy, r1, 0, 2 * Math.PI); c.stroke(); c.beginPath(); c.arc(cx, cy, r0, 0, 2 * Math.PI); c.stroke()
+            // boost wall: the top crescent between the step edge and the floor edge seen lower down
+            var r = g.stepR, w = g.boostWall, hs = Math.sqrt(r * r - w * w / 4), e = Math.atan2(w / 2, hs)
+            c.beginPath()
+            c.arc(cx, cy, r, Math.PI - e, 2 * Math.PI + e, false)           // step edge, over the top
+            c.arc(cx, cy + w, r, 2 * Math.PI - e, Math.PI + e, true)        // floor edge, back over the top
+            c.closePath()
+            var wg = c.createLinearGradient(0, cy - r, 0, cy - r + w * 1.6)
+            wg.addColorStop(0, "#030508"); wg.addColorStop(0.5, "#141c27"); wg.addColorStop(1, "#2c3a4c")
+            c.fillStyle = wg; c.fill()
+            // crisp step edge and a faint lit lip along the bottom
+            c.lineWidth = 1.2; c.strokeStyle = "rgba(0,0,0,0.9)"; c.beginPath(); c.arc(cx, cy, r, 0, 2 * Math.PI); c.stroke()
+            var lg = c.createLinearGradient(0, cy - r, 0, cy + r)
+            lg.addColorStop(0, "rgba(255,255,255,0)"); lg.addColorStop(0.7, "rgba(255,255,255,0)"); lg.addColorStop(1, "rgba(200,220,240,0.35)")
+            c.lineWidth = 1.5; c.strokeStyle = lg; c.beginPath(); c.arc(cx, cy, r + 0.5, 0, 2 * Math.PI); c.stroke()
+        }
+    }
+    // trail light washed onto the slope (strongest at its foot, next to the trail)
+    Shape {
+        id: slopeGlow
+        anchors.fill: parent
+        readonly property real swp: Math.max(0.01, g.rAng - g.a0)
+        readonly property color col: g.rHot ? "#ff3b3b" : g.acc
+        readonly property real pk: g.rHot ? (g.blinkOn ? 0.75 : 0.1) : 0.6
+        opacity: g.dish && g.rOk ? 1 : 0
+        ShapePath {
+            strokeColor: "transparent"
+            fillGradient: ConicalGradient { centerX: g.cx; centerY: g.cy; angle: -g.rAng
+                GradientStop { position: 0; color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, slopeGlow.pk) }
+                GradientStop { position: Math.max(0.002, slopeGlow.swp / 360 * 0.55); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, slopeGlow.pk * 0.35) }
+                GradientStop { position: Math.max(0.003, slopeGlow.swp / 360); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, 0) }
+                GradientStop { position: 1; color: "transparent" } }
+            PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: g.rd; radiusY: g.rd; startAngle: g.a0; sweepAngle: slopeGlow.swp }
+            PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: g.slopeR0; radiusY: g.slopeR0; startAngle: g.rAng; sweepAngle: -slopeGlow.swp }
+        }
+        ShapePath {   // fade toward the bezel
+            strokeColor: "transparent"
+            fillGradient: RadialGradient { centerX: g.cx; centerY: g.cy; centerRadius: g.rd; focalX: g.cx; focalY: g.cy; focalRadius: g.slopeR0
+                GradientStop { position: 0; color: "transparent" }
+                GradientStop { position: 1; color: Qt.rgba(0.016, 0.027, 0.047, 0.85) } }
+            PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: g.rd; radiusY: g.rd; startAngle: g.a0; sweepAngle: slopeGlow.swp }
+            PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: g.slopeR0; radiusY: g.slopeR0; startAngle: g.rAng; sweepAngle: -slopeGlow.swp }
+        }
+    }
+    // boost trail light on the boost wall (only the visible top crescent, 0 up to the needle)
+    Shape {
+        id: wallGlow
+        anchors.fill: parent
+        readonly property color col: g.iHot ? "#ff3b3b" : g.acc2
+        readonly property real pk: g.iHot ? (g.blinkOn ? 0.75 : 0.1) : 0.6
+        readonly property var pts: {
+            var out = [], r = g.stepR, w = g.boostWall, a0 = g.a0, a1 = Math.max(g.a0 + 0.5, g.iAng), n = 40, i, t, rad
+            for (i = 0; i <= n; i++) { t = a0 + (a1 - a0) * i / n; rad = t * Math.PI / 180
+                out.push(Qt.point(g.cx + r * Math.cos(rad), g.cy + r * Math.sin(rad))) }
+            for (i = n; i >= 0; i--) { t = a0 + (a1 - a0) * i / n; rad = t * Math.PI / 180
+                var th = w * Math.max(0, -Math.sin(rad))   // crescent thickness: full at the top, none at the sides
+                out.push(Qt.point(g.cx + (r - th) * Math.cos(rad), g.cy + (r - th) * Math.sin(rad))) }
+            return out
+        }
+        opacity: g.dish && g.iOk ? 1 : 0
+        ShapePath {
+            strokeColor: "transparent"
+            fillGradient: ConicalGradient { centerX: g.cx; centerY: g.cy; angle: -g.iAng
+                GradientStop { position: 0; color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, wallGlow.pk) }
+                GradientStop { position: Math.max(0.002, (g.iAng - g.a0) / 360 * 0.55); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, wallGlow.pk * 0.35) }
+                GradientStop { position: Math.max(0.003, (g.iAng - g.a0) / 360); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, 0) }
+                GradientStop { position: 1; color: "transparent" } }
+            PathPolyline { path: wallGlow.pts }
+        }
+    }
 
     // ---- step shading (over the trails, under the scales and needles), painted once
     Canvas {

@@ -302,3 +302,10 @@ long press can never complete. Settings has an Edit page button: a bar says
 any page, opens the picker. Edit mode isn't saved. Long press still works where
 the screen supports it. Also, the Qt drag threshold went up to 30 px, so a
 drifting finger isn't taken by the page swipe.
+- Center dish M2 (mockup `docs/mockups/depth.html?r=2`): a 14 px angled slope
+  from the bezel down to the RPM floor, then a deeper 26 px straight wall down
+  to the boost floor. Lighting: cab light from above, so the slope is dark at
+  the top and lit at the bottom, and the visible boost wall is the shaded top
+  crescent. Steps cast shadows onto the floor below, and deeper floors are
+  darker. The trails are emissive: drawn above the shadows, they wash their
+  color onto the slope and the boost wall from 0 up to the needle.
