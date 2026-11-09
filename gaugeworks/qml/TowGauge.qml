@@ -22,9 +22,14 @@ Item {
     property int pointerStyle: 2   // 0 cone, 1 bar, 2 blade (JP's pick), 3 line + arrowhead, 4 laser line, 5 rim wedge
     property int scaleStyle: 2     // JP's pick. 0 static, 1 lit as passed, 2 color as passed, 3 contrast as passed, 4 focus number
     // light trail: dark gap behind the needle (degrees), strength at its peak, and how much it fades toward the center
-    property real gapDeg: 14
-    property real trailPeak: 0.75
-    property real trailFade: 0.9
+    property real gapDeg: 4          // JP's pick: T3
+    property real trailPeak: 1.0
+    property real trailFade: 0.45
+    // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
+    property int ghostStyle: 0
+    property int holdMs: 3000         // hold the peak this long, then let it fall back
+    property real demoRPeak: NaN      // screenshots only
+    property real demoIPeak: NaN
     signal held(string slot)
     width: 524; height: 524
 
@@ -64,6 +69,25 @@ Item {
     function quant(c, x) { var st = (c.major || 1) / Math.max(1, c.minor || 5); return Math.floor(x / st + 1e-6) * st }
     readonly property real rPass: scaleStyle ? quant(ringCfg, rShown) : 0
     readonly property real iPass: scaleStyle ? quant(innerCfg, iShown) : 0
+    // ---- peak hold: jumps up with the reading, holds, then falls back toward it
+    property real rHold: rShown
+    property real iHold: iShown
+    property double rHoldT: 0
+    property double iHoldT: 0
+    onRShownChanged: if (rShown >= rHold) { rHold = rShown; rHoldT = Date.now() }
+    onIShownChanged: if (iShown >= iHold) { iHold = iShown; iHoldT = Date.now() }
+    Timer {
+        interval: 50; repeat: true; running: g.ghostStyle > 0
+        onTriggered: {
+            var now = Date.now()
+            if (g.rHold > g.rShown && now - g.rHoldT > g.holdMs)
+                g.rHold = Math.max(g.rShown, g.rHold - ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.012)
+            if (g.iHold > g.iShown && now - g.iHoldT > g.holdMs)
+                g.iHold = Math.max(g.iShown, g.iHold - ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.012)
+        }
+    }
+    readonly property real rPeak: isNaN(demoRPeak) ? rHold : demoRPeak
+    readonly property real iPeak: isNaN(demoIPeak) ? iHold : demoIPeak
     readonly property real rAng: ang(ringCfg, rShown)
     readonly property real iAng: ang(innerCfg, iShown)
 
@@ -329,6 +353,57 @@ Item {
             gradient: Gradient { GradientStop { position: 0; color: "#9aa2ad" } GradientStop { position: 1; color: "#08090a" } }
         }
         }
+    }
+    component Ghost: Item {
+        id: gh
+        property real r0
+        property real r1
+        property real angle
+        property real peak
+        property var cfg
+        property color col
+        property bool show: true
+        visible: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5
+        x: g.cx; y: g.cy
+        rotation: angle
+        Rectangle {   // 1 and 4: thin bright line across the trail
+            visible: g.ghostStyle === 1 || g.ghostStyle === 4
+            x: gh.r0; y: -1.25; width: gh.r1 - gh.r0; height: 2.5; radius: 1.2; color: "#ffffff"; opacity: 0.85
+        }
+        Rectangle { visible: g.ghostStyle === 1 || g.ghostStyle === 4
+            x: gh.r0 - 2; y: -4; width: gh.r1 - gh.r0 + 4; height: 8; radius: 4; color: Qt.rgba(gh.col.r, gh.col.g, gh.col.b, 0.25) }
+        Shape {       // 3: small white marker on the rim, pointing in
+            visible: g.ghostStyle === 3
+            ShapePath { strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; fillColor: "#ffffff"
+                startX: gh.r1 + 16; startY: -7
+                PathLine { x: gh.r1 + 2; y: 0 } PathLine { x: gh.r1 + 16; y: 7 } PathLine { x: gh.r1 + 16; y: -7 } }
+        }
+    }
+    Ghost { r0: 176; r1: g.ro + 12; angle: g.ang(g.ringCfg, g.rPeak); peak: g.rPeak; cfg: g.ringCfg; col: g.acc
+            show: g.rOk && g.rPeak > g.rShown + 1e-6 }
+    Ghost { r0: 100; r1: g.ri + 8; angle: g.ang(g.innerCfg, g.iPeak); peak: g.iPeak; cfg: g.innerCfg; col: g.acc2
+            show: g.iOk && g.iPeak > g.iShown + 1e-6 }
+    // 2: ghost needle, a faint copy of the needle at the peak
+    Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.ang(g.ringCfg, g.rPeak); col: g.acc; lite: "#ffffff"
+              dim: 0.32; visible: g.ghostStyle === 2 && g.rOk && g.rPeak > g.rShown + 1e-6 }
+    Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.ang(g.innerCfg, g.iPeak); col: g.acc2; lite: "#ffffff"
+              dim: 0.32; visible: g.ghostStyle === 2 && g.iOk && g.iPeak > g.iShown + 1e-6 }
+    // 4: the peak value next to the rim
+    Text {
+        visible: g.ghostStyle === 4 && g.rOk && g.rPeak > g.rShown + 1e-6
+        readonly property real a: g.ang(g.ringCfg, g.rPeak) * Math.PI / 180
+        x: g.cx + (g.ro - 52) * Math.cos(a) - width / 2; y: g.cy + (g.ro - 52) * Math.sin(a) - height / 2
+        text: Math.round(g.rPeak).toLocaleString(Qt.locale("en_US"), "f", 0)
+        color: "#ffffff"; font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 17
+        style: Text.Outline; styleColor: "#000000"
+    }
+    Text {
+        visible: g.ghostStyle === 4 && g.iOk && g.iPeak > g.iShown + 1e-6
+        readonly property real a: g.ang(g.innerCfg, g.iPeak) * Math.PI / 180
+        x: g.cx + (g.ri - 52) * Math.cos(a) - width / 2; y: g.cy + (g.ri - 52) * Math.sin(a) - height / 2
+        text: g.iPeak.toFixed(1)
+        color: "#ffffff"; font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 16
+        style: Text.Outline; styleColor: "#000000"
     }
     Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.rAng
               col: g.rHot ? "#ff3b3b" : g.acc; lite: g.rHot ? "#ffd0d4" : "#ffffff"
