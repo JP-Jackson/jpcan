@@ -19,7 +19,8 @@ Item {
     property color acc: "#29c4ff"
     property color acc2: "#ffb340"
     property bool blinkOn: true
-    property int pointerStyle: 0   // 0 cone, 1 bar, 2 blade, 3 line + arrowhead, 4 laser line, 5 rim wedge
+    property int pointerStyle: 2   // 0 cone, 1 bar, 2 blade (JP's pick), 3 line + arrowhead, 4 laser line, 5 rim wedge
+    property int scaleStyle: 0     // 0 static, 1 lit as passed, 2 color as passed, 3 contrast as passed, 4 focus number
     signal held(string slot)
     width: 524; height: 524
 
@@ -56,6 +57,9 @@ Item {
     Behavior on iShown { SmoothedAnimation { velocity: Math.max(1, ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 1.5) } }
     readonly property bool rHot: rOk && v(ringCfg.key) >= lim(ringCfg)
     readonly property bool iHot: iOk && v(innerCfg.key) >= lim(innerCfg)
+    function quant(c, x) { var st = (c.major || 1) / Math.max(1, c.minor || 5); return Math.floor(x / st + 1e-6) * st }
+    readonly property real rPass: scaleStyle ? quant(ringCfg, rShown) : 0
+    readonly property real iPass: scaleStyle ? quant(innerCfg, iShown) : 0
     readonly property real rAng: ang(ringCfg, rShown)
     readonly property real iAng: ang(innerCfg, iShown)
 
@@ -108,8 +112,9 @@ Item {
             strokeColor: "transparent"
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -tr.endAng
-                GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.1) }
-                GradientStop { position: Math.min(0.022, tr.swp / 360 * 0.3); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
+                GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
+                GradientStop { position: Math.min(0.014, tr.swp / 360 * 0.15); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.08) }
+                GradientStop { position: Math.min(0.04, tr.swp / 360 * 0.35); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
                 GradientStop { position: Math.max(0.023, tr.swp / 360 * 0.45); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.35) }
                 GradientStop { position: Math.max(0.003, tr.swp / 360); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
@@ -139,7 +144,7 @@ Item {
     // ---- scales, red lines and limit markers (painted when the config changes)
     Canvas {
         anchors.fill: parent
-        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2]
+        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2, g.scaleStyle, g.rPass, g.iPass]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
@@ -154,7 +159,7 @@ Item {
                 c.fillStyle = "#ff3b3b"; c.fill(); c.lineWidth = 1; c.strokeStyle = "#ffffff"; c.stroke()
             }
             function num(cf, x) { var s = x * (cf.scale || 1); return Math.abs(s - Math.round(s)) < 1e-6 ? Math.round(s).toString() : s.toFixed(1) }
-            function scale(cf, R, inner, col) {
+            function scale(cf, R, inner, col, pass, now) {
                 if (!cf || cf.max === undefined) return
                 var mn = cf.min || 0, mx = cf.max, maj = cf.major || (mx - mn) / 5, mnr = maj / Math.max(1, cf.minor || 5)
                 var sp = (cf.split !== undefined && !isNaN(cf.split) && cf.split > mn && cf.split < mx) ? cf.split : mx
@@ -175,24 +180,39 @@ Item {
                 for (var y = sp + hiStep; y <= mx + 1e-9; y += hiStep) ticks.push(y)
                 var labStep = Math.max(maj, (mx - sp) / 2)
                 c.font = (inner ? 19 : 24) + "px 'Barlow Semi Condensed SemiBold'"; c.textAlign = "center"; c.textBaseline = "middle"
+                // nearest labelled number to the needle (style 4)
+                var near = NaN, best = 1e9
+                for (var k = 0; k < ticks.length; k++) { var tk = ticks[k]
+                    if (Math.abs(tk / maj - Math.round(tk / maj)) < 1e-6 && Math.abs(tk - now) < best) { best = Math.abs(tk - now); near = tk } }
+                var st = g.scaleStyle
                 for (var i = 0; i < ticks.length; i++) {
                     var t = ticks[i], a = g.ang(cf, t), isMaj = Math.abs(t / maj - Math.round(t / maj)) < 1e-6
-                    var isRed = !isNaN(red) && t >= red - 1e-9
-                    var tc = isRed ? "#ff8a94" : (inner ? col.toString() : "#e9f1f8")
+                    var isRed = !isNaN(red) && t >= red - 1e-9, passed = t <= pass + 1e-9
+                    var base = inner ? col.toString() : "#e9f1f8"
+                    var tc = isRed ? "#ff8a94" : base
+                    if (st === 1) tc = isRed ? (passed ? "#ff6b78" : "#7a3a40") : (passed ? (inner ? Qt.lighter(col, 1.3).toString() : "#ffffff") : "#56627a")
+                    else if (st === 2 && passed && !isRed) tc = inner ? "#ffffff" : Qt.lighter(g.acc, 1.45).toString()
+                    else if (st === 3 && passed) tc = "#05080c"
+                    else if (st === 4) tc = isRed ? "#ff8a94" : (t === near ? base : (inner ? Qt.darker(col, 1.8).toString() : "#7d8aa0"))
+                    if (st === 1 && passed && isMaj) {   // glow behind lit major ticks
+                        var gp = P(R + 11, a), gq = P(R - 11, a); c.strokeStyle = Qt.rgba(1, 1, 1, 0.22); c.lineWidth = 10
+                        c.beginPath(); c.moveTo(gp[0], gp[1]); c.lineTo(gq[0], gq[1]); c.stroke() }
                     if (inner) line(R + 6, R - (isMaj ? 9 : 3), a, tc, isMaj ? 3 : 1.4)
                     else line(R + 11, R - (isMaj ? 11 : 2), a, tc, isMaj ? 4 : 2)
                     var labelled = t <= sp + 1e-9 ? isMaj : Math.abs((t - sp) / labStep - Math.round((t - sp) / labStep)) < 1e-6
                     if (labelled) {
                         var p = P(inner ? R - 24 : R - 22, a)
-                        if (t > sp + 1e-9) c.font = (inner ? 16 : 19) + "px 'Barlow Semi Condensed SemiBold'"
-                        c.fillStyle = isRed ? "#ff8a94" : (inner ? col.toString() : "#eef3f8")
+                        var fs = t > sp + 1e-9 ? (inner ? 16 : 19) : (inner ? 19 : 24)
+                        if (st === 4 && t === near) fs = Math.round(fs * 1.5)
+                        c.font = fs + "px 'Barlow Semi Condensed SemiBold'"
+                        c.fillStyle = st ? tc : (isRed ? "#ff8a94" : (inner ? col.toString() : "#eef3f8"))
                         c.fillText(num(cf, t), p[0], p[1])
                     }
                 }
                 if (!isNaN(red) && red < mx) marker(inner ? R + 3 : R + 12, g.ang(cf, red), inner ? 9 : 13)
             }
-            scale(g.ringCfg, g.ro, false, g.acc)
-            scale(g.innerCfg, g.ri, true, g.acc2)
+            scale(g.ringCfg, g.ro, false, g.acc, g.rPass, g.rShown)
+            scale(g.innerCfg, g.ri, true, g.acc2, g.iPass, g.iShown)
         }
     }
 
@@ -221,6 +241,15 @@ Item {
                                      GradientStop { position: 0.6; color: Qt.darker(pt.lite, 1.1) } GradientStop { position: 1; color: Qt.darker(pt.col, 2.2) } } }
         }
         // ---- 2: thin blade, straight sides, sharp point
+        Shape {   // blade shadow (two soft layers)
+            visible: pt.st === 2; x: 3; y: 5
+            ShapePath { strokeColor: "transparent"; fillColor: Qt.rgba(0, 0, 0, 0.35)
+                startX: pt.r0 - 2; startY: -6
+                PathLine { x: pt.r1 - 12; y: -6 } PathLine { x: pt.r1 + 4; y: 0 } PathLine { x: pt.r1 - 12; y: 6 } PathLine { x: pt.r0 - 2; y: 6 } PathLine { x: pt.r0 - 2; y: -6 } }
+            ShapePath { strokeColor: "transparent"; fillColor: Qt.rgba(0, 0, 0, 0.55)
+                startX: pt.r0; startY: -3.5
+                PathLine { x: pt.r1 - 12; y: -3.5 } PathLine { x: pt.r1; y: 0 } PathLine { x: pt.r1 - 12; y: 3.5 } PathLine { x: pt.r0; y: 3.5 } PathLine { x: pt.r0; y: -3.5 } }
+        }
         Shape {
             visible: pt.st === 2
             ShapePath { strokeColor: "transparent"; fillColor: Qt.rgba(pt.col.r, pt.col.g, pt.col.b, 0.3)
