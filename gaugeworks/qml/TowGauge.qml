@@ -37,7 +37,7 @@ Item {
                                       // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished;
                                       // 7-10 high-quality ring, glow from behind: 7 polished chrome, 8 satin, 9 gunmetal, 10 polished + inner bevel
     property real haloA: 0.55
-    property real bezelRefl: 0.6     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
+    property real bezelRefl: 0.8     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -258,35 +258,45 @@ Item {
         }
     }
 
-    // ---- the RPM light trail reflected in the bezel: on the inner half of the ring, which faces the dial
-    Shape {
-        id: refl
+    // ---- the RPM light trail reflected in the bezel's inner lip (the part curving down toward the dial).
+    // Concentric bands from the inner edge outward, each fainter: a thin sliver, brightest at the edge.
+    property int reflStyle: 2         // 1 hairline sliver, 2 soft inner edge, 3 sliver + bloom onto the face edge, 4 wide soft edge, no glint
+    readonly property var reflBands: reflStyle === 1 ? [[0, 1.5, 1.0], [1.5, 3, 0.45]]
+                                   : reflStyle === 3 ? [[-4, -1.5, 0.18], [-1.5, 0, 0.4], [0, 1.5, 1.0], [1.5, 3, 0.45]]
+                                   : reflStyle === 4 ? [[0, 2, 0.75], [2, 4, 0.45], [4, 6, 0.22], [6, 8, 0.08]]
+                                   : [[0, 1.5, 1.0], [1.5, 3, 0.6], [3, 4.5, 0.28], [4.5, 6, 0.1]]
+    component ReflBand: Shape {
+        id: rb
+        property real o0
+        property real o1
+        property real k
         anchors.fill: parent
-        readonly property real r0: g.rd + 1
-        readonly property real r1: g.rd + 10
+        readonly property real r0: g.rd + o0
+        readonly property real r1: g.rd + o1
         readonly property real swp: Math.max(0.01, g.rAng - g.a0)
         readonly property color col: g.rHot ? "#ff3b3b" : g.acc
-        opacity: g.ringStyle >= 7 && g.rOk ? 1 : 0
+        opacity: g.ringStyle >= 7 && g.rOk && g.bezelRefl > 0 ? 1 : 0
         ShapePath {
             strokeColor: "transparent"
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -g.rAng
-                GradientStop { position: 0; color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, g.bezelRefl) }
-                GradientStop { position: Math.max(0.002, refl.swp / 360 * 0.35); color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, g.bezelRefl * 0.35) }
-                GradientStop { position: Math.max(0.003, refl.swp / 360); color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, 0) }
+                GradientStop { position: 0; color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, g.bezelRefl * rb.k) }
+                GradientStop { position: Math.max(0.002, rb.swp / 360 * 0.35); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, g.bezelRefl * rb.k * 0.4) }
+                GradientStop { position: Math.max(0.003, rb.swp / 360); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
             }
-            PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: refl.r1; radiusY: refl.r1; startAngle: g.a0; sweepAngle: refl.swp }
-            PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: refl.r0; radiusY: refl.r0
-                           startAngle: g.rAng; sweepAngle: -refl.swp }
+            PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: rb.r1; radiusY: rb.r1; startAngle: g.a0; sweepAngle: rb.swp }
+            PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: rb.r0; radiusY: rb.r0
+                           startAngle: g.rAng; sweepAngle: -rb.swp }
         }
     }
-    Item {   // bright glint on the bezel right where the needle is
+    Repeater { model: g.reflBands; ReflBand { o0: modelData[0]; o1: modelData[1]; k: modelData[2] } }
+    Item {   // glint on the inner lip right where the needle points
         x: g.cx; y: g.cy; rotation: g.rAng
-        opacity: g.ringStyle >= 7 && g.rOk ? g.bezelRefl : 0
-        Rectangle { x: g.rd - 2; y: -15; width: 14; height: 30; radius: 7
-                    color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, 0.45) }
-        Rectangle { x: g.rd + 2; y: -7; width: 5; height: 14; radius: 2.5; color: "#ffffff"; opacity: 0.8 }
+        readonly property color col: g.rHot ? "#ff3b3b" : g.acc
+        opacity: g.ringStyle >= 7 && g.rOk && g.reflStyle !== 4 ? g.bezelRefl : 0
+        Rectangle { x: g.rd - 2; y: -9; width: 6; height: 18; radius: 3; color: Qt.rgba(parent.col.r, parent.col.g, parent.col.b, 0.5) }
+        Rectangle { x: g.rd; y: -5; width: 2.5; height: 10; radius: 1.2; color: "#ffffff"; opacity: 0.85 }
     }
 
     // ---- light trails (behind the scales)

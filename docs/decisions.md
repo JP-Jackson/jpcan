@@ -286,5 +286,5 @@ its own skin.
 - Center ring C3: gunmetal chrome tube with real-chrome reflections (sky band,
   dark horizon, crisp highlights), a soft shadow on the face, and the accent
   backlight spilling onto the background from behind the gauge. The RPM light
-  trail reflects in the bezel's inner edge, with a glint where the needle is
-  (60%). Also K4 peak trail (32°, 75%), panel outlines at 35%, deep red scale zone.
+  trail reflects only in the bezel's inner lip (the part curving down toward
+  the dial) as a thin sliver fading outward, with a glint where the needle is. Also K4 peak trail (32°, 75%), panel outlines at 35%, deep red scale zone.
