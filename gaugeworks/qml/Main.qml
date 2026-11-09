@@ -142,9 +142,9 @@ Rectangle {
                 Timer { interval: 1000; running: root.towBar; repeat: true; triggeredOnStart: true
                         onTriggered: { var n = new Date(); towTime.text = Qt.formatTime(n, "h:mm AP"); towDate.text = Qt.formatDate(n, "dddd, MMMM d") } }
             }
-            Text {   // the date; replaced by the core's status when it isn't running
+            Text {   // the date (JP: removed 2026-11-09); the status still shows here when the core isn't running
                 id: towDate
-                visible: backend.status.state === "running"
+                visible: false
                 anchors.centerIn: parent
                 color: "#cfd8e3"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 30
             }
