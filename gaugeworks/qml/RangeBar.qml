@@ -105,14 +105,17 @@ Item {
         Rectangle { width: 6; height: 2.5; color: Qt.lighter(b.acc, 1.5) }
         Rectangle { y: parent.height - 2.5; width: 6; height: 2.5; color: Qt.lighter(b.acc, 1.5) }
     }
-    Shape {   // pointer wedge toward the scale numbers
+    Shape {   // pointer: white wedge from the inner edge of the bar, pointing out (toward the screen edge)
+        id: ptr
         visible: b.valid
-        x: b.leftSide ? 2 : b.width - 2; y: b.yOf(b.shown)
+        x: b.leftSide ? b.width - 2 : 2; y: b.yOf(b.shown)
         opacity: b.hot && !b.blinkOn ? 0.25 : 1
+        readonly property real tip: b.leftSide ? -(b.width + 10) : (b.width + 10)
         ShapePath {
-            strokeColor: "transparent"; fillColor: b.hot ? "#ff8a8a" : Qt.lighter(b.acc, 1.5)
+            strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
+            fillColor: b.hot ? "#ff5a5a" : "#ffffff"
             startX: 0; startY: -5
-            PathLine { x: b.leftSide ? b.width + 10 : -(b.width + 10); y: 0 }
+            PathLine { x: ptr.tip; y: 0 }
             PathLine { x: 0; y: 5 }
             PathLine { x: 0; y: -5 }
         }

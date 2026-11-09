@@ -19,6 +19,7 @@ Item {
     property color acc: "#29c4ff"
     property color acc2: "#ffb340"
     property bool blinkOn: true
+    property int pointerStyle: 0   // 0 cone, 1 bar, 2 blade, 3 line + arrowhead, 4 laser line, 5 rim wedge
     signal held(string slot)
     width: 524; height: 524
 
@@ -107,8 +108,9 @@ Item {
             strokeColor: "transparent"
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -tr.endAng
-                GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
-                GradientStop { position: Math.max(0.002, tr.swp / 360 * 0.4); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.35) }
+                GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.1) }
+                GradientStop { position: Math.min(0.022, tr.swp / 360 * 0.3); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
+                GradientStop { position: Math.max(0.023, tr.swp / 360 * 0.45); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.35) }
                 GradientStop { position: Math.max(0.003, tr.swp / 360); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
             }
@@ -208,6 +210,57 @@ Item {
         rotation: angle
         opacity: dim
         readonly property real hw: r0 * Math.sin(halfDeg * Math.PI / 180)
+        readonly property int st: g.pointerStyle
+        // ---- 1: straight bar, same width end to end, rounded ends
+        Item {
+            visible: pt.st === 1
+            Rectangle { x: pt.r0 + 3; y: -1; width: pt.r1 - pt.r0; height: 7; radius: 3.5; color: "#000000"; opacity: 0.5 }
+            Rectangle { x: pt.r0 - 3; y: -6; width: pt.r1 - pt.r0 + 6; height: 12; radius: 6; color: Qt.rgba(pt.col.r, pt.col.g, pt.col.b, 0.3) }
+            Rectangle { x: pt.r0; y: -3.5; width: pt.r1 - pt.r0; height: 7; radius: 3.5
+                gradient: Gradient { GradientStop { position: 0; color: pt.col } GradientStop { position: 0.35; color: pt.lite }
+                                     GradientStop { position: 0.6; color: Qt.darker(pt.lite, 1.1) } GradientStop { position: 1; color: Qt.darker(pt.col, 2.2) } } }
+        }
+        // ---- 2: thin blade, straight sides, sharp point
+        Shape {
+            visible: pt.st === 2
+            ShapePath { strokeColor: "transparent"; fillColor: Qt.rgba(pt.col.r, pt.col.g, pt.col.b, 0.3)
+                startX: pt.r0 - 2; startY: -5.5
+                PathLine { x: pt.r1 - 14; y: -5.5 } PathLine { x: pt.r1 + 4; y: 0 } PathLine { x: pt.r1 - 14; y: 5.5 } PathLine { x: pt.r0 - 2; y: 5.5 } PathLine { x: pt.r0 - 2; y: -5.5 } }
+            ShapePath { strokeColor: "transparent"
+                fillGradient: LinearGradient { x1: 0; y1: -3; x2: 0; y2: 3
+                    GradientStop { position: 0; color: pt.lite } GradientStop { position: 0.5; color: pt.lite } GradientStop { position: 0.51; color: Qt.darker(pt.lite, 1.35) } GradientStop { position: 1; color: Qt.darker(pt.col, 1.6) } }
+                startX: pt.r0; startY: -3
+                PathLine { x: pt.r1 - 12; y: -3 } PathLine { x: pt.r1; y: 0 } PathLine { x: pt.r1 - 12; y: 3 } PathLine { x: pt.r0; y: 3 } PathLine { x: pt.r0; y: -3 } }
+        }
+        // ---- 3: thin line with an arrowhead at the rim
+        Item {
+            visible: pt.st === 3
+            Rectangle { x: pt.r0; y: -1.5; width: pt.r1 - pt.r0 - 14; height: 3; radius: 1.5; color: pt.lite }
+            Shape {
+                ShapePath { strokeColor: Qt.rgba(0, 0, 0, 0.7); strokeWidth: 1; fillColor: pt.lite
+                    startX: pt.r1 - 18; startY: -8
+                    PathLine { x: pt.r1 + 2; y: 0 } PathLine { x: pt.r1 - 18; y: 8 } PathLine { x: pt.r1 - 18; y: -8 } }
+                ShapePath { strokeColor: "transparent"; fillColor: pt.col
+                    startX: pt.r1 - 18; startY: 0
+                    PathLine { x: pt.r1 + 2; y: 0 } PathLine { x: pt.r1 - 18; y: 8 } PathLine { x: pt.r1 - 18; y: 0 } }
+            }
+        }
+        // ---- 4: glowing laser line, no body
+        Item {
+            visible: pt.st === 4
+            Rectangle { x: pt.r0 - 2; y: -7; width: pt.r1 - pt.r0 + 4; height: 14; radius: 7; color: Qt.rgba(pt.col.r, pt.col.g, pt.col.b, 0.18) }
+            Rectangle { x: pt.r0 - 1; y: -3.5; width: pt.r1 - pt.r0 + 2; height: 7; radius: 3.5; color: Qt.rgba(pt.col.r, pt.col.g, pt.col.b, 0.4) }
+            Rectangle { x: pt.r0; y: -1; width: pt.r1 - pt.r0; height: 2; radius: 1; color: "#ffffff" }
+        }
+        // ---- 5: white wedge at the rim pointing out, like the side-panel pointers
+        Shape {
+            visible: pt.st === 5
+            ShapePath { strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1.2; joinStyle: ShapePath.MiterJoin; fillColor: pt.lite
+                startX: pt.r1 - 30; startY: -6
+                PathLine { x: pt.r1 + 4; y: 0 } PathLine { x: pt.r1 - 30; y: 6 } PathLine { x: pt.r1 - 30; y: -6 } }
+        }
+        // ---- 0: rounded cone (below)
+        Item { visible: pt.st === 0
         Shape {   // shadow
             x: 3; y: 4; opacity: 0.6
             ShapePath { strokeColor: "transparent"; fillColor: "#000000"
@@ -228,9 +281,9 @@ Item {
                 fillGradient: LinearGradient {
                     x1: 0; y1: -pt.hw; x2: 0; y2: pt.hw
                     GradientStop { position: 0; color: pt.col }
-                    GradientStop { position: 0.38; color: pt.lite }
-                    GradientStop { position: 0.55; color: pt.col }
-                    GradientStop { position: 1; color: Qt.darker(pt.col, 3) }
+                    GradientStop { position: 0.3; color: pt.lite }
+                    GradientStop { position: 0.55; color: Qt.darker(pt.lite, 1.12) }
+                    GradientStop { position: 1; color: Qt.darker(pt.col, 2.5) }
                 }
                 startX: pt.r0; startY: -pt.hw
                 PathQuad { controlX: (pt.r0 + pt.r1) / 2; controlY: -pt.hw * 0.62; x: pt.r1; y: 0 }
@@ -242,12 +295,13 @@ Item {
             x: pt.r0 - 5 - width / 2; y: -height / 2; width: pt.hw * 1.8; height: width; radius: width / 2
             gradient: Gradient { GradientStop { position: 0; color: "#9aa2ad" } GradientStop { position: 1; color: "#08090a" } }
         }
+        }
     }
     Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.rAng
-              col: g.rHot ? "#ff3b3b" : g.acc; lite: g.rHot ? "#ffd0d4" : Qt.lighter(g.acc, 1.5)
+              col: g.rHot ? "#ff3b3b" : g.acc; lite: g.rHot ? "#ffd0d4" : "#ffffff"
               dim: g.rHot && !g.blinkOn ? 0.3 : 1; visible: g.rOk }
     Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.iAng
-              col: g.iHot ? "#ff3b3b" : g.acc2; lite: g.iHot ? "#ffd0d4" : Qt.lighter(g.acc2, 1.4)
+              col: g.iHot ? "#ff3b3b" : g.acc2; lite: g.iHot ? "#ffd0d4" : "#ffffff"
               dim: g.iHot && !g.blinkOn ? 0.3 : 1; visible: g.iOk }
 
     // ---- big center reading (speed)
@@ -277,25 +331,25 @@ Item {
     readonly property bool b2Hot: ok(box2Cfg.key) && v(box2Cfg.key) >= lim(box2Cfg)
     Recess {
         id: box
-        x: g.cx - 96; y: g.cy + 60; width: 192; height: 88
-        Text { x: 12; y: 8; text: (g.box1Cfg.label || "").toUpperCase(); color: "#8796a8"
-               font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 17 }
-        Text { anchors.right: parent.right; anchors.rightMargin: 12; y: -2
+        x: g.cx - 100; y: g.cy + 54; width: 200; height: 118
+        Text { x: 12; y: 10; text: (g.box1Cfg.label || "").toUpperCase(); color: "#8796a8"
+               font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18 }
+        Text { anchors.right: parent.right; anchors.rightMargin: 12; y: -4
                text: g.ok(g.box1Cfg.key) ? g.fmtBox(g.box1Cfg, g.v(g.box1Cfg.key)) : "--"
                color: g.b1Hot ? (g.blinkOn ? "#ff3b3b" : "#5a1a20") : "#eef3f8"
-               font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 38 }
-        Rectangle { x: 12; y: 46; width: parent.width - 24; height: 1; color: "#22364d" }
-        Text { x: 12; y: 56; text: (g.box2Cfg.label || "").toUpperCase(); color: g.acc2
-               font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 17 }
-        Text { anchors.right: parent.right; anchors.rightMargin: 12; y: 48
-               text: g.ok(g.box2Cfg.key) ? g.fmtBox(g.box2Cfg, g.v(g.box2Cfg.key)) + " " + (g.box2Cfg.units || "") : "--"
-               color: g.b2Hot ? (g.blinkOn ? "#ff3b3b" : "#5a1a20") : g.acc2
-               font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 30 }
+               font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 52 }
+        Rectangle { x: 12; y: 62; width: parent.width - 24; height: 1; color: "#22364d" }
+        Text { x: 12; y: 72; text: (g.box2Cfg.label || "").toUpperCase(); color: g.acc2
+               font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18 }
+        Row {
+            anchors.right: parent.right; anchors.rightMargin: 12; y: 60; spacing: 4
+            readonly property color c: g.b2Hot ? (g.blinkOn ? "#ff3b3b" : "#5a1a20") : g.acc2
+            Text { id: b2v; text: g.ok(g.box2Cfg.key) ? g.fmtBox(g.box2Cfg, g.v(g.box2Cfg.key)) : "--"; color: parent.c
+                   font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: 44 }
+            Text { anchors.baseline: b2v.baseline; text: g.box2Cfg.units || ""; color: parent.c; opacity: 0.8
+                   font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 18 }
+        }
     }
-    Text { anchors.horizontalCenter: parent.horizontalCenter; y: g.cy + 154
-           text: (g.ringCfg.label || "") + (g.ringCfg.scaleLabel ? " " + g.ringCfg.scaleLabel.replace("x", "×") : "")
-                 + "  ·  " + (g.innerCfg.label || "") + " " + (g.innerCfg.units || "")
-           color: "#8796a8"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 16 }
     Recess {
         x: g.cx - 62; y: g.cy + 182; width: 124; height: 60
         visible: g.gearKey !== ""
