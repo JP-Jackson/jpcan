@@ -26,7 +26,10 @@ Item {
     property real trailPeak: 1.0
     property real trailFade: 0.45
     // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
-    property int ghostStyle: 1        // JP's pick: G1 white peak line
+    property int ghostStyle: 2        // 1 thin line, 2 needle copy (JP: same as the dial, orange), 3 rim marker, 4 line + value
+    property color ghostColor: "#ff8a1e"
+    property real ghostAlpha: 0.85
+    property bool ghostTrail: true
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -368,12 +371,14 @@ Item {
         opacity: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5 ? 1 : 0
         x: g.cx; y: g.cy
         rotation: angle
-        Shape {   // 1 and 4: soft light trail fading back from the peak line
-            visible: g.ghostStyle === 1 || g.ghostStyle === 4
+        Shape {   // soft light trail fading back from the peak
+            id: gtr
+            opacity: g.ghostStyle === 1 || g.ghostStyle === 4 || (g.ghostStyle === 2 && g.ghostTrail) ? 1 : 0
+            readonly property color tc: g.ghostStyle === 2 ? g.ghostColor : "#ffffff"
             ShapePath { strokeColor: "transparent"
                 fillGradient: ConicalGradient { centerX: 0; centerY: 0; angle: 0
-                    GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.28) }
-                    GradientStop { position: 9 / 360; color: Qt.rgba(1, 1, 1, 0) }
+                    GradientStop { position: 0; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0.32) }
+                    GradientStop { position: 9 / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
                     GradientStop { position: 1; color: "transparent" } }
                 PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: -9; sweepAngle: 9 }
                 PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: 0; sweepAngle: -9 } }
@@ -406,10 +411,10 @@ Item {
     Ghost { r0: 100; r1: g.ri + 8; angle: g.ang(g.innerCfg, g.iPeak); peak: g.iPeak; cfg: g.innerCfg; col: g.acc2
             show: g.iOk && g.iPeak > g.iShown + 1e-6 }
     // 2: ghost needle, a faint copy of the needle at the peak
-    Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.ang(g.ringCfg, g.rPeak); col: g.acc; lite: "#ffffff"
-              dim: 0.32; visible: g.ghostStyle === 2 && g.rOk && g.rPeak > g.rShown + 1e-6 }
-    Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.ang(g.innerCfg, g.iPeak); col: g.acc2; lite: "#ffffff"
-              dim: 0.32; visible: g.ghostStyle === 2 && g.iOk && g.iPeak > g.iShown + 1e-6 }
+    Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.ang(g.ringCfg, g.rPeak); col: g.ghostColor; lite: Qt.lighter(g.ghostColor, 1.6)
+              dim: g.ghostStyle === 2 && g.rOk && g.rPeak > g.rShown + 1e-6 ? g.ghostAlpha : 0 }
+    Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.ang(g.innerCfg, g.iPeak); col: g.ghostColor; lite: Qt.lighter(g.ghostColor, 1.6)
+              dim: g.ghostStyle === 2 && g.iOk && g.iPeak > g.iShown + 1e-6 ? g.ghostAlpha : 0 }
     // 4: the peak value next to the rim
     Text {
         visible: g.ghostStyle === 4 && g.rOk && g.rPeak > g.rShown + 1e-6
@@ -429,10 +434,10 @@ Item {
     }
     Pointer { r0: 176; r1: g.ro + 12; halfDeg: 1.35; angle: g.rAng
               col: g.rHot ? "#ff3b3b" : g.acc; lite: g.rHot ? "#ffd0d4" : "#ffffff"
-              dim: g.rHot && !g.blinkOn ? 0.3 : 1; visible: g.rOk }
+              dim: !g.rOk ? 0 : (g.rHot && !g.blinkOn ? 0.3 : 1) }
     Pointer { r0: 100; r1: g.ri + 8; halfDeg: 2.1; angle: g.iAng
               col: g.iHot ? "#ff3b3b" : g.acc2; lite: g.iHot ? "#ffd0d4" : "#ffffff"
-              dim: g.iHot && !g.blinkOn ? 0.3 : 1; visible: g.iOk }
+              dim: !g.iOk ? 0 : (g.iHot && !g.blinkOn ? 0.3 : 1) }
 
     // ---- big center reading (speed)
     readonly property bool cOk: ok(centerCfg.key)
