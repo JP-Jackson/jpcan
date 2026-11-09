@@ -30,6 +30,10 @@ Item {
     property color ghostColor: "#ff6a00"   // JP's pick: O3 deep orange
     property real ghostAlpha: 0.9
     property bool ghostTrail: true
+    property real pkTrailDeg: 9       // peak needle's glow trail: length (degrees) and strength
+    property real pkTrailA: 0.32
+    property color scaleRed: "#c42a35"   // red-zone ticks and numbers on the scales
+    property int ringStyle: 0         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -95,15 +99,63 @@ Item {
     readonly property real rAng: ang(ringCfg, rShown)
     readonly property real iAng: ang(innerCfg, iShown)
 
+    // ---- chrome ring with accent backlight (styles 1-3), painted once
+    Canvas {
+        visible: g.ringStyle > 0
+        x: -60; y: -60; width: g.width + 120; height: g.height + 120
+        property var deps: [g.acc, g.width, g.ringStyle]
+        onDepsChanged: requestPaint()
+        onPaint: {
+            var c = getContext("2d"); c.reset()
+            if (g.ringStyle === 0) return
+            var cx = g.cx + 60, cy = g.cy + 60, R = g.rd, st = g.ringStyle
+            var W = st === 3 ? 20 : 15, glowA = st === 2 ? 0.75 : 0.45, glowW = st === 2 ? 52 : 38
+            var A = g.acc
+            function ann(r0, r1, style) { c.beginPath(); c.arc(cx, cy, r1, 0, 2 * Math.PI, false); c.arc(cx, cy, r0, 2 * Math.PI, 0, true); c.fillStyle = style; c.fill() }
+            function acc(a) { return Qt.rgba(A.r, A.g, A.b, a) }
+            // backlight bleeding out around the ring
+            var bl = c.createRadialGradient(cx, cy, R + W - 4, cx, cy, R + W + glowW)
+            bl.addColorStop(0, acc(glowA)); bl.addColorStop(0.35, acc(glowA * 0.35)); bl.addColorStop(1, acc(0))
+            ann(R + W - 4, R + W + glowW, bl)
+            // shadow the ring casts on the face
+            ann(R - 10, R, (function() { var sg = c.createRadialGradient(cx, cy, R - 10, cx, cy, R); sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.85)"); return sg })())
+            // chrome
+            var gr = c.createConicalGradient(cx, cy, Math.PI * 0.44)
+            var cs = ["#ffffff", "#7d8692", "#eef1f4", "#3c434c", "#d3d8df", "#ffffff", "#4a515b", "#c1c7cf", "#262b33", "#ffffff"]
+            for (var j = 0; j < cs.length; j++) gr.addColorStop(j / (cs.length - 1), cs[j])
+            ann(R, R + W, gr)
+            // bevel: lit from above, dark below
+            var bv = c.createLinearGradient(0, cy - R - W, 0, cy + R + W)
+            bv.addColorStop(0, "rgba(255,255,255,0.35)"); bv.addColorStop(0.5, "rgba(0,0,0,0)"); bv.addColorStop(1, "rgba(0,0,0,0.5)")
+            ann(R, R + W, bv)
+            // rounded profile: dark inner lip, bright crest, dark outer edge
+            var pr = c.createRadialGradient(cx, cy, R, cx, cy, R + W)
+            pr.addColorStop(0, "rgba(0,0,0,0.75)"); pr.addColorStop(0.18, "rgba(0,0,0,0)")
+            pr.addColorStop(0.5, "rgba(255,255,255,0.18)"); pr.addColorStop(0.82, "rgba(0,0,0,0)"); pr.addColorStop(1, "rgba(0,0,0,0.65)")
+            ann(R, R + W, pr)
+            if (st === 3) {   // turned grooves
+                for (var k = 1; k < 4; k++) { c.lineWidth = 1; c.strokeStyle = "rgba(0,0,0,0.3)"; c.beginPath(); c.arc(cx, cy, R + W * k / 4, 0, 2 * Math.PI); c.stroke()
+                                              c.strokeStyle = "rgba(255,255,255,0.22)"; c.beginPath(); c.arc(cx, cy, R + W * k / 4 + 1, 0, 2 * Math.PI); c.stroke() }
+            }
+            // backlit edges: thin accent line outside the chrome and a faint one where it meets the face
+            c.lineWidth = 2.5; c.strokeStyle = acc(0.95); c.beginPath(); c.arc(cx, cy, R + W + 1.5, 0, 2 * Math.PI); c.stroke()
+            c.lineWidth = 1.5; c.strokeStyle = acc(0.55); c.beginPath(); c.arc(cx, cy, R - 0.5, 0, 2 * Math.PI); c.stroke()
+        }
+    }
     // ---- bezel, face and glow (painted once)
     Canvas {
         anchors.fill: parent
-        property var deps: [g.acc, g.width]
+        property var deps: [g.acc, g.width, g.ringStyle]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
             var cx = g.cx, cy = g.cy, R = g.rd
             function ring(r0, r1, style) { c.beginPath(); c.arc(cx, cy, r1, 0, 2 * Math.PI, false); c.arc(cx, cy, r0, 2 * Math.PI, 0, true); c.fillStyle = style; c.fill() }
+            if (g.ringStyle > 0) {   // face only; the chrome ring canvas draws the bezel
+                var f2 = c.createRadialGradient(cx, cy - R * 0.4, 0, cx, cy, R)
+                f2.addColorStop(0, "#111d2c"); f2.addColorStop(0.7, "#070b12"); f2.addColorStop(1, "#03050a")
+                c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.fillStyle = f2; c.fill(); return
+            }
             for (var i = 0; i < 4; i++) {   // soft accent glow outside the bezel
                 c.lineWidth = 3 + i * 4; c.strokeStyle = Qt.rgba(g.acc.r, g.acc.g, g.acc.b, 0.12 - i * 0.025)
                 c.beginPath(); c.arc(cx, cy, R + 14, 0, 2 * Math.PI); c.stroke()
@@ -176,7 +228,7 @@ Item {
     // ---- scales, red lines and limit markers (painted when the config changes)
     Canvas {
         anchors.fill: parent
-        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2, g.scaleStyle, g.rPass, g.iPass]
+        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2, g.scaleRed, g.scaleStyle, g.rPass, g.iPass]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
@@ -202,7 +254,7 @@ Item {
                 else { c.lineWidth = 12; c.strokeStyle = Qt.rgba(col.r, col.g, col.b, 0.13)
                        c.beginPath(); c.arc(cx, cy, R, rad(g.a0), rad(g.a0 + g.sw)); c.stroke() }
                 if (!isNaN(red) && red < mx) {
-                    c.lineWidth = inner ? 4 : 5; c.strokeStyle = "rgba(255,59,59,0.45)"
+                    c.lineWidth = inner ? 4 : 5; c.strokeStyle = Qt.rgba(g.scaleRed.r, g.scaleRed.g, g.scaleRed.b, 0.5)
                     c.beginPath(); c.arc(cx, cy, inner ? R + 4 : R + 9, rad(g.ang(cf, red)), rad(g.a0 + g.sw)); c.stroke()
                 }
                 // ticks: every minor step below the split; above it, minor if roomy enough, else major
@@ -221,11 +273,11 @@ Item {
                     var t = ticks[i], a = g.ang(cf, t), isMaj = Math.abs(t / maj - Math.round(t / maj)) < 1e-6
                     var isRed = !isNaN(red) && t >= red - 1e-9, passed = t <= pass + 1e-9
                     var base = inner ? col.toString() : "#e9f1f8"
-                    var tc = isRed ? "#ff8a94" : base
+                    var tc = isRed ? g.scaleRed.toString() : base
                     if (st === 1) tc = isRed ? (passed ? "#ff6b78" : "#7a3a40") : (passed ? (inner ? Qt.lighter(col, 1.3).toString() : "#ffffff") : "#56627a")
                     else if (st === 2 && passed && !isRed) tc = "#ffffff"
                     else if (st === 3 && passed) tc = "#05080c"
-                    else if (st === 4) tc = isRed ? "#ff8a94" : (t === near ? base : (inner ? Qt.darker(col, 1.8).toString() : "#7d8aa0"))
+                    else if (st === 4) tc = isRed ? g.scaleRed.toString() : (t === near ? base : (inner ? Qt.darker(col, 1.8).toString() : "#7d8aa0"))
                     if (st === 1 && passed && isMaj) {   // glow behind lit major ticks
                         var gp = P(R + 11, a), gq = P(R - 11, a); c.strokeStyle = Qt.rgba(1, 1, 1, 0.22); c.lineWidth = 10
                         c.beginPath(); c.moveTo(gp[0], gp[1]); c.lineTo(gq[0], gq[1]); c.stroke() }
@@ -237,7 +289,7 @@ Item {
                         var fs = t > sp + 1e-9 ? (inner ? 16 : 19) : (inner ? 19 : 24)
                         if (st === 4 && t === near) fs = Math.round(fs * 1.5)
                         c.font = fs + "px 'Barlow Semi Condensed SemiBold'"
-                        c.fillStyle = st ? tc : (isRed ? "#ff8a94" : (inner ? col.toString() : "#eef3f8"))
+                        c.fillStyle = st ? tc : (isRed ? g.scaleRed.toString() : (inner ? col.toString() : "#eef3f8"))
                         c.fillText(num(cf, t), p[0], p[1])
                     }
                 }
@@ -377,11 +429,12 @@ Item {
             readonly property color tc: g.ghostStyle === 2 ? g.ghostColor : "#ffffff"
             ShapePath { strokeColor: "transparent"
                 fillGradient: ConicalGradient { centerX: 0; centerY: 0; angle: 0
-                    GradientStop { position: 0; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0.32) }
-                    GradientStop { position: 9 / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
+                    GradientStop { position: 0; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) }
+                    GradientStop { position: g.pkTrailDeg / 360 * 0.5; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA * 0.4) }
+                    GradientStop { position: g.pkTrailDeg / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
                     GradientStop { position: 1; color: "transparent" } }
-                PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: -9; sweepAngle: 9 }
-                PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: 0; sweepAngle: -9 } }
+                PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: -g.pkTrailDeg; sweepAngle: g.pkTrailDeg }
+                PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: 0; sweepAngle: -g.pkTrailDeg } }
         }
         Rectangle {   // shadow
             visible: g.ghostStyle === 1 || g.ghostStyle === 4

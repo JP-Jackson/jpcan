@@ -11,6 +11,7 @@ Item {
     property bool leftSide: true
     property color acc: "#29c4ff"
     property bool blinkOn: true
+    property real outlineA: 1.0   // outline brightness
     signal held()
     width: 228; height: 126
 
@@ -73,7 +74,7 @@ Item {
                 GradientStop { position: 0.5; color: "transparent" }
             }
         }
-        Poly { strokeColor: tp.acc; strokeWidth: 2.5; fillColor: "transparent" }
+        Poly { strokeColor: Qt.rgba(tp.acc.r, tp.acc.g, tp.acc.b, tp.outlineA); strokeWidth: 2.5; fillColor: "transparent" }
         Poly { k: 0.95; strokeColor: Qt.rgba(1, 1, 1, 0.22); strokeWidth: 1.2; fillColor: "transparent" }
     }
 
