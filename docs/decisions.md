@@ -256,8 +256,8 @@ Built from the v2 mockup P3 (`docs/mockups/v2/`), as a new page template,
 its own skin.
 - Slots: `center` (speed), `ring` (RPM), `inner` (boost), `box1`/`box2` (RPM
   and boost digits), `l1`-`l4` and `r1`-`r4` (panels; `r4` is the VGT dual).
-  Gear comes from the profile's `gaugeworks.gear`. Every slot can be swapped
-  with press and hold.
+  Gear comes from the profile's `gaugeworks.gear`. Every slot except `ring`
+  and `inner` can be swapped (edit mode, D32); RPM and boost rings are fixed (D35).
 - Red lines are per reading. The default is the profile's `display.<key>.alarm`.
   JP can override it from the picker (press and hold), and it's saved per
   vehicle in settings `limits`, in imperial display units like the profile. At
@@ -335,26 +335,14 @@ one was active.
   In edit mode, a tap on the puck, groove, RPM row or boost row opens that slot.
   Lockup and tow/haul icons were tried and dropped for now.
 - Towing page top bar (B2, 2026-11-09): the page uses its own bar in every
-  theme, with the time big on the left (46 px), the date centered (30 px) and
-  the outside temp big on the right, then the settings button. When the core
-  isn't running, its status replaces the date. Page dots move to the bottom.
-  Other pages keep their theme's bar.
-
-**2026-11-09:** The Towing gauge's RPM (ring) and boost (inner) slots are fixed
-(`FIXED_SLOTS` in backend.py): taps on them don't open the picker and saved
-overrides for them are ignored. The inner ring had been swapped to CEL (0-1
-scale) by a touch bounce in edit mode, so the picker also ignores taps for
-0.5 s after it opens.
-Towing gauge light, JP's pick L5 (2026-11-09): trails at full brightness from the
-rim to the inner edge (`trailFade` 0), halo 0.9, bezel reflection 1.0. Ring
-labels removed now that the rings are locked.
-
-**2026-11-09, GPU memory leak:** the Pi swapped hard after a while in the sim
-(Shmem ~570 MB, kswapd busy, OOM kill at 21:38). Qt Quick Shapes caches one GPU
-texture per distinct gradient and never frees them; the Towing trails' stop
-positions followed the needle exactly, so every frame made new ones. Stop
-positions are now rounded to whole degrees (`TowGauge.qa`), which bounds the
-cache. Rule: never bind a Shape gradient stop to a continuous value.
+  theme, with the time big on the left (46 px) and the outside temp big on the
+  right, then the settings button. No background band: the gauge glow shows
+  through to the top edge. The centered date was removed the same night; the
+  core's status still shows there when it isn't running. Page dots move to the
+  bottom. Other pages keep their theme's bar.
+- Sim boost (2026-11-09): boost builds with RPM and lags like a turbo (spool
+  up ~0.5 s, down ~0.3 s), with converter slip off the line. Loop stays under
+  the 20 psi red line; Overboost goes past it.
 
 ## D34. Boot screen: only the logo on HDMI
 
@@ -371,3 +359,44 @@ of Plymouth:
 - Expect black for a few seconds after power-on, then the logo, then GaugeWorks.
   When GaugeWorks restarts, DRM restores the framebuffer, so the logo shows then too.
 - Without the 3.5" screen attached, boot text shows nowhere; use SSH.
+
+## D35. Towing RPM and boost rings are fixed; picker tap guard
+The inner ring showed a 0-1 scale with a stuck needle on the Pi: it had been
+swapped to CEL. JP never picked it. The 7" touch board reports a finger as
+press, release, press (D32), so in edit mode the first blip opened the picker
+and the second picked the button under the finger.
+- `FIXED_SLOTS` in `gaugeworks/backend.py`: the Towing page's `ring` (RPM) and
+  `inner` (boost) never change. Taps on them don't open the picker, and saved
+  overrides for them are ignored, so old bad picks clear themselves.
+- The picker ignores taps for 0.5 s after it opens.
+- The ring labels added while tracking this down were removed (JP: not wanted).
+
+## D36. GPU memory leak from Shape gradients
+After a while in the sim the Pi got choppy: Shmem ~570 MB, kswapd busy, 34%
+I/O wait, and an OOM kill of GaugeWorks at 21:38 on 2026-11-08. App RSS was
+normal (~260 MB total), so it wasn't a Python/QML leak. Qt Quick Shapes keeps
+one GPU texture per distinct gradient and never frees it; the Towing trail
+stops followed the needle angle exactly, so nearly every frame made new ones.
+Stop positions are now rounded to whole degrees (`TowGauge.qa`), which bounds
+the cache to a few hundred textures; the render is pixel-identical.
+Rule: never bind a Shape gradient stop (position or color) to a continuous,
+animated value. Check: `grep Shmem: /proc/meminfo` should stay under ~100 MB.
+
+## D37. JP's picks, night of 2026-11-08/09 (Towing page)
+What JP liked and asked for, in order. Codes refer to the option sheets.
+- Center dish **V4** (replaced M2): 12 px ledge inside the bezel, 18 px even
+  steps down to the RPM floor and the boost floor, RPM trail glow on the RPM
+  wall, scale numbers 25% bigger. M2 (angled slope) was rejected: uneven step.
+- **P1** raised center piece: speed puck plus a tongue with fuel, RPM, boost
+  and gear, so the gear isn't on the bezel.
+- Fuel as **L4**: a thin groove across the top of the RPM row in the main
+  accent, 1/4-1/2-3/4 marks, red at 1/8 and below. Rejected: fuel rings around
+  the speed (thin, not inset like boost), lockup and tow/haul icons.
+- Sim drive scenarios with problem drives (D33), and boost that spools.
+- Top bar **B2**: big time left, big outside temp right. Then: date removed,
+  background band removed so the glow reaches the top.
+- RPM and boost rings never change (D35).
+- Light **L5**: trails full brightness from the rim to the inner edge
+  (`trailFade` 0), halo 0.9, bezel reflection 1.0. JP wanted brighter, not dimmer.
+- Boot screen **A** (D34): no rainbow, no boot text on the 7", jpCAN logo until
+  GaugeWorks. Confirmed on the Pi; a short black gap first is OK for now.

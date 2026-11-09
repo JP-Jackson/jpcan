@@ -108,6 +108,10 @@ Re-run it after any `git pull` that changes services. It installs:
   uses only the HDMI screen's USB touch, and tries EGLFS (GPU) with a fallback
   to linuxfb. It also gets a sudoers rule that allows only
   `systemctl poweroff`, for the Shut Down button.
+- **jpcan-bootlogo**: the jpCAN logo on the 7" during boot (D34). It also sets
+  `disable_splash=1` in config.txt and `fbcon=map:1 logo.nologo` in
+  cmdline.txt, so boot text and the login prompt only show on the 3.5". After a
+  short black screen the logo shows until GaugeWorks starts.
 
 Plug the 7" into **HDMI0** (next to USB-C) and its touch USB into the Pi.
 
@@ -193,3 +197,11 @@ report, then unmounts: "Safe to remove". From SSH, to any folder:
    sudo nmcli device wifi connect " SSID with leading space" password "PASSWORD"
    ```
    NetworkManager saves this connection, so it reconnects on every boot.
+
+**GaugeWorks gets choppy after a while** (needles and numbers both): check memory.
+```bash
+grep -E "MemAvailable|Shmem:" /proc/meminfo
+```
+Shmem in the hundreds of MB means graphics memory is leaking (D36); a restart
+of GaugeWorks clears it. Boot problems with the logo:
+`journalctl -u jpcan-bootlogo -b --no-pager`.

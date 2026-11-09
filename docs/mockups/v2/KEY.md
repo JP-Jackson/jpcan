@@ -15,7 +15,17 @@ renders are in `numbered/`.
 | **C3** Classic Economy | 1 MPG gauge · 2 tank-avg marker · 3 MPG digital window · 4 fuel gauge with range · 5 tank/trip/last-10 boxes · 6 Fill-up/History buttons |
 | **C4** Classic Trend | 1 pen readouts · 2 pen selector · 3 strip chart · 4 time window buttons · 5 peaks |
 
-Every reading on P3 can be swapped: press and hold it to open the picker (`premium_towing_picker.png`).
+Every reading on P3 except the RPM and boost rings can be swapped: Settings > Edit page, then tap it to open the
+picker (`premium_towing_picker.png`). The 7" touch board can't do press-and-hold (D32).
+
+## P3 as built: JP's picks
+
+Needles N3 (blade, drop shadow) · scale S2 (white once passed) · trail T3 (4° gap) · trail light L5 (full brightness
+rim to inner edge, strong halo) · peak needle O3 (deep orange copy, 3.5 s hold, shows 4° above) with K4 glow trail ·
+bezel C3 (gunmetal chrome) with F3 reflection (inner lip only) · dish V4 (even steps) · center P1 (raised puck +
+tongue: fuel, RPM, boost, gear) · fuel L4 (groove, accent, quarter marks, red at 1/8) · top bar B2 (big time and
+outside temp, no date, no band) · side panel outlines at 35% · dark red scale zone · ring labels off.
+Details and dates: `docs/decisions.md` D31, D35 and D37.
 
 ## Options (P3 for now)
 
@@ -39,5 +49,4 @@ digits, and the side panels' value and bar fill. See `premium_towing_alarm_blink
 ## 3D treatment (P3)
 
 Chrome bezel and sunken face on the center gauge, beveled side panels (accent edge lit from the top, inner highlight,
-top-to-bottom fill, drop shadow), RPM/boost and gear windows set into the face, shaded top bar with a shadow under
-it, raised shadow on the big numbers.
+top-to-bottom fill, drop shadow), RPM/boost and gear on the raised P1 piece, no top bar band (the glow shows through), raised shadow on the big numbers.

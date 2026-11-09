@@ -92,12 +92,15 @@ against FORScan or the dash.
   fixed placeholder values.
 - **1 (current):** core service, MQTT, SQLite logging and the trip computer
   are done, with fill-up log, correction factor and fuel-history edits.
-  GaugeWorks on the HDMI screen is also done: pages, press-and-hold slot
-  picker, USB export, CEL banner and themes. The Premium theme is an
+  GaugeWorks on the HDMI screen is also done: pages, slot picker (edit
+  mode), USB export, CEL banner and themes. The Premium theme is an
   OEM-style skin with chrome dials, a centre economy/engine card, long date
   and time, and telltales. The Towing page is the v2 P3 design (D31): speed
   center, RPM and boost rings with split scales, eight panels with range
-  bars, settable red lines that blink at 3 Hz, background and color settings. First drive 2026-11-07 showed RPM lag, so polling
+  bars, settable red lines that blink at 3 Hz, background and color settings,
+  a raised center piece with fuel, RPM, boost and gear, and a big time/temp top
+  bar; RPM and boost rings are fixed. JP's picks are in D37. Sim drive
+  scenarios (D33). Boot shows only the logo on HDMI (D34). First drive 2026-11-07 showed RPM lag, so polling
   now uses tiers (D23); retest on the next drive.
 - 1.5: Phone web dashboard (view-only) over mosquitto websockets plus a Pi
   hotspot on the road.
@@ -159,6 +162,9 @@ against FORScan or the dash.
   the other themes (keep Premium and Classic).
 - Check P3 on the Pi: blink rate, touch on the panels, the red-line control
   and the color picker, and the CPU load with the trails moving.
+- Replace the placeholder logo (`gaugeworks/assets/jpcan_logo.svg`; the "N"
+  clips at the right edge) with JP's final SVG, then re-run
+  `install-services.sh` to rebuild the boot image.
 - Reference dash styles JP liked are noted in `docs/mockups/README.md`.
 
 ## Working style
