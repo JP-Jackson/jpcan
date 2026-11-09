@@ -105,19 +105,38 @@ Item {
         Rectangle { width: 6; height: 2.5; color: Qt.lighter(b.acc, 1.5) }
         Rectangle { y: parent.height - 2.5; width: 6; height: 2.5; color: Qt.lighter(b.acc, 1.5) }
     }
-    Shape {   // pointer: white wedge from the inner edge of the bar, pointing out (toward the screen edge)
-        id: ptr
+    // pointer: white wedge from the inner edge of the bar, pointing out (toward the screen edge).
+    // One fixed shape per side (no geometry changes at runtime; the Pi's GPU renderer
+    // didn't redraw a flipped path).
+    Item {
         visible: b.valid
-        x: b.leftSide ? b.width - 2 : 2; y: b.yOf(b.shown)
+        y: b.yOf(b.shown) - 5
+        x: b.leftSide ? b.width - 2 - (b.width + 10) : 2
+        width: b.width + 10; height: 10
         opacity: b.hot && !b.blinkOn ? 0.25 : 1
-        readonly property real tip: b.leftSide ? -(b.width + 10) : (b.width + 10)
-        ShapePath {
-            strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
-            fillColor: b.hot ? "#ff5a5a" : "#ffffff"
-            startX: 0; startY: -5
-            PathLine { x: ptr.tip; y: 0 }
-            PathLine { x: 0; y: 5 }
-            PathLine { x: 0; y: -5 }
+        Shape {
+            visible: b.leftSide
+            anchors.fill: parent
+            ShapePath {
+                strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
+                fillColor: b.hot ? "#ff5a5a" : "#ffffff"
+                startX: b.width + 10; startY: 0
+                PathLine { x: 0; y: 5 }
+                PathLine { x: b.width + 10; y: 10 }
+                PathLine { x: b.width + 10; y: 0 }
+            }
+        }
+        Shape {
+            visible: !b.leftSide
+            anchors.fill: parent
+            ShapePath {
+                strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; joinStyle: ShapePath.MiterJoin
+                fillColor: b.hot ? "#ff5a5a" : "#ffffff"
+                startX: 0; startY: 0
+                PathLine { x: b.width + 10; y: 5 }
+                PathLine { x: 0; y: 10 }
+                PathLine { x: 0; y: 0 }
+            }
         }
     }
 }

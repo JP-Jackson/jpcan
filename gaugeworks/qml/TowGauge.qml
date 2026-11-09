@@ -21,6 +21,10 @@ Item {
     property bool blinkOn: true
     property int pointerStyle: 2   // 0 cone, 1 bar, 2 blade (JP's pick), 3 line + arrowhead, 4 laser line, 5 rim wedge
     property int scaleStyle: 2     // JP's pick. 0 static, 1 lit as passed, 2 color as passed, 3 contrast as passed, 4 focus number
+    // light trail: dark gap behind the needle (degrees), strength at its peak, and how much it fades toward the center
+    property real gapDeg: 14
+    property real trailPeak: 0.75
+    property real trailFade: 0.9
     signal held(string slot)
     width: 524; height: 524
 
@@ -113,9 +117,9 @@ Item {
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -tr.endAng
                 GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
-                GradientStop { position: Math.min(0.014, tr.swp / 360 * 0.15); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.08) }
-                GradientStop { position: Math.min(0.04, tr.swp / 360 * 0.35); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
-                GradientStop { position: Math.max(0.023, tr.swp / 360 * 0.45); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.35) }
+                GradientStop { position: Math.min(g.gapDeg / 360 * 0.35, tr.swp / 360 * 0.15); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.08) }
+                GradientStop { position: Math.min(g.gapDeg / 360, tr.swp / 360 * 0.35); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
+                GradientStop { position: Math.max(g.gapDeg / 360 + 0.001, tr.swp / 360 * 0.55); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.45) }
                 GradientStop { position: Math.max(0.003, tr.swp / 360); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
             }
@@ -127,8 +131,8 @@ Item {
             strokeColor: "transparent"
             fillGradient: RadialGradient {
                 centerX: g.cx; centerY: g.cy; centerRadius: tr.r1; focalX: g.cx; focalY: g.cy; focalRadius: tr.r0
-                GradientStop { position: 0; color: Qt.rgba(0.027, 0.043, 0.07, 0.9) }
-                GradientStop { position: 0.55; color: Qt.rgba(0.027, 0.043, 0.07, 0.3) }
+                GradientStop { position: 0; color: Qt.rgba(0.027, 0.043, 0.07, g.trailFade) }
+                GradientStop { position: 0.55; color: Qt.rgba(0.027, 0.043, 0.07, g.trailFade / 3) }
                 GradientStop { position: 1; color: "transparent" }
             }
             PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: tr.r1; radiusY: tr.r1; startAngle: g.a0; sweepAngle: tr.swp }
@@ -137,9 +141,9 @@ Item {
         }
     }
     Trail { r0: 176; r1: g.rd - 12; endAng: g.rAng; col: g.rHot ? "#ff3b3b" : g.acc
-            peak: g.rHot ? (g.blinkOn ? 0.95 : 0.12) : 0.75 }
+            peak: g.rHot ? (g.blinkOn ? 0.95 : 0.12) : g.trailPeak }
     Trail { r0: 100; r1: 160; endAng: g.iAng; col: g.iHot ? "#ff3b3b" : g.acc2
-            peak: g.iHot ? (g.blinkOn ? 0.95 : 0.12) : 0.7 }
+            peak: g.iHot ? (g.blinkOn ? 0.95 : 0.12) : g.trailPeak }
 
     // ---- scales, red lines and limit markers (painted when the config changes)
     Canvas {
