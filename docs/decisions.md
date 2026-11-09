@@ -281,3 +281,5 @@ its own skin.
   It holds 3.5 s, then eases back to the needle in about 2.5 s. White,
   because red means "over the red line" here and amber and blue are taken.
   Light trail T3: 4° dark gap behind the needle, full strength, little fade.
+- Peak marker changed (O3): a copy of the blade needle in deep orange (#ff6a00)
+  at 90% with an orange glow trail, on RPM and boost. Same 3.5 s hold, ~2.5 s fall.

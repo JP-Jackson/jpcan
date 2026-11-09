@@ -27,8 +27,8 @@ Item {
     property real trailFade: 0.45
     // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
     property int ghostStyle: 2        // 1 thin line, 2 needle copy (JP: same as the dial, orange), 3 rim marker, 4 line + value
-    property color ghostColor: "#ff8a1e"
-    property real ghostAlpha: 0.85
+    property color ghostColor: "#ff6a00"   // JP's pick: O3 deep orange
+    property real ghostAlpha: 0.9
     property bool ghostTrail: true
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
