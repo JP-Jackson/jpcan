@@ -20,7 +20,24 @@ from core.units import IMPERIAL, display
 
 THEMES_DIR = Path(__file__).resolve().parent / "themes"
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-STALE = 5.0  # s
+STALE = 5.0  # s: minimum time without an update before a reading counts as stale
+
+
+def stale_after(gap: float | None) -> float:
+    """How long a reading may go without an update. Slow-tier readings arrive about every
+    5 s and diagnostic ones every ~12-14 s, so a flat 5 s blanked them ("--") just before
+    each update. Allow 2.5x the reading's own update interval, and never less than STALE."""
+    return STALE if not gap else max(STALE, 2.5 * gap)
+
+
+def track_gap(prev_ts: float | None, ts: float, gap: float | None) -> float | None:
+    """Smoothed update interval for one reading (ignores repeats and big jumps)."""
+    if prev_ts is None or ts <= prev_ts:
+        return gap
+    d = ts - prev_ts
+    if d > 120:            # key off, clock jump: don't learn from it
+        return gap
+    return d if gap is None else 0.8 * gap + 0.2 * d
 
 
 # ---- pure helpers (unit-tested without Qt) ---------------------------------
@@ -269,6 +286,8 @@ class Backend(QObject):
         self._settings = settings if settings is not None else settings_mod.load()
         self._values = QQmlPropertyMap(self)
         self._fresh = QQmlPropertyMap(self)
+        self._last_ts: dict[str, float] = {}   # per reading: last timestamp and smoothed update interval
+        self._gap: dict[str, float | None] = {}
         self._lo = QQmlPropertyMap(self)   # lowest value seen this drive (display units)
         self._hi = QQmlPropertyMap(self)   # highest value seen this drive
         self._config: dict = {"gauges": {}, "tiles": []}
@@ -443,7 +462,10 @@ class Backend(QObject):
         if f"econ_last{win}" in latest:
             latest["econ_last"] = latest[f"econ_last{win}"]
         for k, r in latest.items():
-            ok = (running and r.value is not None and not r.error and now - r.ts <= STALE)
+            if r.ts != self._last_ts.get(k):
+                self._gap[k] = track_gap(self._last_ts.get(k), r.ts, self._gap.get(k))
+                self._last_ts[k] = r.ts
+            ok = (running and r.value is not None and not r.error and now - r.ts <= stale_after(self._gap.get(k)))
             raw = r.value * factor if (r.value is not None and k.startswith("econ_")) else r.value
             v = display(raw, r.units, imp)[0] if raw is not None else 0.0
             if self._values.value(k) != v:

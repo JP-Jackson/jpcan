@@ -212,3 +212,18 @@ def test_backend_red_lines_colors_background_and_drive_minmax(tmp_path, monkeypa
     assert b.lo.value("rpm") == 1650 and b.hi.value("rpm") == 1650
     b.resetDriveMinMax()
     assert b.lo.value("rpm") is None
+
+
+def test_stale_timeout_follows_each_readings_update_rate():
+    from gaugeworks.backend import STALE, stale_after, track_gap
+
+    assert stale_after(None) == STALE                       # nothing learned yet
+    assert stale_after(0.13) == STALE                       # fast tier: still 5 s minimum
+    gap = None
+    t = 0.0
+    for _ in range(10):                                     # slow tier: every ~5.2 s
+        gap = track_gap(t, t + 5.2, gap)
+        t += 5.2
+    assert abs(gap - 5.2) < 0.01 and stale_after(gap) > 12  # 5.6 s gaps no longer blank it
+    assert track_gap(t, t + 300, gap) == gap                # key-off gap isn't learned
+    assert track_gap(t, t, gap) == gap                      # same reading seen again
