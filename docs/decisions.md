@@ -276,3 +276,7 @@ its own skin.
   in the trail just behind them; scale marks the needle has passed change color
   (S2: light accent on RPM, white on boost); white side-panel pointers pointing
   out toward the screen edge; bigger RPM/boost digits.
+- Peak hold (G1): a thin white line across the trail at the highest recent RPM
+  and boost. It holds 2 s, then eases back to the needle in about 1 s. White,
+  because red means "over the red line" here and amber and blue are taken.
+  Light trail T3: 4° dark gap behind the needle, full strength, little fade.

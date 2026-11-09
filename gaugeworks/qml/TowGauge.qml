@@ -26,8 +26,8 @@ Item {
     property real trailPeak: 1.0
     property real trailFade: 0.45
     // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
-    property int ghostStyle: 0
-    property int holdMs: 3000         // hold the peak this long, then let it fall back
+    property int ghostStyle: 1        // JP's pick: G1 white peak line
+    property int holdMs: 2000         // hold the peak this long, then ease back to the needle in about 1 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
     signal held(string slot)
@@ -80,10 +80,11 @@ Item {
         interval: 50; repeat: true; running: g.ghostStyle > 0
         onTriggered: {
             var now = Date.now()
+            // ease back: close ~20% of the gap every 50 ms (about 1 s to reach the needle), with a small floor
             if (g.rHold > g.rShown && now - g.rHoldT > g.holdMs)
-                g.rHold = Math.max(g.rShown, g.rHold - ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.012)
+                g.rHold = Math.max(g.rShown, g.rHold - Math.max((g.rHold - g.rShown) * 0.2, ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.002))
             if (g.iHold > g.iShown && now - g.iHoldT > g.holdMs)
-                g.iHold = Math.max(g.iShown, g.iHold - ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.012)
+                g.iHold = Math.max(g.iShown, g.iHold - Math.max((g.iHold - g.iShown) * 0.2, ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.002))
         }
     }
     readonly property real rPeak: isNaN(demoRPeak) ? rHold : demoRPeak
