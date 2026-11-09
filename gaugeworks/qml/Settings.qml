@@ -98,7 +98,7 @@ Rectangle {
             Row {
                 id: sourceRow
                 spacing: 12
-                property bool isSim: s.gw.status.mode === "SIM"
+                property bool isSim: s.gw.sourceMode === "sim"
                 Text { width: 150; text: "Data from"; color: s.theme.colors.dim; font.pixelSize: 22; anchors.verticalCenter: parent.verticalCenter }
                 Repeater {
                     model: [["truck", "Truck"], ["sim", "Simulator"]]

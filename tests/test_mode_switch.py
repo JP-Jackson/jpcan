@@ -72,3 +72,14 @@ def test_backend_calls_only_the_helper(monkeypatch):
     started[0]()
     assert calls == [["sudo", "-n", "/usr/local/sbin/jpcan-mode", "sim"]]
     assert msgs and "simulator" in msgs[0]
+
+
+def test_gaugeworks_reads_the_switch_file(tmp_path, helper):
+    from gaugeworks.backend import read_source_mode
+
+    run, mode_file, _ = helper
+    assert read_source_mode(mode_file) is None          # no switch (laptop): fall back to the core's meta
+    run("sim")
+    assert read_source_mode(mode_file) == "sim"         # even if the core never reconnects
+    run("truck")
+    assert read_source_mode(mode_file) == "truck"

@@ -165,6 +165,21 @@ def load_theme(name: str, themes_dir: Path = THEMES_DIR) -> dict:
 QML_DIR = Path(__file__).resolve().parent / "qml"
 TEMPLATES = {"dash": "PageDash.qml", "quad": "PageQuad.qml", "economy": "PageEconomy.qml",
              "list": "PageList.qml", "towing": "PageTowing.qml"}
+MODE_FILE = Path("/etc/default/jpcan-mode")   # written by jpcan-mode (Truck/Simulator switch)
+
+
+def read_source_mode(path: Path = MODE_FILE) -> str | None:
+    """'sim' or 'truck' from the switch's file, or None if there's no switch (laptop)."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    for line in text.splitlines():
+        if line.strip().startswith("JPCAN_MODE_ARGS="):
+            return "sim" if "--sim" in line else "truck"
+    return "truck"
+
+
 BACKGROUNDS = ["carbon", "expanded", "diamond", "brushed", "honeycomb", "black"]
 DEFAULT_ACCENTS = ("#29c4ff", "#ffb340")
 
@@ -245,6 +260,7 @@ class Backend(QObject):
     settingsChanged = Signal()
     fuelChanged = Signal()
     usbChanged = Signal()
+    sourceChanged = Signal()
     message = Signal(str)
 
     def __init__(self, feed, settings: dict | None = None, poll_ms: int = 50):
@@ -260,6 +276,8 @@ class Backend(QObject):
         self._status = {"state": "offline", "text": "Starting...", "mode": ""}
         self._fuel: dict = {}
         self._last_result_ts = None
+        self._source = read_source_mode()
+        self._source_checked = 0.0
         self._meta_sig = None
         from .usb import UsbExporter
 
@@ -294,6 +312,21 @@ class Backend(QObject):
     def _bg_url(self) -> str:
         f = ASSETS_DIR / "bg" / f"{self._bg()}.png"
         return QUrl.fromLocalFile(str(f)).toString() if f.exists() else ""
+
+    # Truck/Simulator: from the switch's own file, so it's right even when the core
+    # hasn't connected (bench, adapter unpowered) and its last meta is stale.
+    def _source_mode(self) -> str:
+        if self._source is not None:
+            return self._source
+        return "sim" if (self.feed.meta or {}).get("sim") else "truck"
+
+    sourceMode = Property(str, _source_mode, notify=sourceChanged)
+
+    def _refresh_source(self) -> None:
+        m = read_source_mode()
+        if m != self._source:
+            self._source = m
+            self.sourceChanged.emit()
 
     background = Property(str, _bg, notify=settingsChanged)
     backgroundUrl = Property(str, _bg_url, notify=settingsChanged)
@@ -340,6 +373,9 @@ class Backend(QObject):
             self._meta_sig = sig
             self._rebuild_config(meta)
         self._update_status(meta)
+        if time.monotonic() - self._source_checked > 1.0:
+            self._source_checked = time.monotonic()
+            self._refresh_source()
         self._update_fuel()
         self._update_values()
         if self._usb.state != self._usb_seen:
