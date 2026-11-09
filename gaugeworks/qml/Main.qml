@@ -131,10 +131,7 @@ Rectangle {
             visible: root.towBar
             z: 6
             width: parent.width; height: 50
-            gradient: Gradient { GradientStop { position: 0; color: "#1a2532" } GradientStop { position: 0.5; color: "#0a1018" } GradientStop { position: 1; color: "#04070a" } }
-            Rectangle { y: 50; width: parent.width; height: 10
-                        gradient: Gradient { GradientStop { position: 0; color: "#b0000000" } GradientStop { position: 1; color: "transparent" } } }
-            Rectangle { y: 0; width: parent.width; height: 1; color: "#1fffffff" }
+            color: "transparent"   // no band: the gauge glow shows through (JP, 2026-11-09)
             Text {
                 id: towTime
                 x: 14; anchors.verticalCenter: parent.verticalCenter
