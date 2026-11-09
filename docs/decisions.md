@@ -283,3 +283,8 @@ its own skin.
   Light trail T3: 4° dark gap behind the needle, full strength, little fade.
 - Peak marker changed (O3): a copy of the blade needle in deep orange (#ff6a00)
   at 90% with an orange glow trail, on RPM and boost. Same 3.5 s hold, ~2.5 s fall.
+- Center ring C3: gunmetal chrome tube with real-chrome reflections (sky band,
+  dark horizon, crisp highlights), a soft shadow on the face, and the accent
+  backlight spilling onto the background from behind the gauge. The RPM light
+  trail reflects in the bezel's inner edge, with a glint where the needle is
+  (60%). Also K4 peak trail (32°, 75%), panel outlines at 35%, deep red scale zone.

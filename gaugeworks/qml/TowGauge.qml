@@ -33,10 +33,11 @@ Item {
     property real pkTrailDeg: 32       // peak needle's glow trail: length (degrees) and strength
     property real pkTrailA: 0.75   // JP's pick: K4
     property color scaleRed: "#9e1f2a"   // red-zone ticks and numbers on the scales
-    property int ringStyle: 0         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight;
+    property int ringStyle: 9         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight;
                                       // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished;
                                       // 7-10 high-quality ring, glow from behind: 7 polished chrome, 8 satin, 9 gunmetal, 10 polished + inner bevel
-    property real haloA: 0.55        // backlight spilling onto the background behind the gauge
+    property real haloA: 0.55
+    property real bezelRefl: 0.6     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -255,6 +256,37 @@ Item {
             c.lineWidth = 3; c.strokeStyle = "rgba(0,0,0,0.85)"
             c.beginPath(); c.arc(cx, cy, R - 1.5, 0, 2 * Math.PI); c.stroke()
         }
+    }
+
+    // ---- the RPM light trail reflected in the bezel: on the inner half of the ring, which faces the dial
+    Shape {
+        id: refl
+        anchors.fill: parent
+        readonly property real r0: g.rd + 1
+        readonly property real r1: g.rd + 10
+        readonly property real swp: Math.max(0.01, g.rAng - g.a0)
+        readonly property color col: g.rHot ? "#ff3b3b" : g.acc
+        opacity: g.ringStyle >= 7 && g.rOk ? 1 : 0
+        ShapePath {
+            strokeColor: "transparent"
+            fillGradient: ConicalGradient {
+                centerX: g.cx; centerY: g.cy; angle: -g.rAng
+                GradientStop { position: 0; color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, g.bezelRefl) }
+                GradientStop { position: Math.max(0.002, refl.swp / 360 * 0.35); color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, g.bezelRefl * 0.35) }
+                GradientStop { position: Math.max(0.003, refl.swp / 360); color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, 0) }
+                GradientStop { position: 1; color: "transparent" }
+            }
+            PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: refl.r1; radiusY: refl.r1; startAngle: g.a0; sweepAngle: refl.swp }
+            PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: refl.r0; radiusY: refl.r0
+                           startAngle: g.rAng; sweepAngle: -refl.swp }
+        }
+    }
+    Item {   // bright glint on the bezel right where the needle is
+        x: g.cx; y: g.cy; rotation: g.rAng
+        opacity: g.ringStyle >= 7 && g.rOk ? g.bezelRefl : 0
+        Rectangle { x: g.rd - 2; y: -15; width: 14; height: 30; radius: 7
+                    color: Qt.rgba(refl.col.r, refl.col.g, refl.col.b, 0.45) }
+        Rectangle { x: g.rd + 2; y: -7; width: 5; height: 14; radius: 2.5; color: "#ffffff"; opacity: 0.8 }
     }
 
     // ---- light trails (behind the scales)
