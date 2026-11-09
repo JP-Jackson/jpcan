@@ -93,7 +93,7 @@ class SimVehicle:
         return {
             "gear": gear + 1 if spd > 1 else 0,
             "rpm": rpm, "speed": spd, "load": load,
-            "baro": 99.0, "map": 99.0 + 2 + max(0.0, load - 15) * 2.2,
+            "baro": 99.0, "map": 99.0 + 2 + max(0.0, load - 15) * 1.6,   # about 15 psi at the 80% pulls (under the 20 psi red line)
             "coolant": 20 + 68 * warm(300), "iat": 30.0, "ambient": 24.0,
             "maf": 5 + load * 2.5, "fuel_level": 63.0, "run_s": t,
             "fuel_rate": 1.2 + load * 0.25,
@@ -137,11 +137,20 @@ def _scenario_state(self) -> dict:
         if spd / k * 1000 <= shift:
             gear = i
             break
-    rpm = max(700.0, spd / kmh_per_krpm[gear] * 1000) + self.rng.uniform(-8, 8)
-    boost = max(0.0, load - 15) * 0.2                      # psi: about 17 at full load
-    if name == "overboost" and accel:
-        boost = max(0.0, load - 15) * 0.33                 # about 28 psi
-    boost += self.rng.uniform(-0.15, 0.15) if boost > 1 else 0
+    rpm = max(700.0, spd / kmh_per_krpm[gear] * 1000)
+    # torque converter slip off the line: revs flare toward stall speed under load
+    rpm = max(rpm, 700 + (load / 100) * 1100 * max(0.0, 1 - spd / 45))
+    rpm += self.rng.uniform(-8, 8)
+    # boost builds with load and rpm (turbo spool), then lags toward it like a real turbo
+    cap = 28.0 if name == "overboost" else 18.0             # psi at full load, full spool
+    spool = min(1.0, max(0.0, (rpm - 900) / 1600)) ** 1.3
+    target = cap * max(0.0, load - 15) / 85 * spool
+    dt = max(0.0, min(1.0, now - getattr(self, "_bt", now)))
+    self._bt = now
+    prev = getattr(self, "_boost", 0.0)
+    k = 1 - math.exp(-dt / (0.5 if target > prev else 0.3))  # spools up a bit slower than it drops
+    self._boost = prev + (target - prev) * k
+    boost = self._boost + (self.rng.uniform(-0.15, 0.15) if self._boost > 1 else 0)
     baro = 99.0
     coolant, trans, oil, iat = 88.0, 77.0, 96.0, 30.0       # warmed up: 190, 171, 205, 86 F
     if name == "tow":
