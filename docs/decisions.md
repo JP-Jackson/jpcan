@@ -348,3 +348,10 @@ scale) by a touch bounce in edit mode, so the picker also ignores taps for
 Towing gauge light, JP's pick L5 (2026-11-09): trails at full brightness from the
 rim to the inner edge (`trailFade` 0), halo 0.9, bezel reflection 1.0. Ring
 labels removed now that the rings are locked.
+
+**2026-11-09, GPU memory leak:** the Pi swapped hard after a while in the sim
+(Shmem ~570 MB, kswapd busy, OOM kill at 21:38). Qt Quick Shapes caches one GPU
+texture per distinct gradient and never frees them; the Towing trails' stop
+positions followed the needle exactly, so every frame made new ones. Stop
+positions are now rounded to whole degrees (`TowGauge.qa`), which bounds the
+cache. Rule: never bind a Shape gradient stop to a continuous value.

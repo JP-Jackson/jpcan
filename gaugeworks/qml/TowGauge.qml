@@ -65,6 +65,10 @@ Item {
     signal held(string slot)
     width: 524; height: 524
 
+    // Gradient stop positions are rounded to whole degrees. Qt caches one GPU texture per distinct
+    // gradient and never frees them, so stops that follow the needle exactly leaked graphics memory
+    // on the Pi (Shmem grew to ~570 MB and the system swapped). Rounded, there are only a few hundred.
+    function qa(deg) { return Math.max(1, Math.round(deg)) }
     readonly property real cx: width / 2
     readonly property real cy: height / 2
     readonly property real rd: 246
@@ -317,8 +321,8 @@ Item {
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -g.rAng
                 GradientStop { position: 0; color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, g.bezelRefl * rb.k) }
-                GradientStop { position: Math.max(0.002, rb.swp / 360 * 0.35); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, g.bezelRefl * rb.k * 0.4) }
-                GradientStop { position: Math.max(0.003, rb.swp / 360); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, 0) }
+                GradientStop { position: Math.max(0.002, g.qa(rb.swp) / 360 * 0.35); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, g.bezelRefl * rb.k * 0.4) }
+                GradientStop { position: Math.max(0.003, g.qa(rb.swp) / 360); color: Qt.rgba(rb.col.r, rb.col.g, rb.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
             }
             PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: rb.r1; radiusY: rb.r1; startAngle: g.a0; sweepAngle: rb.swp }
@@ -378,10 +382,10 @@ Item {
             fillGradient: ConicalGradient {
                 centerX: g.cx; centerY: g.cy; angle: -tr.endAng
                 GradientStop { position: 0; color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
-                GradientStop { position: Math.min(g.gapDeg / 360 * 0.35, tr.swp / 360 * 0.15); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.08) }
-                GradientStop { position: Math.min(g.gapDeg / 360, tr.swp / 360 * 0.35); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
-                GradientStop { position: Math.max(g.gapDeg / 360 + 0.001, tr.swp / 360 * 0.55); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.45) }
-                GradientStop { position: Math.max(0.003, tr.swp / 360); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
+                GradientStop { position: Math.min(g.gapDeg / 360 * 0.35, g.qa(tr.swp) / 360 * 0.15); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.08) }
+                GradientStop { position: Math.min(g.gapDeg / 360, g.qa(tr.swp) / 360 * 0.35); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak) }
+                GradientStop { position: Math.max(g.gapDeg / 360 + 0.001, g.qa(tr.swp) / 360 * 0.55); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, tr.peak * 0.45) }
+                GradientStop { position: Math.max(0.003, g.qa(tr.swp) / 360); color: Qt.rgba(tr.col.r, tr.col.g, tr.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" }
             }
             PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: tr.r1; radiusY: tr.r1; startAngle: g.a0; sweepAngle: tr.swp }
@@ -449,8 +453,8 @@ Item {
             strokeColor: "transparent"
             fillGradient: ConicalGradient { centerX: g.cx; centerY: g.cy; angle: -g.rAng
                 GradientStop { position: 0; color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, slopeGlow.pk) }
-                GradientStop { position: Math.max(0.002, slopeGlow.swp / 360 * 0.55); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, slopeGlow.pk * 0.35) }
-                GradientStop { position: Math.max(0.003, slopeGlow.swp / 360); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, 0) }
+                GradientStop { position: Math.max(0.002, g.qa(slopeGlow.swp) / 360 * 0.55); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, slopeGlow.pk * 0.35) }
+                GradientStop { position: Math.max(0.003, g.qa(slopeGlow.swp) / 360); color: Qt.rgba(slopeGlow.col.r, slopeGlow.col.g, slopeGlow.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" } }
             PathAngleArc { centerX: g.cx; centerY: g.cy; radiusX: g.rd; radiusY: g.rd; startAngle: g.a0; sweepAngle: slopeGlow.swp }
             PathAngleArc { moveToStart: false; centerX: g.cx; centerY: g.cy; radiusX: g.slopeR0; radiusY: g.slopeR0; startAngle: g.rAng; sweepAngle: -slopeGlow.swp }
@@ -484,8 +488,8 @@ Item {
             strokeColor: "transparent"
             fillGradient: ConicalGradient { centerX: g.cx; centerY: g.cy; angle: -g.iAng
                 GradientStop { position: 0; color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, wallGlow.pk) }
-                GradientStop { position: Math.max(0.002, (g.iAng - g.a0) / 360 * 0.55); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, wallGlow.pk * 0.35) }
-                GradientStop { position: Math.max(0.003, (g.iAng - g.a0) / 360); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, 0) }
+                GradientStop { position: Math.max(0.002, g.qa(g.iAng - g.a0) / 360 * 0.55); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, wallGlow.pk * 0.35) }
+                GradientStop { position: Math.max(0.003, g.qa(g.iAng - g.a0) / 360); color: Qt.rgba(wallGlow.col.r, wallGlow.col.g, wallGlow.col.b, 0) }
                 GradientStop { position: 1; color: "transparent" } }
             PathPolyline { path: wallGlow.pts }
         }
@@ -759,8 +763,8 @@ Item {
                 fillGradient: ConicalGradient { centerX: 0; centerY: 0; angle: 0
                     GradientStop { position: 0; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) }
                     GradientStop { position: 0.001; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
-                    GradientStop { position: 1 - gtr.len / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
-                    GradientStop { position: 1 - gtr.len / 360 * 0.5; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA * 0.4) }
+                    GradientStop { position: 1 - g.qa(gtr.len) / 360; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, 0) }
+                    GradientStop { position: 1 - g.qa(gtr.len) / 360 * 0.5; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA * 0.4) }
                     GradientStop { position: 0.9999; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) }
                     GradientStop { position: 1; color: Qt.rgba(gtr.tc.r, gtr.tc.g, gtr.tc.b, g.pkTrailA) } }
                 PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: 0; sweepAngle: gtr.len }
