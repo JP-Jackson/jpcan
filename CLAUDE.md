@@ -121,10 +121,12 @@ against FORScan or the dash.
   restart/drop loop. If one shows up, add restart backoff or Qt udev hotplug.
 - Picture shift: fixed by locking HDMI0 to 1024x600 (D28), confirmed on the
   Pi bench 2026-11-08.
-- The 2026-11-08 drive ran pre-D23 code (the Pi wasn't pulled), so the lag
-  there was the old poller.
-- Retest RPM smoothness on the truck with the D23 polling tiers. If it's still
-  slow, try STN multi-PID Mode 01 batching (up to 6 PIDs per request).
+- D23 polling retested on the truck 2026-11-08 (12 min drive): RPM, boost,
+  speed and VGT at ~7 Hz (median 0.13 s, p95 0.21 s, max 0.3 s), versus a
+  0.66 s stall every second before. Medium tier ~0.9 Hz, slow 5 s. If RPM
+  still feels slow, try STN multi-PID Mode 01 batching (up to 6 PIDs per request).
+- Adapter took ~100 s to connect after switching Simulator -> Truck on
+  2026-11-08 (maybe key off). Watch it.
 - Find the 6R140 TCM gear DID with `jpcan didscan`/`didwatch` on a drive.
   Until then the gear is estimated (D17).
 - Turn signal and headlight telltales are wired to optional channels
