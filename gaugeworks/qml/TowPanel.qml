@@ -11,7 +11,7 @@ Item {
     property bool leftSide: true
     property color acc: "#29c4ff"
     property bool blinkOn: true
-    property real outlineA: 1.0   // outline brightness
+    property real outlineA: 0.35  // outline brightness (JP's pick: L4)
     signal held()
     width: 228; height: 126
 

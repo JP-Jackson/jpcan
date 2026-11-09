@@ -30,10 +30,11 @@ Item {
     property color ghostColor: "#ff6a00"   // JP's pick: O3 deep orange
     property real ghostAlpha: 0.9
     property bool ghostTrail: true
-    property real pkTrailDeg: 9       // peak needle's glow trail: length (degrees) and strength
-    property real pkTrailA: 0.32
-    property color scaleRed: "#c42a35"   // red-zone ticks and numbers on the scales
-    property int ringStyle: 0         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight
+    property real pkTrailDeg: 32       // peak needle's glow trail: length (degrees) and strength
+    property real pkTrailA: 0.75   // JP's pick: K4
+    property color scaleRed: "#9e1f2a"   // red-zone ticks and numbers on the scales
+    property int ringStyle: 0         // 0 current; 1 chrome bevel + soft backlight; 2 chrome + strong backlight; 3 wide turned chrome + backlight;
+                                      // 4-6 round chrome tube (like a hoop earring) + backlight: 4 slim, 5 thick, 6 thick polished
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
@@ -109,7 +110,9 @@ Item {
             var c = getContext("2d"); c.reset()
             if (g.ringStyle === 0) return
             var cx = g.cx + 60, cy = g.cy + 60, R = g.rd, st = g.ringStyle
-            var W = st === 3 ? 20 : 15, glowA = st === 2 ? 0.75 : 0.45, glowW = st === 2 ? 52 : 38
+            var W = st === 3 ? 20 : st === 4 ? 16 : st >= 5 ? 22 : 15
+            var glowA = st === 2 || st === 6 ? 0.75 : 0.5, glowW = st === 2 || st === 6 ? 52 : 40
+            var tube = st >= 4
             var A = g.acc
             function ann(r0, r1, style) { c.beginPath(); c.arc(cx, cy, r1, 0, 2 * Math.PI, false); c.arc(cx, cy, r0, 2 * Math.PI, 0, true); c.fillStyle = style; c.fill() }
             function acc(a) { return Qt.rgba(A.r, A.g, A.b, a) }
@@ -119,6 +122,30 @@ Item {
             ann(R + W - 4, R + W + glowW, bl)
             // shadow the ring casts on the face
             ann(R - 10, R, (function() { var sg = c.createRadialGradient(cx, cy, R - 10, cx, cy, R); sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(1, "rgba(0,0,0,0.85)"); return sg })())
+            if (tube) {
+                // round tube: cast shadow, then a cross-section that's dark at both edges and bright at the crest,
+                // lit from the upper left, with a sharp shine and a faint reflected light underneath
+                ann(R - 2, R + W + 4, (function() { var sh = c.createRadialGradient(cx + 3, cy + 6, R - 2, cx + 3, cy + 6, R + W + 4)
+                    sh.addColorStop(0, "rgba(0,0,0,0)"); sh.addColorStop(0.3, "rgba(0,0,0,0.6)"); sh.addColorStop(0.7, "rgba(0,0,0,0.6)"); sh.addColorStop(1, "rgba(0,0,0,0)"); return sh })())
+                var tb = c.createRadialGradient(cx, cy, R, cx, cy, R + W)
+                tb.addColorStop(0, "#1a1d22"); tb.addColorStop(0.18, "#6b737e"); tb.addColorStop(0.42, "#e8ecf1")
+                tb.addColorStop(0.5, "#ffffff"); tb.addColorStop(0.6, "#c9cfd7"); tb.addColorStop(0.85, "#4a515b"); tb.addColorStop(1, "#14171b")
+                ann(R, R + W, tb)
+                var lt = c.createConicalGradient(cx, cy, Math.PI * 0.75)   // brighter toward the upper left, darker lower right
+                lt.addColorStop(0, "rgba(255,255,255,0.22)"); lt.addColorStop(0.25, "rgba(0,0,0,0)"); lt.addColorStop(0.5, "rgba(0,0,0,0.42)")
+                lt.addColorStop(0.75, "rgba(0,0,0,0)"); lt.addColorStop(1, "rgba(255,255,255,0.22)")
+                ann(R, R + W, lt)
+                var sp = st === 6 ? 0.95 : 0.7
+                c.lineCap = "round"; c.lineWidth = st === 4 ? 2.5 : 3.5
+                c.strokeStyle = "rgba(255,255,255," + sp + ")"
+                c.beginPath(); c.arc(cx, cy, R + W * 0.44, Math.PI * 1.08, Math.PI * 1.42); c.stroke()
+                c.lineWidth = 1.5; c.strokeStyle = "rgba(255,255,255," + (sp * 0.55) + ")"
+                c.beginPath(); c.arc(cx, cy, R + W * 0.44, Math.PI * 1.55, Math.PI * 1.7); c.stroke()
+                c.lineWidth = 2; c.strokeStyle = acc(0.5)   // accent light reflected on the lower edge of the tube
+                c.beginPath(); c.arc(cx, cy, R + W * 0.82, Math.PI * 0.15, Math.PI * 0.85); c.stroke()
+                c.lineWidth = 2.5; c.strokeStyle = acc(0.9); c.beginPath(); c.arc(cx, cy, R + W + 1.5, 0, 2 * Math.PI); c.stroke()
+                return
+            }
             // chrome
             var gr = c.createConicalGradient(cx, cy, Math.PI * 0.44)
             var cs = ["#ffffff", "#7d8692", "#eef1f4", "#3c434c", "#d3d8df", "#ffffff", "#4a515b", "#c1c7cf", "#262b33", "#ffffff"]
