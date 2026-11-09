@@ -40,6 +40,9 @@ Item {
     // stepped dish: the RPM band sits one step below the bezel, the boost band a step lower still.
     // 0 flat; 1 shallow; 2 medium; 3 deep with a chrome step ring; 4 deep with an accent-lit step edge
     property int depthStyle: 0
+    property real depthPx: 0          // >0 overrides the step depth (px); deeper also widens the wall and shadow
+    property bool depthChrome: false  // chrome step wall
+    property bool depthAccent: false  // accent light along the foot of each wall
     readonly property real stepR: 174   // radius of the step between the RPM and boost levels
     property real bezelRefl: 0.8     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
@@ -365,35 +368,37 @@ Item {
     Canvas {
         anchors.fill: parent
         visible: g.depthStyle > 0
-        property var deps: [g.depthStyle, g.acc, g.width]
+        property var deps: [g.depthStyle, g.depthPx, g.depthChrome, g.depthAccent, g.acc, g.width]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
             var st = g.depthStyle; if (!st) return
             var cx = g.cx, cy = g.cy
-            var d = st === 1 ? 3 : st === 2 ? 5 : 7              // how deep each step looks
-            var sa = st === 1 ? 0.45 : st === 2 ? 0.65 : 0.8     // shadow strength
+            var d = g.depthPx > 0 ? g.depthPx : st === 1 ? 3 : st === 2 ? 5 : 7   // how deep each step looks
+            var sa = g.depthPx > 0 ? Math.min(0.95, 0.6 + g.depthPx * 0.02) : st === 1 ? 0.45 : st === 2 ? 0.65 : 0.8
+            var chrome = st === 3 || g.depthChrome, accent = st === 4 || g.depthAccent
             function step(r, depth, level) {
                 // shadow the upper level casts onto the lower one, heavier at the top
                 c.save(); c.beginPath(); c.arc(cx, cy, r, 0, 2 * Math.PI); c.clip()
-                var sg = c.createRadialGradient(cx, cy + depth, r - 16 - depth, cx, cy + depth, r + depth)
+                var sw = 16 + depth * 0.8
+                var sg = c.createRadialGradient(cx, cy + depth, r - sw - depth, cx, cy + depth, r + depth)
                 sg.addColorStop(0, "rgba(0,0,0,0)"); sg.addColorStop(0.55, "rgba(0,0,0," + (sa * 0.35) + ")"); sg.addColorStop(1, "rgba(0,0,0," + sa + ")")
-                c.beginPath(); c.arc(cx, cy + depth, r + depth + 2, 0, 2 * Math.PI, false); c.arc(cx, cy + depth, Math.max(1, r - 16 - depth), 2 * Math.PI, 0, true)
+                c.beginPath(); c.arc(cx, cy + depth, r + depth + 2, 0, 2 * Math.PI, false); c.arc(cx, cy + depth, Math.max(1, r - sw - depth), 2 * Math.PI, 0, true)
                 c.fillStyle = sg; c.fill()
                 // the lower level is a touch darker
                 c.beginPath(); c.arc(cx, cy, r, 0, 2 * Math.PI); c.fillStyle = "rgba(0,0,0," + (0.06 * level) + ")"; c.fill()
                 c.restore()
                 // the wall: dark facing down (top), lit facing up (bottom)
                 var wg = c.createLinearGradient(0, cy - r, 0, cy + r)
-                if (st === 3) { wg.addColorStop(0, "#1a1d22"); wg.addColorStop(0.35, "#5c636d"); wg.addColorStop(0.75, "#cfd5dc"); wg.addColorStop(1, "#f2f5f8") }
+                if (chrome) { wg.addColorStop(0, "#1a1d22"); wg.addColorStop(0.35, "#5c636d"); wg.addColorStop(0.75, "#cfd5dc"); wg.addColorStop(1, "#f2f5f8") }
                 else { wg.addColorStop(0, "rgba(0,0,0,0.9)"); wg.addColorStop(0.5, "rgba(40,52,68,0.6)"); wg.addColorStop(1, "rgba(170,190,215,0.55)") }
-                c.lineWidth = st === 3 ? 3 : depth * 0.6
+                c.lineWidth = chrome ? Math.max(3, depth * 0.35) : depth * 0.6
                 c.strokeStyle = wg; c.beginPath(); c.arc(cx, cy, r - c.lineWidth / 2, 0, 2 * Math.PI); c.stroke()
                 // the lip of the upper level catches light along the top
                 var lg = c.createLinearGradient(0, cy - r, 0, cy + r)
                 lg.addColorStop(0, "rgba(255,255,255,0.28)"); lg.addColorStop(0.5, "rgba(255,255,255,0.04)"); lg.addColorStop(1, "rgba(255,255,255,0)")
                 c.lineWidth = 1.2; c.strokeStyle = lg; c.beginPath(); c.arc(cx, cy, r + 0.8, 0, 2 * Math.PI); c.stroke()
-                if (st === 4) {   // accent light along the foot of the wall
+                if (accent) {   // accent light along the foot of the wall
                     var A = g.acc
                     for (var i = 0; i < 3; i++) { c.lineWidth = 1.5 + i * 3; c.strokeStyle = Qt.rgba(A.r, A.g, A.b, 0.35 - i * 0.1)
                         c.beginPath(); c.arc(cx, cy, r - depth * 0.6 - 1, Math.PI * 0.1, Math.PI * 0.9); c.stroke() }
