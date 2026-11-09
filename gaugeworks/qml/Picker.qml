@@ -12,8 +12,12 @@ Rectangle {
     color: "#ee000000"
     // red line for the reading in this slot (press and hold -> set red line)
     property var li: ({})
+    // The 7" touch board reports a held finger as press, release, press: the second blip could land on a
+    // button right after the picker opens and pick it by accident. Ignore taps for the first 0.5 s.
+    property double openedAt: 0
+    function armed() { return Date.now() - openedAt > 500 }
     function refresh() { li = (visible && current) ? backend.limitFor(current) : ({}) }
-    onVisibleChanged: refresh()
+    onVisibleChanged: { if (visible) openedAt = Date.now(); refresh() }
     onCurrentChanged: refresh()
     function num(x) { var st = li.step || 1; return st < 1 ? x.toFixed(1) : Math.round(x).toLocaleString(Qt.locale("en_US"), "f", 0) }
 
@@ -28,7 +32,7 @@ Rectangle {
         Text { x: 28; y: 20; text: "Show on " + pk.pageName; color: pk.theme.colors.accent; font.pixelSize: 30; font.bold: true }
         Btn { theme: pk.theme; text: "Cancel"; x: 1000 - width - 24; y: 16; onClicked: pk.close() }
         Btn { theme: pk.theme; text: "Reset page"; width: 170; x: 1000 - 150 - 24 - 180; y: 16
-              onClicked: { backend.resetPage(pk.pageName); pk.close() } }
+              onClicked: if (pk.armed()) { backend.resetPage(pk.pageName); pk.close() } }
 
         Flickable {
             x: 24; y: 84; width: 952; height: pk.li.key ? 396 : 480
@@ -43,7 +47,7 @@ Rectangle {
                         theme: pk.theme; width: 182; height: 58
                         text: modelData.label + (modelData.verified ? "" : "?")
                         active: modelData.key === pk.current
-                        onClicked: { backend.setSlot(pk.pageName, pk.slotName, modelData.key); pk.close() }
+                        onClicked: if (pk.armed()) { backend.setSlot(pk.pageName, pk.slotName, modelData.key); pk.close() }
                     }
                 }
             }

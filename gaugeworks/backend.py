@@ -116,6 +116,10 @@ def auto_display(key: str, info: dict) -> dict:
             "label": (info.get("short") or key).upper()}
 
 
+# Slots that never change with the picker: the Towing gauge's RPM and boost rings (JP, 2026-11-09).
+FIXED_SLOTS = {"towing": {"ring", "inner"}}
+
+
 def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict,
                 limits: dict | None = None) -> list[dict]:
     """Profile pages + JP's per-slot picks and red lines -> concrete config for QML."""
@@ -144,7 +148,8 @@ def build_pages(meta: dict, imperial: bool, window_mi: int, overrides: dict,
     pages = []
     for p in gw.get("pages") or []:
         ov = overrides.get(p.get("name", ""), {})
-        slots = {slot: slot_cfg(ov.get(slot, key)) for slot, key in (p.get("slots") or {}).items()}
+        fixed = FIXED_SLOTS.get(p.get("template", "dash"), set())
+        slots = {slot: slot_cfg(key if slot in fixed else ov.get(slot, key)) for slot, key in (p.get("slots") or {}).items()}
         tiles = [tile_cfg(ov.get(f"tile{i}", k)) for i, k in enumerate(p.get("tiles") or [])]
         # gauge configs for tile channels, for theme skins that draw a tile as a dial or bar
         gauges = {t["key"]: slot_cfg(t["key"]) for t in tiles if t["key"] in ch}

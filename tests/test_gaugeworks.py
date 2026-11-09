@@ -159,6 +159,9 @@ def test_towing_page_limits_and_split():
     assert s["ring"]["alarm"] == 3000 and s["ring"]["split"] == 3000
     assert s["inner"]["alarm"] == 20 and s["inner"]["split"] == 20
     assert s["r4"]["dual"] is True                                   # VGT: commanded and actual
+    # the RPM and boost rings never change, even with a saved override (an accidental CEL pick)
+    s = build_pages(meta, True, 10, {tow["name"]: {"inner": "mil", "ring": "mil", "l1": "iat"}})[1]["slots"]
+    assert s["ring"]["key"] == "rpm" and s["inner"]["key"] == "boost" and s["l1"]["key"] == "iat"
     # a red line JP set overrides the profile, per reading
     tow = build_pages(meta, True, 10, {}, {"trans_temp": 225, "rpm": 2800})[1]["slots"]
     assert tow["l2"]["alarm"] == 225 and tow["ring"]["alarm"] == 2800 and tow["box1"]["alarm"] == 2800

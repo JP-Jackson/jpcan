@@ -1,7 +1,7 @@
 // "towing" page (P3): big center gauge (speed, RPM and boost rings, RPM/boost
 // window, gear) between eight panels with range bars. Background texture and
 // the two accent colors come from Settings. Anything at or over its red line
-// blinks at 3 Hz. Every reading can be changed with press and hold.
+// blinks at 3 Hz. Every reading except the RPM and boost rings can be changed in edit mode.
 // Slots: center, ring, inner, box1, box2, l1-l4, r1-r4 (r4 is usually VGT).
 import QtQuick
 import QtQuick.Shapes

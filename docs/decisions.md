@@ -339,3 +339,9 @@ one was active.
   the outside temp big on the right, then the settings button. When the core
   isn't running, its status replaces the date. Page dots move to the bottom.
   Other pages keep their theme's bar.
+
+**2026-11-09:** The Towing gauge's RPM (ring) and boost (inner) slots are fixed
+(`FIXED_SLOTS` in backend.py): taps on them don't open the picker and saved
+overrides for them are ignored. The inner ring had been swapped to CEL (0-1
+scale) by a touch bounce in edit mode, so the picker also ignores taps for
+0.5 s after it opens.

@@ -1013,8 +1013,7 @@ Item {
                 g.held(m.y < box.y + box.height / 2 ? "box1" : "box2"); return
             }
             var d = Math.sqrt((m.x - g.cx) * (m.x - g.cx) + (m.y - g.cy) * (m.y - g.cy))
-            if (d > g.rd + 14) return
-            g.held(d < 96 ? "center" : d < 172 ? "inner" : "ring")
+            if (d < 96) g.held("center")   // the RPM and boost rings are fixed (FIXED_SLOTS)
         }
     }
 }
