@@ -145,6 +145,10 @@ against FORScan or the dash.
   2026-11-08. EGLFS starts, and GaugeWorks uses 10-20% CPU in sim. Needs
   `qt6-svg-plugins` (theme SVGs); Qt packages install without recommends.
 - Truck/Simulator switch is in Settings (D26).
+- Boot screen (D34): black for a few seconds, then the logo until GaugeWorks.
+  Confirmed on the Pi 2026-11-09. Plymouth could shorten the black gap if wanted.
+- GPU memory leak (Shape gradient cache) fixed 2026-11-09: confirm `Shmem` in
+  /proc/meminfo stays low (<100 MB) after a long run.
 - The 7" screen's touch controller can't do press-and-hold: evtest shows a still
   finger reported for ~0.1 s, then dropped (2026-11-08). Settings > Edit page
   turns on edit mode, where a tap on any reading opens the picker. Long press
