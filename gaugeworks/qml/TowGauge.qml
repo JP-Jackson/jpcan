@@ -27,7 +27,7 @@ Item {
     property real trailFade: 0.45
     // peak hold ("ghost"): 0 off, 1 line, 2 ghost needle, 3 rim marker, 4 line + value
     property int ghostStyle: 1        // JP's pick: G1 white peak line
-    property int holdMs: 2000         // hold the peak this long, then ease back to the needle in about 1 s
+    property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
     property real demoIPeak: NaN
     signal held(string slot)
@@ -80,11 +80,11 @@ Item {
         interval: 50; repeat: true; running: g.ghostStyle > 0
         onTriggered: {
             var now = Date.now()
-            // ease back: close ~20% of the gap every 50 ms (about 1 s to reach the needle), with a small floor
+            // ease back: close ~8% of the gap every 50 ms (about 2.5 s to reach the needle), with a small floor
             if (g.rHold > g.rShown && now - g.rHoldT > g.holdMs)
-                g.rHold = Math.max(g.rShown, g.rHold - Math.max((g.rHold - g.rShown) * 0.2, ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.002))
+                g.rHold = Math.max(g.rShown, g.rHold - Math.max((g.rHold - g.rShown) * 0.08, ((g.ringCfg.max || 100) - (g.ringCfg.min || 0)) * 0.001))
             if (g.iHold > g.iShown && now - g.iHoldT > g.holdMs)
-                g.iHold = Math.max(g.iShown, g.iHold - Math.max((g.iHold - g.iShown) * 0.2, ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.002))
+                g.iHold = Math.max(g.iShown, g.iHold - Math.max((g.iHold - g.iShown) * 0.08, ((g.innerCfg.max || 100) - (g.innerCfg.min || 0)) * 0.001))
         }
     }
     readonly property real rPeak: isNaN(demoRPeak) ? rHold : demoRPeak
@@ -220,7 +220,7 @@ Item {
                     var base = inner ? col.toString() : "#e9f1f8"
                     var tc = isRed ? "#ff8a94" : base
                     if (st === 1) tc = isRed ? (passed ? "#ff6b78" : "#7a3a40") : (passed ? (inner ? Qt.lighter(col, 1.3).toString() : "#ffffff") : "#56627a")
-                    else if (st === 2 && passed && !isRed) tc = inner ? "#ffffff" : Qt.lighter(g.acc, 1.45).toString()
+                    else if (st === 2 && passed && !isRed) tc = "#ffffff"
                     else if (st === 3 && passed) tc = "#05080c"
                     else if (st === 4) tc = isRed ? "#ff8a94" : (t === near ? base : (inner ? Qt.darker(col, 1.8).toString() : "#7d8aa0"))
                     if (st === 1 && passed && isMaj) {   // glow behind lit major ticks
@@ -367,12 +367,32 @@ Item {
         visible: show && g.ghostStyle > 0 && Math.abs(angle - g.a0) > 0.5
         x: g.cx; y: g.cy
         rotation: angle
-        Rectangle {   // 1 and 4: thin bright line across the trail
+        Shape {   // 1 and 4: soft light trail fading back from the peak line
             visible: g.ghostStyle === 1 || g.ghostStyle === 4
-            x: gh.r0; y: -1.25; width: gh.r1 - gh.r0; height: 2.5; radius: 1.2; color: "#ffffff"; opacity: 0.85
+            ShapePath { strokeColor: "transparent"
+                fillGradient: ConicalGradient { centerX: 0; centerY: 0; angle: 0
+                    GradientStop { position: 0; color: Qt.rgba(1, 1, 1, 0.28) }
+                    GradientStop { position: 9 / 360; color: Qt.rgba(1, 1, 1, 0) }
+                    GradientStop { position: 1; color: "transparent" } }
+                PathAngleArc { centerX: 0; centerY: 0; radiusX: gh.r1; radiusY: gh.r1; startAngle: -9; sweepAngle: 9 }
+                PathAngleArc { moveToStart: false; centerX: 0; centerY: 0; radiusX: gh.r0; radiusY: gh.r0; startAngle: 0; sweepAngle: -9 } }
         }
-        Rectangle { visible: g.ghostStyle === 1 || g.ghostStyle === 4
-            x: gh.r0 - 2; y: -4; width: gh.r1 - gh.r0 + 4; height: 8; radius: 4; color: Qt.rgba(gh.col.r, gh.col.g, gh.col.b, 0.25) }
+        Rectangle {   // shadow
+            visible: g.ghostStyle === 1 || g.ghostStyle === 4
+            x: gh.r0 + 2; y: 0; width: gh.r1 - gh.r0; height: 5; radius: 2.5; color: "#000000"; opacity: 0.55 }
+        Rectangle {   // glow
+            visible: g.ghostStyle === 1 || g.ghostStyle === 4
+            x: gh.r0 - 2; y: -5.5; width: gh.r1 - gh.r0 + 4; height: 11; radius: 5.5; color: Qt.rgba(1, 1, 1, 0.16) }
+        Rectangle {   // the line: 5 px, shaded like a rounded bar
+            visible: g.ghostStyle === 1 || g.ghostStyle === 4
+            x: gh.r0; y: -2.5; width: gh.r1 - gh.r0; height: 5; radius: 2.5
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#9aa3ad" }
+                GradientStop { position: 0.35; color: "#ffffff" }
+                GradientStop { position: 0.6; color: "#dfe5eb" }
+                GradientStop { position: 1; color: "#5a626d" }
+            }
+        }
         Shape {       // 3: small white marker on the rim, pointing in
             visible: g.ghostStyle === 3
             ShapePath { strokeColor: Qt.rgba(0, 0, 0, 0.8); strokeWidth: 1; fillColor: "#ffffff"
