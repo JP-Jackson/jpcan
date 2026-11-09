@@ -52,6 +52,7 @@ Rectangle {
         // ---- pages (swipe left/right)
         ListView {
             id: pagesView
+            objectName: "pagesView"
             anchors.fill: parent
             orientation: ListView.Horizontal
             cacheBuffer: 1024 * 4   // keep pages alive (skins keep short histories)

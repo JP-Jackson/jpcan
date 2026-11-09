@@ -4,6 +4,7 @@ import math
 import os
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -227,3 +228,10 @@ def test_stale_timeout_follows_each_readings_update_rate():
     assert abs(gap - 5.2) < 0.01 and stale_after(gap) > 12  # 5.6 s gaps no longer blank it
     assert track_gap(t, t + 300, gap) == gap                # key-off gap isn't learned
     assert track_gap(t, t, gap) == gap                      # same reading seen again
+
+
+def test_long_press_survives_finger_drift():
+    """A finger drifting ~12-20 px during a press-and-hold must still open the picker;
+    the page swipe used to take the touch at Qt's ~10 px default."""
+    src = (Path(__file__).resolve().parent.parent / "gaugeworks" / "app.py").read_text()
+    assert "setStartDragDistance(30)" in src

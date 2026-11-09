@@ -158,6 +158,9 @@ def main(argv=None) -> int:
     from .backend import Backend
 
     app = QGuiApplication(sys.argv[:1])
+    # A finger drifts 10+ px during a press-and-hold (more in a moving truck). Qt's default
+    # drag threshold (~10 px) let the page swipe take the touch and cancel the long press.
+    app.styleHints().setStartDragDistance(30)
     app.setApplicationName("GaugeWorks")
     from PySide6.QtGui import QFontDatabase
 
