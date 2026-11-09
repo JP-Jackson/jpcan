@@ -9,6 +9,8 @@ Rectangle {
     readonly property var pages: cfg.pages || []
     readonly property var colors: theme.colors
     readonly property bool oemBar: !!(theme.style && theme.style.topBar === "oem")
+    // The Towing page has its own bar in every theme (B2): big time, date, big outside temp
+    readonly property bool towBar: { var pg = pages[pagesView.currentIndex]; return !!pg && pg.template === "towing" }
     color: colors.background
 
     function askConfirm(title, message, okText, action) {
@@ -124,8 +126,50 @@ Rectangle {
         }
 
         // ---- top bar
+        Rectangle {
+            id: towTop
+            visible: root.towBar
+            z: 6
+            width: parent.width; height: 50
+            gradient: Gradient { GradientStop { position: 0; color: "#1a2532" } GradientStop { position: 0.5; color: "#0a1018" } GradientStop { position: 1; color: "#04070a" } }
+            Rectangle { y: 50; width: parent.width; height: 10
+                        gradient: Gradient { GradientStop { position: 0; color: "#b0000000" } GradientStop { position: 1; color: "transparent" } } }
+            Rectangle { y: 0; width: parent.width; height: 1; color: "#1fffffff" }
+            Text {
+                id: towTime
+                x: 14; anchors.verticalCenter: parent.verticalCenter
+                color: "#eef3f8"; font.family: "Barlow Medium"; font.pixelSize: 46
+                Timer { interval: 1000; running: root.towBar; repeat: true; triggeredOnStart: true
+                        onTriggered: { var n = new Date(); towTime.text = Qt.formatTime(n, "h:mm AP"); towDate.text = Qt.formatDate(n, "dddd, MMMM d") } }
+            }
+            Text {   // the date; replaced by the core's status when it isn't running
+                id: towDate
+                visible: backend.status.state === "running"
+                anchors.centerIn: parent
+                color: "#cfd8e3"; font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 30
+            }
+            Text {
+                visible: backend.status.state !== "running"
+                anchors.centerIn: parent
+                text: "● " + backend.status.text
+                color: backend.status.state === "offline" ? colors.alarm : colors.warn
+                font.family: "Barlow Semi Condensed Medium"; font.pixelSize: 26
+            }
+            Text {
+                anchors.right: towGear.left; anchors.rightMargin: 18; anchors.verticalCenter: parent.verticalCenter
+                text: backend.fresh["ambient"] === true ? backend.values["ambient"].toFixed(0) + (backend.imperial ? "°F" : "°C") : "--°"
+                color: "#eef3f8"; font.family: "Barlow Medium"; font.pixelSize: 46
+            }
+            Text {
+                id: towGear
+                anchors.right: parent.right; anchors.rightMargin: 12; anchors.verticalCenter: parent.verticalCenter
+                text: "⚙"; color: "#dbe7f2"; font.pixelSize: 42
+                MouseArea { anchors.fill: parent; anchors.margins: -12; onClicked: settings.visible = true }
+            }
+        }
         Item {
             id: topBar
+            visible: !root.towBar
             width: parent.width; height: 44
             Row {
                 x: 16; anchors.verticalCenter: parent.verticalCenter; spacing: 10
@@ -248,7 +292,7 @@ Rectangle {
 
         // ---- page dots for the OEM-style bar (bottom centre)
         Row {
-            visible: root.oemBar && root.pages.length > 1 && !settings.visible && !picker.visible && !colorPicker.visible
+            visible: (root.oemBar || root.towBar) && root.pages.length > 1 && !settings.visible && !picker.visible && !colorPicker.visible
                      && !fillup.visible && !history.visible && !exportPanel.visible && !confirm.visible
             anchors.horizontalCenter: parent.horizontalCenter; y: 566; spacing: 9; z: 4
             Repeater {

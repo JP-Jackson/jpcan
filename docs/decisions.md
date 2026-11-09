@@ -334,3 +334,8 @@ one was active.
   and 3/4 marks that turn white once passed, and turns red at 1/8 and below.
   In edit mode, a tap on the puck, groove, RPM row or boost row opens that slot.
   Lockup and tow/haul icons were tried and dropped for now.
+- Towing page top bar (B2, 2026-11-09): the page uses its own bar in every
+  theme, with the time big on the left (46 px), the date centered (30 px) and
+  the outside temp big on the right, then the settings button. When the core
+  isn't running, its status replaces the date. Page dots move to the bottom.
+  Other pages keep their theme's bar.
