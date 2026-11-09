@@ -309,3 +309,8 @@ drifting finger isn't taken by the page swipe.
   crescent. Steps cast shadows onto the floor below, and deeper floors are
   darker. The trails are emissive: drawn above the shadows, they wash their
   color onto the slope and the boost wall from 0 up to the needle.
+- Center dish changed to V4 (2026-11-09; replaces M2): R3-style even steps.
+  A 12 px flat ledge inside the bezel, an 18 px even step down to the RPM floor,
+  and an 18 px even step down to the boost floor. Same wall and shadow all the
+  way around. The RPM trail color glows on the RPM step wall from 0 up to the
+  needle. Scale numbers 25% bigger (RPM 30 px, boost 24 px).

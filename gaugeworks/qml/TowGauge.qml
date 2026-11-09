@@ -39,7 +39,8 @@ Item {
     property real haloA: 0.55
     // stepped dish: the RPM band sits one step below the bezel, the boost band a step lower still.
     // 0 flat; 1 shallow; 2 medium; 3 deep with a chrome step ring; 4 deep with an accent-lit step edge
-    property int depthStyle: 0        // old step shading (replaced by the M2 dish below)
+    property int depthStyle: 2        // JP's pick V4: R3-style even steps for RPM and boost
+    property real numK: 1.25          // scale numbers 25% bigger
     property real depthPx: 18          // >0 overrides the step depth (px); deeper also widens the wall and shadow
     property bool depthChrome: false  // chrome step wall
     property bool depthAccent: false  // accent light along the foot of each wall
@@ -48,13 +49,13 @@ Item {
     // straight wall down to the boost floor. Cab light from above: the slope faces down at the top (dark)
     // and up at the bottom (lit); the boost wall you see is the top one, in shadow. The trails give off
     // light, so they sit above the cast shadows and wash color onto the slope and the wall.
-    property bool dish: true
+    property bool dish: false          // M2 dish, replaced by V4 (R3-style even steps)
     property real chamfer: 14
     property real boostWall: 26
     readonly property real slopeR0: rd - chamfer
-    property real rpmLedge: 0           // flat ledge (px) inside the bezel at the upper level; the RPM step drops off its inner edge
+    property real rpmLedge: 12           // flat ledge (px) inside the bezel at the upper level; the RPM step drops off its inner edge
     readonly property real rpmStepR: rd - rpmLedge
-    property bool wallRefl: false       // RPM trail color reflected on the RPM step wall (0 up to the needle)
+    property bool wallRefl: true       // RPM trail color reflected on the RPM step wall (0 up to the needle)
     property real bezelRefl: 0.8     // the RPM light trail reflected in the bezel's inner edge (0 = off)        // backlight spilling onto the background behind the gauge
     property int holdMs: 3500         // hold the peak this long, then ease back to the needle in about 2.5 s
     property real demoRPeak: NaN      // screenshots only
@@ -545,7 +546,7 @@ Item {
     // ---- scales, red lines and limit markers (painted when the config changes)
     Canvas {
         anchors.fill: parent
-        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2, g.scaleRed, g.scaleStyle, g.rPass, g.iPass]
+        property var deps: [g.ringCfg, g.innerCfg, g.acc, g.acc2, g.scaleRed, g.numK, g.scaleStyle, g.rPass, g.iPass]
         onDepsChanged: requestPaint()
         onPaint: {
             var c = getContext("2d"); c.reset()
@@ -603,7 +604,7 @@ Item {
                     var labelled = t <= sp + 1e-9 ? isMaj : Math.abs((t - sp) / labStep - Math.round((t - sp) / labStep)) < 1e-6
                     if (labelled) {
                         var p = P(inner ? R - 24 : R - 22, a)
-                        var fs = t > sp + 1e-9 ? (inner ? 16 : 19) : (inner ? 19 : 24)
+                        var fs = Math.round((t > sp + 1e-9 ? (inner ? 16 : 19) : (inner ? 19 : 24)) * g.numK)
                         if (st === 4 && t === near) fs = Math.round(fs * 1.5)
                         c.font = fs + "px 'Barlow Semi Condensed SemiBold'"
                         c.fillStyle = st ? tc : (isRed ? g.scaleRed.toString() : (inner ? col.toString() : "#eef3f8"))
