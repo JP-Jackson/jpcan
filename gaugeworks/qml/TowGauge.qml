@@ -20,7 +20,7 @@ Item {
     property color acc2: "#ffb340"
     property bool blinkOn: true
     property int pointerStyle: 2   // 0 cone, 1 bar, 2 blade (JP's pick), 3 line + arrowhead, 4 laser line, 5 rim wedge
-    property int scaleStyle: 0     // 0 static, 1 lit as passed, 2 color as passed, 3 contrast as passed, 4 focus number
+    property int scaleStyle: 2     // JP's pick. 0 static, 1 lit as passed, 2 color as passed, 3 contrast as passed, 4 focus number
     signal held(string slot)
     width: 524; height: 524
 

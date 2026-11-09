@@ -272,3 +272,7 @@ its own skin.
   Colors (two accents from a hue-ring picker; red, amber and green stay fixed).
 - No new Qt modules: shadows and glow are drawn, not effects, and static art is
   painted once with Canvas.
+- Look picked on 2026-11-09: blade needles (N3) with a drop shadow and a dark gap
+  in the trail just behind them; scale marks the needle has passed change color
+  (S2: light accent on RPM, white on boost); white side-panel pointers pointing
+  out toward the screen edge; bigger RPM/boost digits.
