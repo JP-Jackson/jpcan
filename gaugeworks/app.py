@@ -146,7 +146,7 @@ def main(argv=None) -> int:
     ap.add_argument("--splash-ms", type=int, default=2500)
     ap.add_argument("--screenshot", help="render to this PNG and exit")
     ap.add_argument("--settings", action="store_true", help="open the settings menu (screenshots)")
-    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm", "edit", "deleteall", "colors"], help="open a panel (screenshots)")
+    ap.add_argument("--panel", choices=["settings", "fillup", "history", "picker", "export", "confirm", "edit", "deleteall", "colors", "editmode"], help="open a panel (screenshots)")
     ap.add_argument("--page", type=int, help="start on this page index (screenshots)")
     ap.add_argument("--theme", help="theme id (screenshots)")
     args = ap.parse_args(argv)
@@ -216,6 +216,9 @@ def main(argv=None) -> int:
             rows = (feed.fuel or {}).get("rows") or []
             if fu is not None and rows:
                 QMetaObject.invokeMethod(fu, "openEdit", Q_ARG("QVariant", rows[0]))
+        want = None
+    if want == "editmode":
+        backend.setEditMode(True)
         want = None
     if want:
         panel = view.rootObject().findChild(QObject, f"{want}Panel")

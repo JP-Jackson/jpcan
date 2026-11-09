@@ -235,3 +235,24 @@ def test_long_press_survives_finger_drift():
     the page swipe used to take the touch at Qt's ~10 px default."""
     src = (Path(__file__).resolve().parent.parent / "gaugeworks" / "app.py").read_text()
     assert "setStartDragDistance(30)" in src
+
+
+def test_edit_mode_flag(tmp_path, monkeypatch):
+    monkeypatch.setenv("JPCAN_CONFIG", str(tmp_path))
+    monkeypatch.setenv("QT_QPA_PLATFORM", os.environ.get("QT_QPA_PLATFORM", "offscreen"))
+    from PySide6.QtGui import QGuiApplication
+
+    app = QGuiApplication.instance() or QGuiApplication([])  # noqa: F841
+    from core import settings as settings_mod
+    from gaugeworks.app import DemoFeed
+    from gaugeworks.backend import Backend
+
+    b = Backend(DemoFeed("cruise", "ford_f250_67_2014"), {**settings_mod.DEFAULTS}, poll_ms=10_000)
+    seen = []
+    b.editModeChanged.connect(lambda: seen.append(b.editMode))
+    assert b.editMode is False
+    b.setEditMode(True)
+    b.setEditMode(True)                 # no repeat signal
+    b.setEditMode(False)
+    assert seen == [True, False]
+    assert "editMode" not in settings_mod.load()   # not saved: always off after a restart

@@ -292,3 +292,13 @@ its own skin.
   out over 0.15 s), so steady cruising and small wiggles show nothing. Its glow
   trail shows only while it falls back, on the high side, and is longer when
   it falls faster.
+
+## D32. Edit mode instead of press-and-hold on the 7" screen
+evtest on the truck's 7" touch board (wch.cn USB2IIC_CTP_CONTROL) shows a
+finger held still for 3 s reported as a 0.1 s press, a 0.16 s press, then
+nothing for 2 s. The controller stops reporting a stationary finger, so a
+long press can never complete. Settings has an Edit page button: a bar says
+"Tap a reading to change it" and has Done, and a single tap on any reading, on
+any page, opens the picker. Edit mode isn't saved. Long press still works where
+the screen supports it. Also, the Qt drag threshold went up to 30 px, so a
+drifting finger isn't taken by the page swipe.

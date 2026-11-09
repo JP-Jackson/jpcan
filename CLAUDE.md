@@ -145,6 +145,10 @@ against FORScan or the dash.
   2026-11-08. EGLFS starts, and GaugeWorks uses 10-20% CPU in sim. Needs
   `qt6-svg-plugins` (theme SVGs); Qt packages install without recommends.
 - Truck/Simulator switch is in Settings (D26).
+- The 7" screen's touch controller can't do press-and-hold: evtest shows a still
+  finger reported for ~0.1 s, then dropped (2026-11-08). Settings > Edit page
+  turns on edit mode, where a tap on any reading opens the picker. Long press
+  stays for a better screen.
 - Theme rework (v2 mockups, `docs/mockups/v2/KEY.md`): P3 is built (D31).
   Next pages to finish with JP: P1 Daily, P2 Sport, P4 Economy, P5 Trend
   (keeper; needs a value history in GaugeWorks), and Classic C1-C4. Then drop

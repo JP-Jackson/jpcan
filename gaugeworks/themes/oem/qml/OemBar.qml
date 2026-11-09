@@ -65,5 +65,6 @@ Item {
         visible: b.dual && b.ok(b.cfg.desired); y: 14; width: 2; height: 12; color: "#ffffff"
         x: track.width * b.frac(b.v(b.cfg.desired)) - 1
     }
-    MouseArea { anchors.fill: parent; anchors.margins: -4; pressAndHoldInterval: 600; onPressAndHold: b.held() }
+    MouseArea { anchors.fill: parent; anchors.margins: -4; pressAndHoldInterval: 600; onPressAndHold: b.held()
+                onClicked: if (backend.editMode) b.held() }
 }

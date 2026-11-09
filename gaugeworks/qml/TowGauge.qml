@@ -696,7 +696,9 @@ Item {
     MouseArea {
         anchors.fill: parent
         pressAndHoldInterval: 600
-        onPressAndHold: function(m) {
+        onClicked: function(m) { if (backend.editMode) pick(m) }
+        onPressAndHold: function(m) { pick(m) }
+        function pick(m) {
             if (m.x >= box.x && m.x <= box.x + box.width && m.y >= box.y && m.y <= box.y + box.height) {
                 g.held(m.y < box.y + box.height / 2 ? "box1" : "box2"); return
             }

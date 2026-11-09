@@ -156,5 +156,10 @@ Item {
         }
     }
 
-    MouseArea { anchors.fill: parent; pressAndHoldInterval: 600; onPressAndHold: tp.held() }
+    Rectangle {   // edit mode: dashed-looking accent outline so it's clear the panel can be changed
+        anchors.fill: parent; anchors.margins: 6; radius: 6; color: "transparent"
+        visible: backend.editMode; border.color: tp.acc; border.width: 2; opacity: 0.8
+    }
+    MouseArea { anchors.fill: parent; pressAndHoldInterval: 600; onPressAndHold: tp.held()
+                onClicked: if (backend.editMode) tp.held() }
 }

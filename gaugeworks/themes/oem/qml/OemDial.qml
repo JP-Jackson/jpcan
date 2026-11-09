@@ -246,5 +246,6 @@ Item {
         anchors.fill: parent
         pressAndHoldInterval: 600
         onPressAndHold: d.held()
+        onClicked: if (backend.editMode) d.held()
     }
 }

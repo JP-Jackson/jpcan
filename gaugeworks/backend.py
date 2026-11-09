@@ -278,6 +278,7 @@ class Backend(QObject):
     fuelChanged = Signal()
     usbChanged = Signal()
     sourceChanged = Signal()
+    editModeChanged = Signal()
     message = Signal(str)
 
     def __init__(self, feed, settings: dict | None = None, poll_ms: int = 50):
@@ -296,6 +297,7 @@ class Backend(QObject):
         self._fuel: dict = {}
         self._last_result_ts = None
         self._source = read_source_mode()
+        self._edit = False
         self._source_checked = 0.0
         self._meta_sig = None
         from .usb import UsbExporter
@@ -340,6 +342,16 @@ class Backend(QObject):
         return "sim" if (self.feed.meta or {}).get("sim") else "truck"
 
     sourceMode = Property(str, _source_mode, notify=sourceChanged)
+
+    # Edit mode: a single tap on any reading opens the picker. The 7" screen's touch
+    # controller drops a still finger after ~0.1 s, so press-and-hold can't work on it.
+    editMode = Property(bool, lambda self: self._edit, notify=editModeChanged)
+
+    @Slot(bool)
+    def setEditMode(self, on: bool) -> None:
+        if bool(on) != self._edit:
+            self._edit = bool(on)
+            self.editModeChanged.emit()
 
     def _refresh_source(self) -> None:
         m = read_source_mode()

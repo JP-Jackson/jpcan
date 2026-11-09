@@ -37,7 +37,8 @@ Item {
                        anchors.bottomMargin: 10; text: c.units; color: p.theme.colors.dim; font.pixelSize: 22 }
                 MouseArea { anchors.fill: parent; pressAndHoldInterval: 600
                             onPressAndHold: p.pick("tile" + index, c.key)
-                            onClicked: if (c.key === "econ_trip" || c.key === "econ_last")
+                            onClicked: if (backend.editMode) p.pick("tile" + index, c.key)
+                                       else if (c.key === "econ_trip" || c.key === "econ_last")
                                            p.resetAsk(c.key === "econ_trip" ? "trip" : "roll") }
             }
         }

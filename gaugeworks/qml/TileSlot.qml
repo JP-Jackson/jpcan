@@ -13,6 +13,7 @@ Tile {
         anchors.fill: parent
         pressAndHoldInterval: 600
         onPressAndHold: ts.pick("tile" + ts.index, ts.cfg.key || "")
-        onClicked: if (ts.resetKind !== "") ts.resetAsk(ts.resetKind)
+        onClicked: if (backend.editMode) ts.pick("tile" + ts.index, ts.cfg.key || "")
+                   else if (ts.resetKind !== "") ts.resetAsk(ts.resetKind)
     }
 }

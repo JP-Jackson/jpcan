@@ -106,5 +106,6 @@ Item {
         color: s.colors.dim
         font.family: "Barlow Semi Condensed SemiBold"; font.pixelSize: Math.round(8 * s.k); font.letterSpacing: 1.5
     }
-    MouseArea { anchors.fill: parent; pressAndHoldInterval: 600; onPressAndHold: s.held() }
+    MouseArea { anchors.fill: parent; pressAndHoldInterval: 600; onPressAndHold: s.held()
+                onClicked: if (backend.editMode) s.held() }
 }

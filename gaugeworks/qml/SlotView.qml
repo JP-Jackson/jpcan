@@ -44,5 +44,6 @@ Item {
         anchors.fill: parent
         pressAndHoldInterval: 600
         onPressAndHold: sv.pick(sv.slotName, sv.cfg.key || "")
+        onClicked: if (backend.editMode) sv.pick(sv.slotName, sv.cfg.key || "")
     }
 }

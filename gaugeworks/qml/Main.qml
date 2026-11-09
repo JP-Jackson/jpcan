@@ -406,6 +406,19 @@ Rectangle {
             }
         }
 
+        // ---- edit mode bar: tap any reading to change it
+        Rectangle {
+            visible: backend.editMode && !picker.visible
+            z: 60
+            width: parent.width; height: 56
+            color: "#0d141c"; border.color: colors.accent; border.width: 2
+            Text { x: 20; anchors.verticalCenter: parent.verticalCenter
+                   text: "EDIT  ·  Tap a reading to change it"; color: colors.text
+                   font.pixelSize: 26; font.bold: true }
+            Btn { theme: root.theme; anchors.right: parent.right; anchors.rightMargin: 10; anchors.verticalCenter: parent.verticalCenter
+                  width: 150; height: 44; text: "Done"; active: true; onClicked: backend.setEditMode(false) }
+        }
+
         // ---- simulator badge: always on top in sim mode, so fake numbers can't pass as real
         Rectangle {
             visible: backend.sourceMode === "sim" && !demoMode

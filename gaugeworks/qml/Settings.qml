@@ -165,6 +165,8 @@ Rectangle {
                 }
             }
             Btn { theme: s.theme; width: 190; text: "USB export"; onClicked: s.openExport() }
+            Btn { theme: s.theme; width: 190; text: "Edit page"; active: true
+                  onClicked: { backend.setEditMode(true); s.close() } }
             Text {
                 text: "Unplug after the\ngreen LED stops."
                 color: s.theme.colors.dim; font.pixelSize: 16
